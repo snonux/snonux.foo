@@ -529,21 +529,50 @@
     // Drawing
     // ------------------------------------------------------------------
 
-    function drawFloor(s, ctx) {
-        var h = ROWS * CELL, k;
+    // Batch each grid colour into one path when building the cached floor.
+    function drawGrid(ctx, vertical, major) {
+        var count = vertical ? COLS : ROWS;
+        ctx.strokeStyle = vertical ? (major ? 'rgba(0,245,255,0.13)' : 'rgba(0,245,255,0.05)') :
+            (major ? 'rgba(255,0,204,0.13)' : 'rgba(255,0,204,0.05)');
+        ctx.beginPath();
+        for (var k = 0; k <= count; k++) {
+            if (((vertical ? k : k + 1) % 4 === 0) !== major) continue;
+            var p = k * CELL + 0.5;
+            if (vertical) { ctx.moveTo(p, OY); ctx.lineTo(p, OY + ROWS * CELL); }
+            else { ctx.moveTo(0, OY + p); ctx.lineTo(G.W, OY + p); }
+        }
+        ctx.stroke();
+    }
+
+    // These detached canvases belong to the level state, so restarting or
+    // switching levels cannot reuse a floor or border from another arena.
+    function layer(scale) {
+        var pic = document.createElement('canvas');
+        pic.width = Math.round(G.W * scale); pic.height = Math.round(G.H * scale);
+        pic.getContext('2d').scale(scale, scale);
+        return pic;
+    }
+
+    function floorLayer(scale) {
+        var pic = layer(scale), ctx = pic.getContext('2d');
         ctx.fillStyle = C.bg;
         ctx.fillRect(0, 0, G.W, G.H);
         ctx.lineWidth = 1;
-        for (k = 0; k <= COLS; k++) {
-            ctx.strokeStyle = k % 4 ? 'rgba(0,245,255,0.05)' : 'rgba(0,245,255,0.13)';
-            ctx.beginPath(); ctx.moveTo(k * CELL + 0.5, OY); ctx.lineTo(k * CELL + 0.5, OY + h); ctx.stroke();
+        drawGrid(ctx, true, false); drawGrid(ctx, true, true);
+        drawGrid(ctx, false, false); drawGrid(ctx, false, true);
+        return pic;
+    }
+
+    function drawFloor(s, ctx) {
+        // Match the engine's device scale so cached lines stay as sharp as
+        // live geometry, including after a window resize or phone rotation.
+        var scale = ctx.getTransform().a;
+        if (!s.floor || s.layerScale !== scale) {
+            s.floor = floorLayer(scale); s.layerScale = scale; s.border = null;
         }
-        for (k = 0; k <= ROWS; k++) {
-            ctx.strokeStyle = (k + 1) % 4 ? 'rgba(255,0,204,0.05)' : 'rgba(255,0,204,0.13)';
-            ctx.beginPath(); ctx.moveTo(0, OY + k * CELL + 0.5); ctx.lineTo(G.W, OY + k * CELL + 0.5); ctx.stroke();
-        }
+        ctx.drawImage(s.floor, 0, 0, s.floor.width / scale, s.floor.height / scale);
         // A scan line sweeps the floor so the arena is never completely still.
-        var sy = OY + (s.time * 90) % h, grad = ctx.createLinearGradient(0, sy - 40, 0, sy);
+        var sy = OY + (s.time * 90) % (ROWS * CELL), grad = ctx.createLinearGradient(0, sy - 40, 0, sy);
         grad.addColorStop(0, 'rgba(0,245,255,0)'); grad.addColorStop(1, 'rgba(0,245,255,0.10)');
         ctx.fillStyle = grad;
         ctx.fillRect(0, Math.max(OY, sy - 40), G.W, sy - Math.max(OY, sy - 40));
@@ -560,9 +589,9 @@
         });
     }
 
-    // The collapsed border, and a band on the ring that goes next which
-    // blinks faster as its time runs out.
-    function drawCollapse(s, ctx) {
+    function borderLayer(s) {
+        var pic = layer(s.layerScale), ctx = pic.getContext('2d');
+        drawBlocks(s, ctx);
         var t = s.ring * CELL, w = G.W - 2 * t, h = ROWS * CELL - 2 * t;
         if (t) {
             ctx.fillStyle = 'rgba(255,0,204,0.20)';
@@ -572,8 +601,18 @@
         ctx.shadowColor = t ? C.magenta : C.cyan; ctx.shadowBlur = 12;
         ctx.strokeStyle = t ? C.magenta : C.cyan; ctx.lineWidth = 2;
         ctx.strokeRect(t + 1, OY + t + 1, w - 2, h - 2);
-        ctx.shadowBlur = 0;
+        return pic;
+    }
+
+    // Only a collapse changes these walls. Cache their glow instead of
+    // blurring an arena-sized surface every frame; keep the warning animated.
+    function drawCollapse(s, ctx) {
+        if (!s.border || s.borderRing !== s.ring) {
+            s.border = borderLayer(s); s.borderRing = s.ring;
+        }
+        ctx.drawImage(s.border, 0, 0, s.border.width / s.layerScale, s.border.height / s.layerScale);
         if (!s.cfg.shrink || s.ring >= MAX_RING || s.phase !== 'run') return;
+        var t = s.ring * CELL, w = G.W - 2 * t, h = ROWS * CELL - 2 * t;
         var urgent = s.shrinkT < 1.3, blink = 0.5 + 0.5 * Math.sin(s.time * (urgent ? 26 : 5));
         ctx.strokeStyle = 'rgba(255,0,204,' + (urgent ? 0.25 + 0.5 * blink : 0.08 + 0.08 * blink) + ')';
         ctx.lineWidth = CELL;
@@ -664,7 +703,6 @@
 
     function draw(s, ctx) {
         drawFloor(s, ctx);
-        drawBlocks(s, ctx);
         drawCollapse(s, ctx);
         drawPod(s, ctx);
         // The player is drawn last so the cyan cycle is never hidden.
