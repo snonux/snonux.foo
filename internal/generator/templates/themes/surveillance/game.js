@@ -33,6 +33,12 @@
     var BEAM_ON = 1.5;          // seconds a tripwire stays live per blink
     var BEAM_WARN = 0.4;        // seconds a dark tripwire flickers before it goes live
     var TIP_TIME = 8;           // seconds a level's hint stays on screen
+    var PHONE_TIPS = [
+        'WALLS BLOCK CONES', 'LET GUARDS PASS', 'CROSS BEAMS WHILE DARK',
+        'PLATES: DETOUR OR EMP', 'RUNNING ATTRACTS DRONES', 'ROUND CAMERAS KEEP TURNING',
+        'VAULT: EMP IN AND OUT', 'MOVING BEAMS: USE ALCOVES', 'SAVE AN EMP FOR THE EXIT',
+        'LIGHTS SEE OVER WALLS'
+    ];
     var DIRS = [[1, 0], [-1, 0], [0, 1], [0, -1]];
     var FACING = { '>': 0, 'v': Math.PI / 2, '<': Math.PI, '^': -Math.PI / 2 };
 
@@ -449,7 +455,7 @@
             def: def, map: def.map, level: level, start: null, exit: null,      // every map has an S and an X
             drives: [], cells: [], plates: [], cams: [], lasers: [], drones: [], guards: [], lights: [], marks: {}, rings: [],
             det: 0, rate: 0, seen: false, time: def.time, clock: 0, emp: def.emp, empT: 0, empFx: 0, safe: 0, got: 0, open: false,
-            alarmT: 0, stepT: 0, player: null
+            alarmT: 0, stepT: 0, player: null, touch: G.isTouch(), plan: null
         };
         for (var ty = 1; ty <= ROWS; ty++) {
             for (var tx = 0; tx < COLS; tx++) placeTile(s, tileAt(s, tx, ty), tx, ty, rnd);
@@ -875,12 +881,10 @@
     // picture as large as the game canvas, and copied from there. It is
     // painted again when another level's map is shown or when the canvas
     // changes size (a resized window, a turned phone).
-    var plan = { map: null, w: 0, h: 0, pic: null };
-
     function drawWalls(s, ctx) {
-        var w = ctx.canvas.width, h = ctx.canvas.height, g;
-        if (plan.map !== s.map || plan.w !== w || plan.h !== h) {
-            plan = { map: s.map, w: w, h: h, pic: plan.pic || document.createElement('canvas') };
+        var w = ctx.canvas.width, h = ctx.canvas.height, g, plan = s.plan;
+        if (!plan || plan.w !== w || plan.h !== h) {
+            plan = s.plan = { w: w, h: h, pic: plan ? plan.pic : document.createElement('canvas') };
             plan.pic.width = w; plan.pic.height = h;    // also wipes the old picture
             g = plan.pic.getContext('2d');
             g.setTransform(w / G.W, 0, 0, h / G.H, 0, 0);
@@ -894,8 +898,8 @@
     // meets a wall. Between two neighbouring rays the outline is a straight
     // line, so at a wall's shadow edge it can be off by the gap between
     // them: about 3 px at the far end of a camera cone, less nearer in.
-    function sightPath(s, ctx, o, from, to, range) {
-        var n = Math.ceil((to - from) / RAY_STEP);
+    function sightPath(s, ctx, o, from, to, range, step) {
+        var n = Math.ceil((to - from) / (step || RAY_STEP));
         for (var i = 0; i <= n; i++) {
             var a = from + (to - from) * i / n, dx = Math.cos(a), dy = Math.sin(a), d = castRay(s, o.x, o.y, dx, dy, range);
             ctx.lineTo(o.x + dx * d, o.y + dy * d);
@@ -921,13 +925,13 @@
         s.plates.forEach(function (pl) {
             var x = pl.tx * T, y = pl.ty * T, c = pl.off > 0 && !(pl.off < 1 && Math.floor(G.t * 10) % 2) ? GREY : RED;
             ctx.strokeStyle = c;
-            ctx.lineWidth = 1;
+            ctx.lineWidth = s.touch ? 2 : 1;
             ctx.strokeRect(x + 4.5, y + 4.5, T - 9, T - 9);
             ctx.globalAlpha = pl.off > 0 ? 0.12 : 0.3 + 0.15 * Math.sin(G.t * 3 + pl.tx);
             ctx.fillStyle = c;
             ctx.fillRect(x + 8, y + 8, T - 16, T - 16);
             ctx.globalAlpha = 1;
-            if (pl.off > 0) G.text(Math.ceil(pl.off) + 's', pl.x, pl.y + 4, { size: 10, color: GREY, align: 'center' });
+            if (pl.off > 0) G.text(Math.ceil(pl.off) + 's', pl.x, pl.y + 4, { size: s.touch ? 16 : 10, color: GREY, align: 'center' });
         });
     }
 
@@ -942,7 +946,7 @@
             ctx.fillRect(e.x - 12, e.y - 12, 24, 24);
             ctx.globalAlpha = 1;
         }
-        G.text(s.open ? 'EXIT' : 'LOCK', e.x, e.y + 4, { size: 10, color: s.open ? PHOS : GREY, align: 'center', bold: true });
+        G.text(s.touch ? (s.open ? 'GO' : '×') : (s.open ? 'EXIT' : 'LOCK'), e.x, e.y + (s.touch ? 6 : 4), { size: s.touch ? 18 : 10, color: s.open ? PHOS : GREY, align: 'center', bold: true });
     }
 
     function drawLasers(s, ctx) {
@@ -951,7 +955,7 @@
             ctx.strokeStyle = l.off > 0 && !warm ? GREY : RED;
             // dark: faint dashes; about to go live: the dashes flash
             ctx.globalAlpha = live ? 0.75 + 0.25 * Math.sin(G.t * 40) : (warm ? 0.5 + 0.5 * Math.sin(G.t * 50) : 0.25);
-            ctx.lineWidth = live || warm ? 2 : 1;
+            ctx.lineWidth = s.touch ? (live || warm ? 3 : 2) : (live || warm ? 2 : 1);
             ctx.setLineDash(live ? [] : [3, 5]);
             ctx.beginPath(); ctx.moveTo(l.x1, l.y1); ctx.lineTo(l.x2, l.y2); ctx.stroke();
             ctx.setLineDash([]);
@@ -980,7 +984,7 @@
         s.drives.forEach(function (d) {
             if (d.got) return;
             ctx.fillStyle = GREEN;
-            ctx.fillRect(d.x - 6, d.y - 7 + bob, 12, 14);
+            ctx.fillRect(d.x - (s.touch ? 8 : 6), d.y - (s.touch ? 9 : 7) + bob, s.touch ? 16 : 12, s.touch ? 18 : 14);
             ctx.fillStyle = BG;
             ctx.fillRect(d.x - 3, d.y - 7 + bob, 6, 4);
             ctx.fillRect(d.x - 4, d.y + 1 + bob, 8, 4);
@@ -990,7 +994,7 @@
             ctx.strokeStyle = PHOS;
             ctx.lineWidth = 1.5;
             ctx.beginPath(); ctx.arc(c.x, c.y, 8 + bob * 0.5, 0, Math.PI * 2); ctx.stroke();
-            G.text('E', c.x, c.y + 4, { size: 11, color: PHOS, align: 'center', bold: true });
+            G.text('E', c.x, c.y + 4, { size: s.touch ? 16 : 11, color: PHOS, align: 'center', bold: true });
         });
     }
 
@@ -1005,7 +1009,7 @@
             ctx.fillRect(4, -3, 5, 6);
             ctx.restore();
             // A countdown over a dead camera shows how long the blind spot lasts.
-            if (c.off > 0) G.text(Math.ceil(c.off) + 's', c.x, c.y - 10, { size: 10, color: GREY, align: 'center' });
+            if (c.off > 0) G.text(Math.ceil(c.off) + 's', c.x, c.y - 10, { size: s.touch ? 16 : 10, color: GREY, align: 'center' });
         });
     }
 
@@ -1034,7 +1038,8 @@
             ctx.setLineDash([4, 4]);
             ctx.lineDashOffset = -d.spin * 20;
             // The ring is cut off by walls exactly as the drone's sight is.
-            ctx.beginPath(); sightPath(s, ctx, d, 0, Math.PI * 2, DRONE_R); ctx.stroke();
+            // At this short radius, phone ring segments stay under 2px apart.
+            ctx.beginPath(); sightPath(s, ctx, d, 0, Math.PI * 2, DRONE_R, s.touch ? 0.03 : RAY_STEP); ctx.stroke();
             ctx.setLineDash([]);
             ctx.globalAlpha = 1;
             ctx.save();
@@ -1053,9 +1058,14 @@
         // Blinking marks the moment of grace after a respawn.
         if (s.safe > 0 && Math.floor(G.t * 12) % 2) return;
         ctx.fillStyle = PHOS;
-        ctx.shadowColor = GREEN; ctx.shadowBlur = 10;
+        ctx.shadowColor = GREEN; ctx.shadowBlur = s.touch ? 0 : 10;
         ctx.beginPath(); ctx.arc(p.cx, p.cy, 7, 0, Math.PI * 2); ctx.fill();
         ctx.shadowBlur = 0;
+        if (s.touch) {
+            // A bright locator survives phone scaling without enlarging the hitbox.
+            ctx.strokeStyle = PHOS; ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.arc(p.cx, p.cy, 10, 0, Math.PI * 2); ctx.stroke();
+        }
         ctx.strokeStyle = BG;
         ctx.lineWidth = 2;
         ctx.beginPath(); ctx.moveTo(p.cx, p.cy);
@@ -1086,7 +1096,7 @@
     // scanline, and a red frame while anything is watching.
     function drawConsole(s, ctx) {
         var w = 300, x = (G.W - w) / 2, y = G.H - 21, fill = Math.min(1, s.det);
-        G.text('DETECTION', x - 10, y + 10, { size: 12, color: s.seen ? RED : GREY, align: 'right' });
+        G.text('DETECTION', x - 10, y + 10, { size: s.touch ? 20 : 12, color: s.seen ? RED : GREY, align: 'right' });
         ctx.strokeStyle = s.seen ? RED : GREY;
         ctx.lineWidth = 1;
         ctx.strokeRect(x + 0.5, y + 0.5, w, 12);
@@ -1107,7 +1117,7 @@
     // 20px, because on a phone the canvas is drawn at about half size.
     function drawTip(s) {
         if (!s.def.tip || s.clock >= TIP_TIME) return;
-        G.text(s.def.tip, G.W / 2, G.HUD + 22, { size: 20, color: s.clock > TIP_TIME - 1 ? GREY : PHOS, align: 'center', bold: true, max: G.W - 40 });
+        G.text(s.touch ? PHONE_TIPS[s.level - 1] : s.def.tip, G.W / 2, G.HUD + 22, { size: s.touch ? 24 : 20, color: s.clock > TIP_TIME - 1 ? GREY : PHOS, align: 'center', bold: true, max: G.W - 40 });
     }
 
     function draw(s, ctx) {
@@ -1134,6 +1144,7 @@
     // An empty EMP shows the seconds until its next charge instead.
     function hud(s) {
         var emp = s.emp > 0 ? s.emp : '0 +' + Math.ceil(EMP_RECHARGE - s.empT) + 's';
+        if (s.touch) return 'DATA ' + s.got + '/' + s.drives.length + '  EMP ' + emp + '  ' + Math.max(0, Math.ceil(s.time)) + 's';
         return 'DRIVES ' + s.got + '/' + s.drives.length + '  EMP ' + emp + '  TRACE ' + Math.max(0, Math.ceil(s.time));
     }
 
@@ -1141,10 +1152,10 @@
         title: 'BLIND SPOT',
         blurb: 'Steal every data drive and reach the exit without being seen.',
         controls: [
-            '← ↑ ↓ → / pad sneak · hold X / RUN to sprint (loud: guards and drones come looking)',
-            'SPACE / EMP: nearby devices go dark for 5s · an empty EMP recharges in 20s',
-            'Walls block cones and drone rings, not searchlights · live beams and plates catch at once',
-            'Caught: a life and every drive are gone, the trace starts over · trace complete: game over'
+            'Arrows / pad: sneak · X / RUN: loud sprint',
+            'SPACE / EMP: devices dark for 5s · empty recharges in 20s',
+            'Walls block cones / drones · live beams / plates catch instantly',
+            'Caught: restart, lose a life · trace runs out: game over'
         ],
         levelNames: ['Orientation', 'Night Shift', 'Tripwire', 'Pressure', 'Hive', 'Server Farm', 'The Vault', 'Sweep', 'Panopticon', 'Searchlight Grid'],
         colors: { bg: BG, fg: PHOS, accent: GREEN, dim: GREY },
