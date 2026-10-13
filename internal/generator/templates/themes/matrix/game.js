@@ -8,7 +8,7 @@
  * an agent can always be taken down by running into its back. Sentinel
  * drones ignore bullet time altogether. Clear the room to win the level.
  *
- * A mouse aims by hovering, which a phone cannot do. On a coarse pointer the
+ * A mouse aims by hovering, which a phone cannot do. On the touch pad the
  * game therefore aims for the player: FIRE shoots the nearest hostile in
  * sight, a tap on the canvas shoots the hostile under the finger, and a
  * reticle shows which one the next round is for. Desktop play is unchanged.
@@ -263,7 +263,15 @@
         return s;
     }
 
-    function say(s, text) { s.msg = text; s.msgT = 2.2; }
+    function say(s, text) {
+        var short = {
+            'UNARMED — TAKE A GUN FROM BEHIND': 'UNARMED: ATTACK FROM BEHIND',
+            'EMPTY — TAKE THEM FROM BEHIND': 'EMPTY: ATTACK FROM BEHIND',
+            'TRACE COMPLETE — AGENTS INBOUND': 'ALERT: AGENTS INBOUND',
+            'OPERATOR: DEAD DROP AT THE MARKER': 'AMMO AT DROP MARKER'
+        };
+        s.msg = s.touch && short[text] ? short[text] : text; s.msgT = 2.2;
+    }
 
     // Floating text, kept clear of the canvas edges and of the HUD it rises
     // toward, so a kill next to a wall still shows its whole label.
@@ -861,9 +869,9 @@
         ctx.font = G.font(18);
         ctx.textAlign = 'center';
         ctx.fillStyle = MID;
-        for (var c = 0; c < COLS; c++) {
+        for (var c = 0; c < COLS; c += s.touch ? 2 : 1) {
             var head = (s.anim * (70 + (c * 37) % 60) + c * 131) % (G.H + 140);
-            for (var k = 0; k < 7; k++) {
+            for (var k = 0; k < (s.touch ? 4 : 7); k++) {
                 var row = Math.floor((head - k * 18) / 18);
                 if (row < 3 || row > 29) continue;
                 ctx.globalAlpha = (k === 0 ? 0.55 : 0.3) * (1 - k / 7);
@@ -902,14 +910,14 @@
     // The operator's drop point: always marked, and it fills up while a
     // dead drop is on its way so the wait is visible.
     function drawCache(s, ctx) {
-        var x = mid(s.lv.cache[0]), y = mid(s.lv.cache[1]), k = G.clamp(s.dropT / s.tune.drop, 0, 1);
+        var x = mid(s.lv.cache[0]), y = mid(s.lv.cache[1]), k = G.clamp(s.dropT / s.tune.drop, 0, 1), half = s.touch ? 34 : 20;
         ctx.strokeStyle = k > 0 ? PALE : MID; ctx.lineWidth = 1.5;
         ctx.setLineDash([5, 4]);
-        ctx.strokeRect(x - 20, y - 12, 40, 24);   // wide enough to hold its label
+        ctx.strokeRect(x - half, y - 12, half * 2, 24);   // wide enough to hold its label
         ctx.setLineDash([]);
         ctx.fillStyle = 'rgba(216,255,224,0.3)';
-        ctx.fillRect(x - 20, y + 12 - 24 * k, 40, 24 * k);
-        G.text('DROP', x, y + 4, { size: 12, color: k > 0 ? PALE : MID, align: 'center' });
+        ctx.fillRect(x - half, y + 12 - 24 * k, half * 2, 24 * k);
+        G.text('DROP', x, y + 4, { size: s.touch ? 24 : 12, color: k > 0 ? PALE : MID, align: 'center' });
     }
 
     function drawPickups(s, ctx) {
@@ -947,7 +955,7 @@
         }
         if (a.wind <= 0) return;
         var k = G.clamp(a.wind / (a.k.wind * s.tune.wind), 0, 1), len = G.dist(a.x, a.y, s.p.x, s.p.y);
-        ctx.strokeStyle = RED; ctx.lineWidth = 1 + k * 1.5; ctx.globalAlpha = 0.25 + 0.6 * k;
+        ctx.strokeStyle = RED; ctx.lineWidth = (s.touch ? 3 : 1) + k * 1.5; ctx.globalAlpha = (s.touch ? 0.4 : 0.25) + 0.6 * k;
         ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(a.x + Math.cos(a.face) * len, a.y + Math.sin(a.face) * len); ctx.stroke();
         ctx.beginPath(); ctx.arc(a.x, a.y, a.r + 10 * (1 - k), 0, TAU); ctx.stroke();
         ctx.globalAlpha = 1;
@@ -958,7 +966,7 @@
             drawIntent(s, ctx, a);
             // Reinforcements flicker in; a dodging agent blurs into a ghost.
             ctx.globalAlpha = a.spawn > 0 ? 0.25 + 0.3 * Math.sin(s.anim * 40) : (a.dodge > 0 ? 0.45 : 1);
-            drawFigure(ctx, a, a.kind === 's' ? 13 : 11, '#02130a', a.k.color);
+            drawFigure(ctx, a, s.touch ? (a.kind === 's' ? 17 : 15) : (a.kind === 's' ? 13 : 11), '#02130a', a.k.color);
             ctx.globalAlpha = 1;
             if (a.flash > 0) {
                 ctx.fillStyle = PALE;
@@ -974,14 +982,14 @@
         ctx.translate(d.x, d.y);
         ctx.rotate(Math.atan2(s.p.y - d.y, s.p.x - d.x));
         ctx.globalAlpha = d.wake > 0 ? 0.35 + 0.25 * Math.sin(d.swim * 3) : 1;
-        ctx.strokeStyle = MID; ctx.lineWidth = 2;
+        ctx.strokeStyle = s.touch ? GREEN : MID; ctx.lineWidth = s.touch ? 3 : 2;
         for (var i = -2; i <= 2; i++) {
             ctx.beginPath(); ctx.moveTo(-8, i * 4);
             ctx.quadraticCurveTo(-22, i * 7 + Math.sin(d.swim + i) * 6, -36, i * 9 + Math.sin(d.swim * 1.3 + i * 2) * 8);
             ctx.stroke();
         }
         ctx.fillStyle = '#0a160d'; ctx.strokeStyle = RED;
-        ctx.beginPath(); ctx.arc(0, 0, d.r, 0, TAU); ctx.fill(); ctx.stroke();
+        ctx.beginPath(); ctx.arc(0, 0, s.touch ? 17 : d.r, 0, TAU); ctx.fill(); ctx.stroke();
         ctx.fillStyle = RED;                      // one eye per hit it can still take
         for (i = 0; i < d.hp; i++) {
             ctx.beginPath(); ctx.arc(5, (i - (d.hp - 1) / 2) * 7, 2.5, 0, TAU); ctx.fill();
@@ -994,7 +1002,7 @@
     function drawBullets(s, ctx) {
         s.bullets.forEach(function (b) {
             var mine = b.own === s.p, tx = b.x - b.vx * 0.07, ty = b.y - b.vy * 0.07;
-            ctx.strokeStyle = mine ? PALE : RED; ctx.lineWidth = 3; ctx.globalAlpha = 0.9;
+            ctx.strokeStyle = mine ? PALE : RED; ctx.lineWidth = s.touch ? 5 : 3; ctx.globalAlpha = 0.9;
             ctx.beginPath(); ctx.moveTo(tx, ty); ctx.lineTo(b.x, b.y); ctx.stroke();
             ctx.lineWidth = 1;
             for (var i = 1; !mine && s.ts < 0.6 && i <= 3; i++) {
@@ -1002,7 +1010,7 @@
                 ctx.beginPath(); ctx.arc(G.lerp(b.x, tx, i / 3), G.lerp(b.y, ty, i / 3), 2 + i * 2, 0, TAU); ctx.stroke();
             }
             ctx.globalAlpha = 1; ctx.fillStyle = '#fff';
-            ctx.beginPath(); ctx.arc(b.x, b.y, mine ? 2.5 : 3.5, 0, TAU); ctx.fill();
+            ctx.beginPath(); ctx.arc(b.x, b.y, s.touch ? (mine ? 4 : 6) : (mine ? 2.5 : 3.5), 0, TAU); ctx.fill();
         });
     }
 
@@ -1014,8 +1022,8 @@
         ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p.x + Math.cos(s.aim) * 90, p.y + Math.sin(s.aim) * 90); ctx.stroke();
         ctx.setLineDash([]);
         ctx.globalAlpha = 1;
-        ctx.shadowColor = PALE; ctx.shadowBlur = 12;
-        drawFigure(ctx, { x: p.x, y: p.y, face: s.aim }, 10, '#0b0f0c', PALE);
+        ctx.shadowColor = PALE; ctx.shadowBlur = s.touch ? 0 : 12;
+        drawFigure(ctx, { x: p.x, y: p.y, face: s.aim }, s.touch ? 15 : 10, '#0b0f0c', PALE);
         ctx.shadowBlur = 0;
         if (s.fireT <= 0) return;                 // a ring that closes as the gun cycles
         ctx.strokeStyle = GREEN; ctx.lineWidth = 2;
@@ -1025,7 +1033,7 @@
     // Touch only (s.lock is never set elsewhere): brackets around the
     // hostile the next round will go to. Hidden while there is no round.
     function drawLock(s, ctx) {
-        var e = s.lock, r = 20 + 2 * Math.sin(s.anim * 8);
+        var e = s.lock, r = 24 + 2 * Math.sin(s.anim * 8);
         if (!e || e.dead || s.dead || !(s.ammo.pistol + s.ammo.shotgun)) return;
         ctx.strokeStyle = PALE; ctx.lineWidth = 2.5;
         for (var i = 0; i < 4; i++) {
@@ -1042,17 +1050,18 @@
             ctx.fillStyle = g;
             ctx.fillRect(0, G.HUD, G.W, G.H - G.HUD);
         }
-        // The time gauge and the texts are 20 px so that they still read on
-        // a phone, where the canvas is drawn at about half size.
-        G.text('TIME', 12, G.H - 8, { size: 20, color: MID });
-        ctx.fillStyle = DARK; ctx.fillRect(72, G.H - 23, 150, 15);
-        ctx.fillStyle = s.ts > 0.5 ? PALE : GREEN; ctx.fillRect(72, G.H - 23, 150 * s.ts, 15);
+        // Larger phone labels survive the full room shrinking to portrait width.
+        // These stay in the solid border rows, clear of actors and bullets.
+        var size = s.touch ? 30 : 20, gaugeX = s.touch ? 104 : 72;
+        G.text('TIME', 12, G.H - 8, { size: size, color: s.touch ? GREEN : MID });
+        ctx.fillStyle = DARK; ctx.fillRect(gaugeX, G.H - 23, 150, 15);
+        ctx.fillStyle = s.ts > 0.5 ? PALE : GREEN; ctx.fillRect(gaugeX, G.H - 23, 150 * s.ts, 15);
         if (!s.alert) {
-            G.text('UNDETECTED · TRACE ' + Math.max(0, s.tune.trace - s.clock).toFixed(1), G.W - 12, G.H - 8, { size: 20, color: MID, align: 'right' });
+            G.text((s.touch ? 'TRACE ' : 'UNDETECTED · TRACE ') + Math.max(0, s.tune.trace - s.clock).toFixed(1), G.W - 12, G.H - 8, { size: size, color: s.touch ? GREEN : MID, align: 'right' });
         }
         if (s.msgT > 0) {
             ctx.globalAlpha = Math.min(1, s.msgT * 2);
-            G.text(s.msg, G.W / 2, 54, { size: 20, color: PALE, align: 'center', glow: GREEN });
+            G.text(s.msg, G.W / 2, 54, { size: s.touch ? 30 : 20, color: PALE, align: 'center', glow: s.touch ? null : GREEN, max: s.touch ? G.W - 60 : undefined });
             ctx.globalAlpha = 1;
         }
     }
@@ -1074,6 +1083,7 @@
 
     function hud(s) {
         var other = s.gun === 'pistol' ? 'shotgun' : 'pistol';
+        if (s.touch) return (s.gun === 'pistol' ? 'P' : 'S') + ':' + s.ammo[s.gun] + (s.ammo[other] ? ' ' + (other === 'pistol' ? 'P' : 'S') + ':' + s.ammo[other] : '') + '  FOES ' + hostiles(s);
         var guns = '[' + s.gun.toUpperCase() + ' ' + s.ammo[s.gun] + ']' + (s.ammo[other] ? ' ' + other.toUpperCase() + ' ' + s.ammo[other] : '');
         return guns + '  HOSTILES ' + hostiles(s);
     }
