@@ -148,7 +148,7 @@
     function init(level) {
         var cfg = LV[level - 1], rnd = G.rng(level * 7919 + 13);
         var s = {
-            cfg: cfg, rnd: rnd, player: { x: G.W / 2, vx: 0 }, inv: [], groups: [], total: 0, drop: 0,
+            cfg: cfg, rnd: rnd, touch: G.isTouch(), player: { x: G.W / 2, vx: 0 }, inv: [], groups: [], total: 0, drop: 0,
             shots: [], bombs: [], caps: [], beams: [], bunkers: buildBunkers(cfg.bunkers), stars: buildStars(rnd),
             boss: cfg.boss ? newBoss(cfg.boss) : null, saucer: null, saucerT: 9 + rnd() * 6, warble: 0,
             power: { rapid: 0, double: 0 }, shield: false, invuln: 0, cooldown: 0, wipe: false, camp: { x: G.W / 2, t: 0 },
@@ -215,7 +215,8 @@
     function movePlayer(s, dt) {
         var p = s.player, dir = (G.key.right ? 1 : 0) - (G.key.left ? 1 : 0);
         if (dir) p.vx = G.clamp(p.vx + dir * 2800 * dt, -340, 340);
-        else p.vx -= p.vx * Math.min(1, 12 * dt);
+        // A released thumb should stop before drifting into the next bomb lane.
+        else p.vx -= p.vx * Math.min(1, (s.touch ? 20 : 12) * dt);
         p.x += p.vx * dt;
         if (p.x < 24 || p.x > G.W - 24) { p.x = G.clamp(p.x, 24, G.W - 24); p.vx = 0; }
     }
@@ -726,10 +727,12 @@
     function drawSprite(ctx, spr, cx, cy, color) {
         var ox = Math.round(cx - spr.w * PX / 2), oy = Math.round(cy - spr.h * PX / 2);
         ctx.fillStyle = color;
+        ctx.beginPath();
         for (var i = 0; i < spr.runs.length; i++) {
             var r = spr.runs[i];
-            ctx.fillRect(ox + r[0] * PX, oy + r[1] * PX, r[2] * PX, PX);
+            ctx.rect(ox + r[0] * PX, oy + r[1] * PX, r[2] * PX, PX);
         }
+        ctx.fill();
     }
 
     function drawBackdrop(s, ctx) {
@@ -755,13 +758,18 @@
 
     function drawBunkers(s, ctx) {
         var cs = BUNK.cell;
-        s.bunkers.forEach(function (b) {
-            for (var i = 0; i < b.cells.length; i++) {
-                if (!b.cells[i]) continue;
-                var c = i % BUNK.cols, r = Math.floor(i / BUNK.cols);
-                ctx.fillStyle = r < 2 ? C.soft : C.deep;
-                ctx.fillRect(b.x + c * cs, BUNK.y + r * cs, cs, cs);
-            }
+        // Two paths retain every eroded cell without hundreds of paint calls.
+        [C.soft, C.deep].forEach(function (color, band) {
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            s.bunkers.forEach(function (b) {
+                for (var i = 0; i < b.cells.length; i++) {
+                    var r = Math.floor(i / BUNK.cols);
+                    if (!b.cells[i] || (r < 2 ? 0 : 1) !== band) continue;
+                    ctx.rect(b.x + i % BUNK.cols * cs, BUNK.y + r * cs, cs, cs);
+                }
+            });
+            ctx.fill();
         });
     }
 
@@ -791,10 +799,16 @@
             var x = b.src.x, y = b.src.y + 14, live = b.t >= CHARGE;
             ctx.fillStyle = C.alert;
             if (!live) {
-                // Charging: a flickering line that brightens as it fills (4 px
-                // wide so it survives a phone's 40% scale).
-                ctx.globalAlpha = 0.25 + 0.5 * (b.t / CHARGE) * (Math.sin(G.t * 40) > 0 ? 1 : 0.5);
-                ctx.fillRect(x - 2, y, 4, GROUND_Y - y);
+                // Charging: a flickering line that brightens as it fills.
+                // A phone needs two visible pixels even at portrait scale.
+                ctx.globalAlpha = (s.touch ? 0.55 : 0.25) + (s.touch ? 0.35 : 0.5) * (b.t / CHARGE) * (Math.sin(G.t * 40) > 0 ? 1 : 0.5);
+                var width = s.touch ? 8 : 4;
+                ctx.fillRect(x - width / 2, y, width, GROUND_Y - y);
+                if (s.touch) {
+                    // The marked lane remains readable against bunkers and the cannon.
+                    ctx.globalAlpha = 1;
+                    ctx.fillRect(x - 22, GROUND_Y - 4, 44, 4);
+                }
             } else {
                 ctx.globalAlpha = 0.35; ctx.fillRect(x - 16, y, 32, GROUND_Y - y);
                 ctx.globalAlpha = 1; ctx.fillRect(x - 7, y, 14, GROUND_Y - y);
@@ -858,13 +872,14 @@
     // would all but vanish.
     function drawProjectiles(s, ctx) {
         ctx.fillStyle = C.white;
-        s.shots.forEach(function (sh) { ctx.fillRect(sh.x - 2, sh.y, 4, 14); });
+        var sw = s.touch ? 8 : 4, bw = s.touch ? 10 : 6;
+        s.shots.forEach(function (sh) { ctx.fillRect(sh.x - sw / 2, sh.y, sw, 14); });
         ctx.fillStyle = C.alert;
         s.bombs.forEach(function (b) {
             // Bolts are a straight bar; zig bombs are drawn as a wriggle.
             var k = b.kind === 'zig' ? (Math.floor(b.t * 14) % 2 ? 3 : -3) : 0;
-            ctx.fillRect(b.x - 3 + k, b.y - 7, 6, 7);
-            ctx.fillRect(b.x - 3 - k, b.y, 6, 7);
+            ctx.fillRect(b.x - bw / 2 + k, b.y - 7, bw, 7);
+            ctx.fillRect(b.x - bw / 2 - k, b.y, bw, 7);
         });
         s.caps.forEach(function (c) {
             ctx.fillStyle = C.alert;
@@ -894,7 +909,9 @@
         if (s.power.rapid > 0) on.push('RAPID');
         if (s.power.double > 0) on.push('DOUBLE');
         if (s.shield) on.push('SHIELD');
-        return (on.length ? on.join('+') + '  ' : '') + 'HOSTILES ' + (s.inv.length + (s.boss ? 1 : 0));
+        var count = s.inv.length + (s.boss ? 1 : 0);
+        if (s.touch) return (on.length ? on.map(function (p) { return p.charAt(0); }).join('+') + '  ' : '') + 'FOES ' + count;
+        return (on.length ? on.join('+') + '  ' : '') + 'HOSTILES ' + count;
     }
 
     G.register('invaders', {
