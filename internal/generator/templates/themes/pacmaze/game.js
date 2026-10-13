@@ -217,7 +217,7 @@
         // Ghosts run at about half the player's speed on level 1 and at 70%
         // from level 9 on; a power pellet lasts 8.6 s at first, 5 s at the end.
         var s = {
-            level: level, grid: buildGrid(level), gates: [], gateAt: {}, gateT: 0, edges: [], start: null,
+            level: level, mobile: G.isTouch(), walls: null, grid: buildGrid(level), gates: [], gateAt: {}, gateT: 0, edges: [], start: null,
             total: 0, left: 0, eaten: 0,
             ps: 6.2 + level * 0.1, gs: Math.min(5, 3.2 + level * 0.2), powerTime: 9 - level * 0.4,
             five: tw.five || 0, sight: tw.dark || 0, shade: tw.dark ? 1 : 0,
@@ -640,12 +640,11 @@
     // canvas, and copied from there every frame. They are painted again
     // when the outline changes colour (a power pellet starts or stops
     // working), for another level's maze, and when the canvas changes size.
-    var maze = { grid: null, hue: '', w: 0, h: 0, pic: null };
-
     function drawWalls(s, ctx) {
-        var hue = s.fright > 0 ? C.fright : WALL_HUES[s.level - 1], w = ctx.canvas.width, h = ctx.canvas.height, g;
-        if (maze.grid !== s.grid || maze.hue !== hue || maze.w !== w || maze.h !== h) {
-            maze = { grid: s.grid, hue: hue, w: w, h: h, pic: maze.pic || document.createElement('canvas') };
+        var hue = s.fright > 0 ? C.fright : WALL_HUES[s.level - 1], w = ctx.canvas.width, h = ctx.canvas.height;
+        var maze = s.walls, g;
+        if (!maze || maze.hue !== hue || maze.w !== w || maze.h !== h) {
+            maze = s.walls = { hue: hue, w: w, h: h, pic: maze ? maze.pic : document.createElement('canvas') };
             maze.pic.width = w; maze.pic.height = h;    // also wipes the old picture
             g = maze.pic.getContext('2d');
             g.setTransform(w / G.W, 0, 0, h / G.H, 0, 0);
@@ -659,14 +658,18 @@
     function drawGates(s, ctx) {
         s.gates.forEach(function (gate) {
             var x = px(gate.x), y = py(gate.y), left = GATE_OPEN - (s.gateT + gate.phase * GATE_PERIOD / 2) % GATE_PERIOD;
-            var warn = gate.open && left < 0.7 && Math.floor(G.t * 10) % 2 === 0;
-            var len = gate.open ? 5 : T / 2, far = T / 2;
-            ctx.fillStyle = gate.open ? (warn ? C.ink : C.muted) : C.red;
+            var warn = gate.open && left < 0.7;
+            var blink = Math.floor(G.t * 10) % 2 === 0;
+            var len = gate.open ? (s.mobile && warn ? 8 : 5) : T / 2, far = T / 2;
+            var thick = s.mobile ? 8 : 6, half = thick / 2;
+            // Amber stays visible between pulses; white alone looked like dots.
+            var warning = s.mobile ? (blink ? C.dot : C.peach) : (blink ? C.ink : C.muted);
+            ctx.fillStyle = gate.open ? (warn ? warning : C.muted) : C.red;
             ctx.shadowColor = C.red; ctx.shadowBlur = gate.open ? 0 : 10;
             if (gate.upright) {
-                ctx.fillRect(x - 3, y - far, 6, len); ctx.fillRect(x - 3, y + far - len, 6, len);
+                ctx.fillRect(x - half, y - far, thick, len); ctx.fillRect(x - half, y + far - len, thick, len);
             } else {
-                ctx.fillRect(x - far, y - 3, len, 6); ctx.fillRect(x + far - len, y - 3, len, 6);
+                ctx.fillRect(x - far, y - half, len, thick); ctx.fillRect(x + far - len, y - half, len, thick);
             }
             ctx.shadowBlur = 0;
         });
@@ -690,6 +693,16 @@
     // darkness passes false for the last few dots, so those show too).
     function drawPellets(s, ctx, onlyPower) {
         var big = 5.5 + 1.8 * Math.sin(G.t * 7);
+        // One fill for all dots rather than hundreds of separate raster jobs.
+        if (!onlyPower) {
+            ctx.fillStyle = C.dot; ctx.beginPath();
+            for (var y = 0; y < ROWS; y++) {
+                for (var x = 0; x < COLS; x++) {
+                    if (s.grid[y][x] === '.') ctx.rect(px(x) - 3, py(y) - 3, 6, 6);
+                }
+            }
+            ctx.fill();
+        }
         for (var r = 0; r < ROWS; r++) {
             for (var c = 0; c < COLS; c++) {
                 var ch = s.grid[r][c];
@@ -700,8 +713,6 @@
                     ctx.shadowBlur = 0;
                 }
                 if (onlyPower) continue;
-                // 6 px, not smaller: on a phone held upright the canvas is drawn at 40%.
-                if (ch === '.') ctx.fillRect(px(c) - 3, py(r) - 3, 6, 6);
                 if (ch === 'b') drawPad(ctx, px(c), py(r));
             }
         }
@@ -724,8 +735,8 @@
         ctx.beginPath(); ctx.moveTo(x - 4, y - 1); ctx.lineTo(x + 3, y - 10); ctx.lineTo(x + 5, y); ctx.stroke();
     }
 
-    function ghostBody(ctx, x, y, color) {
-        var R = 11, wob = Math.floor(G.t * 8) % 2;
+    function ghostBody(ctx, x, y, color, mobile) {
+        var R = mobile ? 12.5 : 11, wob = Math.floor(G.t * 8) % 2;
         ctx.fillStyle = color;
         ctx.beginPath();
         ctx.arc(x, y - 1, R, Math.PI, 0);
@@ -736,12 +747,12 @@
     }
 
     // The pupils look where the ghost is going, which lets the player read it.
-    function ghostEyes(ctx, x, y, g) {
+    function ghostEyes(ctx, x, y, g, mobile) {
         for (var i = -1; i <= 1; i += 2) {
             ctx.fillStyle = C.ink;
-            disc(ctx, x + i * 4.5 + g.dx * 1.5, y - 3 + g.dy * 1.5, 3.6);
+            disc(ctx, x + i * 4.5 + g.dx * 1.5, y - 3 + g.dy * 1.5, mobile ? 4.2 : 3.6);
             ctx.fillStyle = C.night;
-            disc(ctx, x + i * 4.5 + g.dx * 3, y - 3 + g.dy * 3, 1.8);
+            disc(ctx, x + i * 4.5 + g.dx * 3, y - 3 + g.dy * 3, mobile ? 2.2 : 1.8);
         }
     }
 
@@ -756,11 +767,11 @@
 
     function drawGhost(s, ctx, g, x, y) {
         var X = px(x), Y = py(y);
-        if (g.state === 'eyes') { ghostEyes(ctx, X, Y, g); return; }
-        if (!g.scared) { ghostBody(ctx, X, Y, g.color); ghostEyes(ctx, X, Y, g); return; }
+        if (g.state === 'eyes') { ghostEyes(ctx, X, Y, g, s.mobile); return; }
+        if (!g.scared) { ghostBody(ctx, X, Y, g.color, s.mobile); ghostEyes(ctx, X, Y, g, s.mobile); return; }
         // Blue ghosts flash white when the power is about to run out.
         var pale = s.fright < 1.5 && Math.floor(G.t * 8) % 2 === 0;
-        ghostBody(ctx, X, Y, pale ? C.ink : C.scared);
+        ghostBody(ctx, X, Y, pale ? C.ink : C.scared, s.mobile);
         scaredFace(ctx, X, Y, pale);
     }
 
@@ -781,7 +792,7 @@
         eachCopy(pl, function (x, y) {
             ctx.beginPath();
             ctx.moveTo(px(x), py(y));
-            ctx.arc(px(x), py(y), 11, pl.face + m, pl.face - m + Math.PI * 2);
+            ctx.arc(px(x), py(y), s.mobile ? 12.5 : 11, pl.face + m, pl.face - m + Math.PI * 2);
             ctx.closePath(); ctx.fill();
         });
         ctx.shadowBlur = 0;
@@ -802,6 +813,9 @@
         ctx.fillRect(0, OY, G.W, G.H - OY);
         drawPellets(s, ctx, s.left > LAST_DOTS);
         drawFruit(s, ctx);
+        // A phone must still show whether a shutter is open or closing.
+        // Darkness continues to hide the walls and ordinary dots.
+        if (s.mobile) drawGates(s, ctx);
         if (s.dying > 0) return;
         s.ghosts.forEach(function (g) {
             if (g.scared) return;
@@ -809,7 +823,7 @@
             disc(ctx, px(g.x), py(g.y), 11);
             ctx.globalAlpha = 1;
             ctx.shadowColor = g.color; ctx.shadowBlur = 10;
-            ghostEyes(ctx, px(g.x), py(g.y), g);
+            ghostEyes(ctx, px(g.x), py(g.y), g, s.mobile);
             ctx.shadowBlur = 0;
         });
     }
