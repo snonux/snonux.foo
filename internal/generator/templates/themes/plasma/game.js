@@ -529,7 +529,8 @@
     // The ship chases the drag point at a capped speed: an instant jump would
     // carry it straight through a wall of bullets.
     function followDrag(p, d, dt) {
-        var dist = G.dist(p.x, p.y, d.x, d.y), step = Math.min(dist, DRAG_SPEED * dt);
+        var speed = G.key.a ? FOCUS : DRAG_SPEED;
+        var dist = G.dist(p.x, p.y, d.x, d.y), step = Math.min(dist, speed * dt);
         if (dist < 0.01) return 0;
         p.x += (d.x - p.x) / dist * step;
         p.y += (d.y - p.y) / dist * step;
@@ -841,9 +842,13 @@
         blob(ctx, G.W * (0.7 + 0.2 * Math.cos(t * 0.27)), G.H * (0.6 + 0.25 * Math.sin(t * 0.19)), 420, '255,0,224', a);
         blob(ctx, G.W * (0.5 + 0.3 * Math.sin(t * 0.17 + 2)), G.H * 0.85, 300, '255,238,0', a * 0.5);
         ctx.fillStyle = 'rgba(232,224,255,0.5)';
+        // The phone starfield needs one fill instead of seventy tiny draws.
+        if (s.touch) ctx.beginPath();
         s.stars.forEach(function (st) {
-            ctx.fillRect(st.x, (st.y + t * st.v) % G.H, 1.5, st.v * 0.05);
+            if (s.touch) ctx.rect(st.x, (st.y + t * st.v) % G.H, 1.5, st.v * 0.05);
+            else ctx.fillRect(st.x, (st.y + t * st.v) % G.H, 1.5, st.v * 0.05);
         });
+        if (s.touch) ctx.fill();
     }
 
     // Regular polygon, or a spiky star when `star` shortens every other corner.
@@ -879,6 +884,10 @@
             var fired = l.t >= LANE_WARN, w = fired ? LANE_W : 3 + 6 * l.t / LANE_WARN;
             ctx.fillStyle = fired ? 'rgba(255,255,255,0.92)' : 'rgba(255,238,0,' + (0.6 + 0.3 * Math.sin(l.t * 40)) + ')';
             ctx.fillRect(l.x - w / 2, l.y, w, G.H - l.y);
+            if (s.touch && !fired) {
+                G.text('!', G.clamp(l.x, 18, G.W - 18), G.H - 64,
+                    { size: 32, bold: true, color: YL, align: 'center', glow: BG });
+            }
             if (!fired) return;
             ctx.fillStyle = 'rgba(0,240,255,0.35)';
             ctx.fillRect(l.x - w * 0.7, l.y, w * 1.4, G.H - l.y);
@@ -907,16 +916,17 @@
 
     // One bar for the whole fight, with a notch at every phase break.
     function drawBossBar(s, ctx) {
-        var b = s.boss, x = 280, w = 400, y = 38;
+        var b = s.boss, x = s.touch ? 220 : 280, w = 400, y = 38, h = s.touch ? 12 : 7;
         if (!b || b.dead) return;
         var left = ((b.n - b.phase - 1) * b.per + Math.max(0, b.hp)) / (b.n * b.per);
         ctx.fillStyle = 'rgba(232,224,255,0.18)';
-        ctx.fillRect(x, y, w, 7);
+        ctx.fillRect(x, y, w, h);
         ctx.fillStyle = MG;
-        ctx.fillRect(x, y, w * left, 7);
+        ctx.fillRect(x, y, w * left, h);
         ctx.fillStyle = BG;
-        for (var i = 1; i < b.n; i++) ctx.fillRect(x + w * i / b.n - 1, y, 2, 7);
-        G.text(BOSSES[s.level - 1].name, x + w + 12, y + (s.touch ? 12 : 8), { size: s.touch ? 20 : 13, color: FG });
+        for (var i = 1; i < b.n; i++) ctx.fillRect(x + w * i / b.n - 1, y, 2, h);
+        G.text(BOSSES[s.level - 1].name, x + w + 12, y + (s.touch ? 16 : 8),
+            { size: s.touch ? 26 : 13, color: FG, max: G.W - x - w - 24, glow: s.touch ? BG : undefined });
     }
 
     function pathBullets(s, ctx, col, k) {
@@ -1025,11 +1035,12 @@
     function drawTray(s, ctx) {
         var z = s.touch ? 1.5 : 1, y = G.H - 12;
         WEAPONS.forEach(function (kind, i) {
-            var x = 14 + i * 136 * z;
-            G.text(kind.toUpperCase() + ' ' + s.lv[kind], x, y, { size: Math.round(13.4 * z), bold: true, color: WCOL[kind] });
+            var x = 14 + i * (s.touch ? 232 : 136);
+            G.text(kind.toUpperCase() + ' ' + s.lv[kind], x, y,
+                { size: s.touch ? 26 : Math.round(13.4 * z), bold: true, color: WCOL[kind], max: s.touch ? 144 : undefined, glow: s.touch ? BG : undefined });
             for (var n = 0; n < 3; n++) {
                 ctx.fillStyle = n < s.orbs[kind] ? WCOL[kind] : 'rgba(232,224,255,0.2)';
-                ctx.fillRect(x + (88 + n * 10) * z, y - 9 * z, 7 * z, 9 * z);
+                ctx.fillRect(x + (s.touch ? 154 + n * 16 : 88 + n * 10), y - 9 * z, 7 * z, 9 * z);
             }
         });
         for (var b = 0; b < s.bombs; b++) {
@@ -1046,7 +1057,8 @@
             ctx.globalAlpha = 0.5 + 0.5 * Math.sin(G.t * 14);
             G.text('WARNING', G.W / 2, 230, { size: 54, bold: true, color: MG, align: 'center', glow: MG });
             ctx.globalAlpha = 1;
-            G.text(BOSSES[s.level - 1].name + ' APPROACHING', G.W / 2, 266, { size: 18, color: FG, align: 'center' });
+            G.text(BOSSES[s.level - 1].name + ' APPROACHING', G.W / 2, 266,
+                { size: s.touch ? 26 : 18, color: FG, align: 'center', max: G.W - 40 });
         } else if (s.level === 1 && s.stage === 'waves') drawHint(s);
     }
 
@@ -1056,8 +1068,8 @@
     function drawHint(s) {
         var dim = 'rgba(232,224,255,0.6)';
         if (s.touch) {
-            G.text('DRAG: steer · it fires by itself', 14, G.H - 68, { size: 20, color: dim, max: 420 });
-            G.text('BOMB: wipe bullets · 3 orbs alike: weapon up', 14, G.H - 42, { size: 20, color: dim, max: 420 });
+            G.text('DRAG / PAD steer · SLOW focus', 14, G.H - 78, { size: 26, color: FG, glow: BG, max: 440 });
+            G.text('Auto fire · BOMB clears bullets', 14, G.H - 48, { size: 26, color: FG, glow: BG, max: 440 });
             return;
         }
         G.text('HOLD SPACE: fire and focus  ·  X: bomb', 14, G.H - 52, { size: 15, color: dim });
