@@ -44,20 +44,55 @@ async function checkCards(page, base) {
     }
 }
 
-// Arrow keys walk the cards, and no key gets through to the splash behind
-// (Enter there would open the blog, "a" would start the theme's game).
+// Arrow keys and vi's h/j/k/l walk the cards, one key per assertion so a
+// single broken one cannot hide behind the moves of another, and no key
+// gets through to the splash behind (Enter there would open the blog, "a"
+// would start the theme's game).
 async function checkKeys(page) {
     const focused = `document.activeElement.getAttribute('data-theme')`;
+    // The card directly below the focused one, as the browser laid the grid
+    // out: an oracle for "a row down" that does not recompute the menu's
+    // own column count.
+    const below = `(function(){var me=document.activeElement,
+      cards=document.querySelectorAll('.sno-arcade-grid .sno-arcade-card');
+      for(var i=0;i<cards.length;i++){var c=cards[i];
+      if(c.offsetTop>me.offsetTop&&c.offsetLeft===me.offsetLeft)return c.getAttribute('data-theme');}return null;})()`;
     const first = await page.eval(focused);
-    await page.press('ArrowRight');
+    await page.press('KeyL');
     const second = await page.eval(focused);
-    check(second && second !== first, 'ArrowRight did not move to the next card');
+    check(second && second !== first, 'l did not move to the next card');
+    const rowTop = await page.eval('document.activeElement.offsetTop');
+    const down = await page.eval(below);
+    await page.press('KeyJ');
+    check(await page.eval(focused) === down, 'j did not move to the card below');
+    check(await page.eval('document.activeElement.offsetTop') > rowTop, 'j stayed in its row');
+    await page.press('KeyK');
+    check(await page.eval(focused) === second, 'k did not move a row up');
+    await page.press('KeyH');
+    check(await page.eval(focused) === first, 'h did not move back to the first card');
+    // Shift does not change the key code, so vi keys work with Caps Lock on
+    // too; Meta+j, like any browser shortcut, must not move the focus. The
+    // shifted events carry uppercase key/text and the same physical code,
+    // so they also catch a handler that only accepts lowercase e.key.
+    await page.press('KeyL', 8);
+    check(await page.eval(focused) === second, 'Shift+l did not move to the next card');
+    await page.press('KeyJ', 4);
+    check(await page.eval(focused) === second, 'Meta+j moved the focus');
+    await page.press('KeyH', 8);
+    check(await page.eval(focused) === first, 'Shift+h did not move back to the first card');
+    await page.press('ArrowRight');
+    check(await page.eval(focused) === second, 'ArrowRight did not move to the next card');
+    const rowTop2 = await page.eval('document.activeElement.offsetTop');
     await page.press('ArrowDown');
-    check(![first, second].includes(await page.eval(focused)), 'ArrowDown did not move a row down');
-    await page.press('ArrowUp'); await page.press('ArrowLeft');
-    check(await page.eval(focused) === first, 'ArrowUp and ArrowLeft did not lead back to the first card');
+    check(await page.eval(focused) === down, 'ArrowDown did not move to the card below, as j did');
+    check(await page.eval('document.activeElement.offsetTop') > rowTop2, 'ArrowDown stayed in its row');
+    await page.press('ArrowUp');
+    check(await page.eval(focused) === second, 'ArrowUp did not move a row up');
+    await page.press('ArrowLeft');
+    check(await page.eval(focused) === first, 'ArrowLeft did not move back to the first card');
     await page.press('KeyA'); await page.press('KeyW');
     await sleep(150);
+    check(await page.eval(focused) === first, 'a or w moved the focus in the menu');
     check(await page.eval(SPLASH_UP), 'a key pressed in the menu dismissed the splash');
     check(!(await page.eval('SnoGame.active')), 'a key pressed in the menu started a game');
     check(await page.eval('SnoArcade.isOpen()'), 'a letter key closed the menu');

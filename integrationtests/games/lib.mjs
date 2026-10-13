@@ -19,6 +19,8 @@ export const KEYS = {
     Space: { key: ' ', vk: 32, text: ' ' }, ArrowLeft: { key: 'ArrowLeft', vk: 37 },
     ArrowUp: { key: 'ArrowUp', vk: 38 }, ArrowRight: { key: 'ArrowRight', vk: 39 },
     ArrowDown: { key: 'ArrowDown', vk: 40 }, KeyA: { key: 'a', vk: 65, text: 'a' },
+    KeyH: { key: 'h', vk: 72, text: 'h' }, KeyJ: { key: 'j', vk: 74, text: 'j' },
+    KeyK: { key: 'k', vk: 75, text: 'k' }, KeyL: { key: 'l', vk: 76, text: 'l' },
     KeyW: { key: 'w', vk: 87, text: 'w' },
     KeyP: { key: 'p', vk: 80, text: 'p' },
     Tab: { key: 'Tab', vk: 9 },
@@ -158,14 +160,15 @@ export class Page {
         await this.waitFor('document.readyState === "complete" && window.SnoGame', 'page load');
     }
 
-    async key(type, code) {
+    async key(type, code, modifiers = 0) {
         const k = KEYS[code];
-        const params = { type, code, key: k.key, windowsVirtualKeyCode: k.vk, nativeVirtualKeyCode: k.vk };
-        if (type === 'keyDown' && k.text) params.text = k.text;
+        const key = (modifiers & 8) && /^[a-z]$/.test(k.key) ? k.key.toUpperCase() : k.key;
+        const params = { type, code, key, windowsVirtualKeyCode: k.vk, nativeVirtualKeyCode: k.vk, modifiers };
+        if (type === 'keyDown' && k.text) params.text = /^[a-z]$/.test(k.key) ? key : k.text;
         await this.send('Input.dispatchKeyEvent', params);
     }
 
-    async press(code) { await this.key('keyDown', code); await this.key('keyUp', code); }
+    async press(code, modifiers = 0) { await this.key('keyDown', code, modifiers); await this.key('keyUp', code, modifiers); }
 
     async click(selector) {
         const r = await this.eval(`(function(){var e=document.querySelector(${JSON.stringify(selector)});if(!e)return null;e.scrollIntoView({block:'center'});var b=e.getBoundingClientRect();return {x:b.left+b.width/2,y:b.top+b.height/2,w:b.width};})()`);

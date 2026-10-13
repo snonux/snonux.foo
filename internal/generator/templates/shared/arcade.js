@@ -194,7 +194,12 @@
         var cards = Array.prototype.slice.call(root.querySelectorAll('.sno-arcade-card'));
         var i = cards.indexOf(document.activeElement);
         if (i < 0) { if (cards[0]) cards[0].focus(); return; }
-        var step = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -columns(cards), ArrowDown: columns(cards) }[code];
+        var step = {
+            ArrowLeft: -1, KeyH: -1,
+            ArrowRight: 1, KeyL: 1,
+            ArrowUp: -columns(cards), KeyK: -columns(cards),
+            ArrowDown: columns(cards), KeyJ: columns(cards)
+        }[code];
         var next = cards[i + step];
         if (next) { next.focus(); next.scrollIntoView({ block: 'nearest' }); }
     }
@@ -223,7 +228,11 @@
         // Enter held on the button that opened the menu keeps repeating, and
         // a repeat would press the card that now has focus.
         if (e.repeat && (e.code === 'Enter' || e.code === 'Space')) { e.preventDefault(); return; }
-        if (/^Arrow/.test(e.code)) { e.preventDefault(); moveFocus(e.code); }
+        if (/^Arrow/.test(e.code)) { e.preventDefault(); moveFocus(e.code); return; }
+        // vi's h/j/k/l, by key code so Caps Lock and Shift do not matter; on
+        // another layout it is the physical QWERTY position that moves.
+        // Browser shortcuts (Ctrl+L, Cmd+J…) keep their meaning.
+        if (!e.ctrlKey && !e.metaKey && !e.altKey && /^Key[HJKL]$/.test(e.code)) { e.preventDefault(); moveFocus(e.code); }
     }
 
     window.addEventListener('keydown', onKeyDown, true);
