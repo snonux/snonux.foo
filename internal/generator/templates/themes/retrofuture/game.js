@@ -138,7 +138,7 @@
     // after a restart still lands under the visible crosshair.
     function init(level) {
         var s = {
-            cfg: LEVELS[level - 1], rnd: G.rng(level * 7919), wave: 0, waveT: 0, phase: 'wave', tally: null,
+            touch: G.isTouch(), cfg: LEVELS[level - 1], rnd: G.rng(level * 7919), wave: 0, waveT: 0, phase: 'wave', tally: null,
             sites: SITE_X.map(newSite), cur: { x: G.clamp(G.mouse.x, 8, G.W - 8), y: G.clamp(G.mouse.y, CUR_TOP, CUR_BOTTOM), hold: 0 }, mx: G.mouse.x, my: G.mouse.y,
             shots: [], blasts: [], foes: [], saucers: [], boss: null, queue: [],
             earned: 0, nextBonus: BONUS_AT, spare: 0, nextId: 1, cool: 0, hum: 0, warble: false,
@@ -615,7 +615,8 @@
         g.addColorStop(1, night ? '#12041f' : '#6a2360');
         ctx.fillStyle = g;
         ctx.fillRect(0, 0, G.W, GROUND);
-        s.stars.forEach(function (st) {
+        s.stars.forEach(function (st, i) {
+            if (s.touch && i % 2) return;
             ctx.globalAlpha = 0.25 + 0.75 * Math.abs(Math.sin(G.t * 1.6 + st.p));
             ctx.fillStyle = st.big ? TEAL : CREAM;
             ctx.fillRect(st.x, st.y, st.big ? 3 : 2, st.big ? 3 : 2);
@@ -691,7 +692,14 @@
 
     // The magazine is drawn as a pyramid of rockets under the battery, so the
     // remaining ammunition can be read without looking at the HUD.
-    function drawAmmo(ctx, b) {
+    function drawAmmo(ctx, b, touch) {
+        // Tiny rocket icons disappear in portrait; a count also makes each
+        // battery's supply visible without crowding the engine's HUD.
+        if (touch) {
+            var label = b.ammo > 3 ? String(b.ammo) : (b.ammo ? 'LOW ' + b.ammo : 'OUT');
+            G.text(label, b.x, GROUND + 32, { size: 26, color: b.ammo > 3 ? TEAL : PINK, align: 'center', bold: true });
+            return;
+        }
         var n = 0;
         ctx.fillStyle = TEAL;
         for (var row = 0; row < 4; row++) {
@@ -706,8 +714,12 @@
         ctx.globalAlpha = 1;
     }
 
-    function drawBattery(ctx, b) {
-        if (!b.alive) { drawRubble(ctx, b.x); return; }
+    function drawBattery(ctx, b, touch) {
+        if (!b.alive) {
+            drawRubble(ctx, b.x);
+            if (touch) G.text('LOST', b.x, GROUND + 32, { size: 26, color: PINK, align: 'center', bold: true });
+            return;
+        }
         ctx.fillStyle = '#2a1150'; ctx.strokeStyle = ORANGE; ctx.lineWidth = 2;
         ctx.beginPath();
         ctx.moveTo(b.x - 30, GROUND); ctx.lineTo(b.x - 14, GROUND - 16); ctx.lineTo(b.x + 14, GROUND - 16); ctx.lineTo(b.x + 30, GROUND);
@@ -717,12 +729,12 @@
         ctx.strokeStyle = CREAM;
         ctx.beginPath(); ctx.moveTo(b.x, GROUND - 16); ctx.lineTo(b.x + Math.cos(a) * 12, GROUND - 16 + Math.sin(a) * 12); ctx.stroke();
         ctx.beginPath(); ctx.arc(b.x + Math.cos(a) * 12, GROUND - 16 + Math.sin(a) * 12, 4, a - 1.4, a + 1.4); ctx.stroke();
-        drawAmmo(ctx, b);
+        drawAmmo(ctx, b, touch);
     }
 
     function drawSites(s, ctx) {
         s.sites.forEach(function (c) {
-            if (c.base) drawBattery(ctx, c); else drawCity(ctx, c, !!s.cfg.night);
+            if (c.base) drawBattery(ctx, c, s.touch); else drawCity(ctx, c, !!s.cfg.night);
         });
     }
 
@@ -799,7 +811,7 @@
         }
     }
 
-    function drawBoss(ctx, m) {
+    function drawBoss(ctx, m, touch) {
         var stung = m.hurt > BOSS_GUARD - 0.15;
         ctx.fillStyle = stung ? '#ffffff' : TEAL;
         ctx.beginPath(); ctx.arc(m.x, m.y - 8, 24, Math.PI, 0); ctx.fill();
@@ -818,9 +830,9 @@
             ctx.globalAlpha = 1;
         }
         // Hull gauge right under the HUD.
-        ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.fillRect(G.W / 2 - 122, 36, 244, 10);
-        ctx.fillStyle = PINK; ctx.fillRect(G.W / 2 - 120, 38, 240 * m.hp / m.max, 6);
-        G.text('MOTHERSHIP', G.W / 2, 62, { size: 14, color: CREAM, align: 'center' });
+        ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.fillRect(G.W / 2 - 122, 36, 244, touch ? 14 : 10);
+        ctx.fillStyle = PINK; ctx.fillRect(G.W / 2 - 120, 38, 240 * m.hp / m.max, touch ? 10 : 6);
+        G.text('MOTHERSHIP', touch ? G.W / 2 + 140 : G.W / 2, touch ? 52 : 62, { size: touch ? 22 : 14, color: CREAM, align: touch ? 'left' : 'center' });
     }
 
     // ------------------------------------------------------------------
@@ -892,7 +904,7 @@
         drawSites(s, ctx);
         drawFoes(s, ctx);
         s.saucers.forEach(function (sc) { drawSaucer(s, ctx, sc); });
-        if (s.boss) drawBoss(ctx, s.boss);
+        if (s.boss) drawBoss(ctx, s.boss, s.touch);
         drawShots(s, ctx);
         drawBlasts(s, ctx);
         drawBanner(s, ctx);
@@ -900,6 +912,7 @@
     }
 
     function hud(s) {
+        if (s.touch) return 'W' + (s.wave + 1) + '/' + s.cfg.n.length + ' AMMO ' + ammoLeft(s) + (s.spare ? ' +' + s.spare + ' CITY' : '');
         return 'WAVE ' + (s.wave + 1) + '/' + s.cfg.n.length + '  AMMO ' + ammoLeft(s) + (s.spare ? '  +' + s.spare + ' CITY' : '');
     }
 
@@ -907,10 +920,10 @@
         title: 'ATOMIC DEFENSE',
         blurb: 'Burst your missiles where the warheads will be. Keep one dome standing.',
         controls: [
-            'Click or TAP the sky: the nearest battery fires there',
-            'Keys / pad: arrows aim, SPACE / FIRE shoots',
-            'Blasts chain: every kill bursts too and multiplies the score',
-            'Ammunition is limited per wave · 3000 points earn a bonus city'
+            'Click / TAP the sky to aim and fire',
+            'Arrows / pad aim · SPACE / FIRE shoots',
+            'Lead the warheads · Blasts chain together',
+            'Ammo refills each wave · 3000 points restore a city'
         ],
         levelNames: ['First Light', 'Rush Hour', 'Split Atoms', 'Saucer Season', 'Blackout', 'Smart Money', 'Heavy Water', 'Midnight Oil', 'Low Riders', 'Doomsday'],
         colors: { bg: BG, fg: CREAM, accent: TEAL, dim: '#a595c4' },

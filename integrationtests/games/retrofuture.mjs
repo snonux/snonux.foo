@@ -1,0 +1,73 @@
+#!/usr/bin/env node
+// Atomic Defense: readable phone battery status without changing wave rules.
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import vm from 'node:vm';
+import { startSession } from './lib.mjs';
+import { PHONES } from './touch.mjs';
+let def, phone = false, labels = [], calls = [], s, screen, previous = false;
+const G = { W: 960, H: 540, HUD: 30, t: 0, level: 1, lives: 3, key: {}, hit: {}, mouse: { x: 480, y: 270 },
+    register: (_, d) => { def = d; }, isTouch: () => phone,
+    clamp: (n, a, b) => Math.min(b, Math.max(a, n)), dist: (ax, ay, bx, by) => Math.hypot(ax - bx, ay - by),
+    circ: (ax, ay, ar, bx, by, br) => Math.hypot(ax - bx, ay - by) <= ar + br,
+    circRect: (x, y, r, rx, ry, rw, rh) => Math.hypot(x - G.clamp(x, rx, rx + rw), y - G.clamp(y, ry, ry + rh)) <= r,
+    rng: (seed) => () => { seed = (seed + 0x6D2B79F5) >>> 0; let t = Math.imul(seed ^ seed >>> 15, seed | 1);
+        t ^= t + Math.imul(t ^ t >>> 7, t | 61); return ((t ^ t >>> 14) >>> 0) / 4294967296; },
+    win: () => { screen = G.level === 10 ? 'victory' : 'clear'; },
+    text: (text, x, y, options) => labels.push({ text, x, y, ...options }) };
+for (const name of ['tone', 'noise', 'burst', 'popup', 'shake', 'flash', 'addScore', 'sfx']) G[name] = () => {};
+const reset = (level = 1) => { G.level = level; G.lives = 3; G.t = 0; G.key = {}; G.hit = {}; G.mouse = { x: 480, y: 270 };
+    s = def.init(level); screen = 'play'; previous = false; return s; };
+G.die = () => { if (--G.lives <= 0) screen = 'over'; else s = def.init(G.level); };
+vm.runInNewContext(readFileSync(new URL('../../internal/generator/templates/themes/retrofuture/game.js', import.meta.url), 'utf8'), { window: { SnoGame: G } });
+const ctx = new Proxy({}, { get: (_, name) => (...args) => { calls.push({ name, args }); if (name === 'createLinearGradient') return { addColorStop() {} }; }, set: () => true });
+const rules = (state) => JSON.stringify({ ...state, touch: undefined });
+for (let level = 1; level <= 10; level++) {
+    phone = false; const desktop = reset(level); phone = true; const mobile = reset(level);
+    assert.equal(rules(desktop), rules(mobile), `level ${level} keeps every wave and site`);
+    for (let i = 0; i < 120; i++) { def.update(desktop, 1 / 60); def.update(mobile, 1 / 60); }
+    assert.equal(rules(desktop), rules(mobile), `level ${level} keeps physics and targeting`);
+}
+phone = true; reset(); G.mouse = { x: 200, y: 160, hit: true }; def.update(s, 1 / 60);
+assert.equal(s.shots[0].tx, 200); assert.equal(s.shots[0].ty, 160); assert.equal(s.sites[0].ammo, 9);
+G.mouse = { x: 200, y: 160 }; G.key = { right: true }; G.hit = {};
+for (let i = 0; i < 30; i++) def.update(s, 1 / 60);
+G.mouse.hit = true; def.update(s, 1 / 60); assert.equal(s.shots.at(-1).tx, 200, 'repeated same-position tap reclaims pad aim');
+reset(); G.hit = { a: true }; def.update(s, 1 / 60); assert.equal(s.shots.length, 1, 'FIRE pad shoots');
+reset(); s.sites[0].ammo = 3; s.sites[4].ammo = 0; s.sites[8].alive = false;
+labels = []; def.draw(s, ctx);
+for (const text of ['LOW 3', 'OUT', 'LOST']) assert.ok(labels.some((l) => l.text === text && l.size >= 26 && l.y > 496));
+assert.equal(s.foes.length, 0); G.mouse = { x: 600, y: 200, hit: true }; def.update(s, 1 / 60);
+assert.equal(s.shots[0].sx, 70, 'empty and destroyed batteries cannot fire');
+s.sites[0].ammo = 0; G.mouse.hit = true; s.cool = 0; def.update(s, 1 / 60);
+assert.equal(s.shots.length, 1, 'no ammunition produces no phantom shot');
+reset(10); s.boss = { x: 480, y: 96, hp: 8, max: 15, hurt: 0, volley: 1 };
+s.spare = 2; labels = []; calls = []; def.draw(s, ctx);
+assert.ok(labels.some((l) => l.text === 'MOTHERSHIP' && l.size >= 22 && l.y > G.HUD));
+assert.ok(def.hud(s).includes('AMMO 30 +2 CITY'), 'wave, ammunition and banked cities fit together');
+assert.ok(!calls.some((c) => c.name === 'fillRect' && c.args[0] === 0 && c.args[2] === 960 && c.args[1] > G.HUD && c.args[1] < 496 && c.args[3] > 2), 'status never masks the sky');
+const drawCalls = (touch) => { reset(10); s.touch = touch; calls = []; def.draw(s, ctx); return calls.length; };
+assert.ok(drawCalls(true) < drawCalls(false), 'phone spends fewer calls on scenery and ammunition');
+G.debug = { start: reset, state: () => ({ screen }), s: () => s, errors: [], step: (ticks, input) => {
+    for (let i = 0; i < ticks && screen === 'play'; i++) { const ctl = typeof input === 'function' ? input(i, s, G) : input;
+        const mouse = ctl.mouse || {}; G.key = ctl; G.hit = { a: !!ctl.a && !previous };
+        G.mouse = { x: mouse.x ?? G.mouse.x, y: mouse.y ?? G.mouse.y, hit: !!mouse.down && !previous };
+        previous = !!(ctl.a || mouse.down); G.t += 1 / 60; def.update(s, 1 / 60); }
+} };
+const bot = readFileSync(new URL('./retrofuture-bot.js', import.meta.url), 'utf8');
+for (const touch of [false, true]) { phone = touch; const result = vm.runInNewContext(bot, { SnoGame: G });
+    for (const win of result.wins) assert.equal(win.screen, win.level === 10 ? 'victory' : 'clear', JSON.stringify(win));
+    assert.equal(result.idle, 'over'); }
+console.log('ok retrofuture local: unchanged rules, tap/FIRE aim, battery failures, readable status, less drawing, wins 1/5/10 and idle loss');
+if (!process.argv.includes('--local')) {
+    const { page, base, close } = await startSession();
+    try { for (const mode of [null, ...PHONES]) {
+        if (mode) await page.emulatePhone(mode.width, mode.height);
+        await page.goto(`${base}/index.html`); await page.eval("SnoGame.launch('retrofuture')");
+        await page.waitFor('SnoGame.debug.state() && SnoGame.debug.state().registered', 'registration');
+        const result = await page.eval(bot);
+        for (const win of result.wins) assert.equal(win.screen, win.level === 10 ? 'victory' : 'clear', JSON.stringify(win));
+        assert.equal(result.idle, 'over'); assert.deepEqual(result.errors, []);
+        console.log(`ok retrofuture ${mode?.name || 'desktop'}: input wins and idle loss`);
+    } } finally { await close(); }
+}
