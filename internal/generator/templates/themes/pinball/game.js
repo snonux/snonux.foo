@@ -69,6 +69,12 @@
     ];
     var LABEL = { bumper: 'BUMPERS', lane: 'LANES', target: 'TARGETS', spin: 'SPINS', lock: 'LOCKS',
         rover: 'ROVER HITS', zap: 'ZAPS', hot: 'LIVE WIRES', saucer: 'FUSES' };
+    var PHONE_BRIEF = [
+        ['Ring the pop', 'bumpers.'], ['Light 3 lanes', 'at the top.'], ['Drop 2 banks', 'of targets.'],
+        ['Shoot through', 'the spinner.'], ['Lock 2 balls', 'for multiball.'], ['Hit the moving', 'Rover bumper.'],
+        ['Flip into a', 'live magnet.'], ['Hit flashing', 'live targets.'], ['Hit saucers to', 'widen light.'],
+        ['Drop targets,', 'lock 2 balls,', 'hit bumpers.']
+    ];
 
     // Bells, chimes and the knocker: an electro-mechanical table is all
     // solenoids and struck metal, so most sounds are a click plus a sine.
@@ -607,7 +613,7 @@
     // A is the right flipper as well as the plunger, B nudges, and a touch on
     // the left or right half of the canvas works that side.
     function readInput(s) {
-        var c = s.ctl, side = s.touch && G.mouse.down ? (G.mouse.x < CX ? -1 : 1) : 0;
+        var c = s.ctl, side = s.touch && G.mouse.down ? (G.mouse.x < G.W / 2 ? -1 : 1) : 0;
         var left = G.key.left || side < 0, right = G.key.right || side > 0 || (s.touch && G.key.a);
         c.hitL = left && !c.left; c.hitR = right && !c.right;
         c.left = left; c.right = right;
@@ -1118,7 +1124,7 @@
     // The three reminders at the foot of the card name the keys, or on a
     // phone the pad's own labels.
     function helpLines(s) {
-        if (s.touch) return ['◀ ▶ or tap a side: flip', 'PLUNGE: hold, let go;', 'it flips right too', 'NUDGE: 3 quick = tilt'];
+        if (s.touch) return ['◀ flips left', 'PLUNGE flips ▶', 'Hold / let go', 'NUDGE: 3 = tilt'];
         return ['← →  flippers', 'SPACE  plunger (hold)', '↓  nudge (3 = tilt)'];
     }
 
@@ -1126,6 +1132,7 @@
     // state lamps. Everything is set in 20px type or more: on a phone the
     // canvas is drawn at about half size.
     function drawMission(s, ctx) {
+        if (s.touch) { drawPhoneMission(s, ctx); return; }
         var x = 16, w = 262, v = goalView(s), y = 276;
         G.text('MISSION ' + s.level, x, 62, { size: 20, bold: true, color: COL.yellow });
         s.cfg.brief.forEach(function (text, i) { G.text(text, x, 88 + i * 24, { size: 20, color: COL.ink, max: w }); });
@@ -1143,6 +1150,25 @@
         for (var i = 0; i < 3; i++) disc(ctx, x + 76 + i * 22, y + 27, 7, s.tilted || s.tilt > i + 0.05 ? COL.red : COL.dark);
         var help = helpLines(s);
         help.forEach(function (text, k) { G.text(text, x, 520 - (help.length - 1 - k) * 24, { size: 20, color: COL.muted, max: w }); });
+    }
+
+    // Phone text gets its own spacing instead of shrinking long lines to
+    // fit the desktop card. The physical table stays exactly the same.
+    function drawPhoneMission(s, ctx) {
+        var x = 16, w = 262, v = goalView(s), y = 280;
+        G.text('MISSION ' + s.level, x, 64, { size: 24, bold: true, color: COL.yellow });
+        PHONE_BRIEF[s.level - 1].forEach(function (text, i) { G.text(text, x, 96 + i * 28, { size: 24, color: COL.ink }); });
+        var goal = mustRelock(s) ? 'RE-LOCK ' + s.locked + '/2' : goalText(s);
+        G.text(goal, x, 190, { size: 24, bold: true, color: COL.cyan });
+        bar(ctx, x, 200, w, v.done / v.need, COL.cyan);
+        G.text(s.pts + '/' + s.cfg.target + ' PTS', x, 246, { size: 24, bold: true, color: COL.yellow, max: w });
+        bar(ctx, x, 256, w, s.pts / s.cfg.target, COL.yellow);
+        G.text(s.save > 0 ? 'BALL SAVER ON' : 'BALL SAVER OFF', x, y + 22, { size: 24, color: s.save > 0 ? COL.cyan : COL.muted });
+        if (s.cfg.locks) {
+            G.text(s.locked ? 'LOCKED ' + s.locked + '/2' : (s.lockLit ? 'LOCKS LIT' : 'LOCKS UNLIT'), x, y += 54, { size: 24, color: s.lockLit ? COL.cyan : COL.muted });
+            G.text(s.multiball ? 'MULTIBALL x2' : 'MULTIBALL OFF', x, y + 30, { size: 24, color: s.multiball ? COL.cyan : COL.muted });
+        }
+        helpLines(s).forEach(function (text, i) { G.text(text, x, 436 + i * 28, { size: 24, color: COL.muted }); });
     }
 
     // A flickering arc between two electrodes on the backglass.
@@ -1184,8 +1210,30 @@
         ctx.fillStyle = '#02090b';
         ctx.fillRect(x + 22, 154, w - 44, 46);
         G.text(('0000000' + s.pts).slice(-7), mid, 189, { size: 32, bold: true, color: COL.yellow, align: 'center' });
-        G.text(backglassHint(s), mid, 229, { size: 20, bold: true, color: COL.ink, align: 'center', max: w - 16 });
-        drawArc(s, ctx, mid, 290, 470);
+        if (s.touch) drawPhoneStatus(s, ctx, x, w);
+        else {
+            G.text(backglassHint(s), mid, 229, { size: 20, bold: true, color: COL.ink, align: 'center', max: w - 16 });
+            drawArc(s, ctx, mid, 290, 470);
+        }
+    }
+
+    // A call-out cannot hide the coil and tilt warnings. Wrapping preserves
+    // the type size, including when both warnings and a mission event fire.
+    function drawPhoneStatus(s, ctx, x, w) {
+        var words = backglassHint(s).split(' '), lines = [], line = '';
+        ctx.font = G.font(24, true);
+        words.forEach(function (word) {
+            var next = line ? line + ' ' + word : word;
+            if (line && ctx.measureText(next).width > w - 16) { lines.push(line); line = word; }
+            else line = next;
+        });
+        lines.push(line);
+        lines.forEach(function (text, i) { G.text(text, x + 8, 274 + i * 28, { size: 24, bold: true, color: COL.ink }); });
+        var color = s.hot || s.heat >= HEAT.warn ? COL.red : COL.cyan;
+        G.text(s.hot ? 'COILS HOT' : (s.heat >= HEAT.warn ? 'COILS WARM' : 'COILS READY'), x + 8, 402, { size: 24, bold: true, color: color });
+        bar(ctx, x + 8, 414, w - 16, s.heat / HEAT.trip, color);
+        G.text(s.tilted ? 'TILT: REST' : (s.tilt >= 1.5 ? 'NUDGE DANGER' : 'NUDGE / TILT'), x + 8, 464, { size: 24, bold: true, color: s.tilted || s.tilt >= 1.5 ? COL.red : COL.muted });
+        for (var i = 0; i < 3; i++) disc(ctx, x + 22 + i * 36, 486, 10, s.tilted || s.tilt > i + 0.05 ? COL.red : COL.dark);
     }
 
     function draw(s, ctx) {
