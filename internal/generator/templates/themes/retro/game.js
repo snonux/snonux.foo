@@ -520,7 +520,7 @@
         }
         ctx.strokeStyle = DARK; ctx.lineWidth = 2;
         ctx.beginPath();
-        for (var i = 0; i <= G.W; i += 8) {
+        for (var i = 0; i <= G.W; i += s.touch ? 16 : 8) {
             var y = MID + Math.sin(i * 0.035 + G.t * 5 + cam * 0.01) * 9 * (1 + Math.sin(i * 0.004 + G.t));
             if (i) ctx.lineTo(i, y); else ctx.moveTo(i, y);
         }
@@ -635,17 +635,21 @@
         var dx = h.x - s.x, y = h.lane > 0 ? FLOOR - BURST_H : CEIL;
         if (dx > BURST_WARN) return;
         if (dx > BURST_ON) {
-            if (Math.floor(G.t * 12) % 2) return;
-            ctx.strokeStyle = HOT; ctx.lineWidth = 2;
+            // A phone shrinks this tell to a few pixels. Keep its outline
+            // present throughout the warning, pulsing rather than vanishing.
+            if (!s.touch && Math.floor(G.t * 12) % 2) return;
+            ctx.globalAlpha = s.touch && Math.floor(G.t * 12) % 2 ? 0.65 : 1;
+            ctx.strokeStyle = HOT; ctx.lineWidth = s.touch ? 4 : 2;
             ctx.setLineDash([8, 8]);
             ctx.strokeRect(x, y, h.w, BURST_H);
             ctx.setLineDash([]);
             G.text('!', x + h.w / 2, y + BURST_H / 2 + 14, { size: 44, color: HOT, align: 'center' });
+            ctx.globalAlpha = 1;
             return;
         }
         ctx.fillStyle = 'rgba(255,176,0,0.22)';
         ctx.fillRect(x, y, h.w, BURST_H);
-        for (var i = 0; i < h.w / 3; i++) {
+        for (var i = 0; i < h.w / (s.touch ? 6 : 3); i++) {
             ctx.fillStyle = Math.random() < 0.5 ? HOT : AMBER;
             ctx.fillRect(x + G.rnd(0, h.w - 14), y + G.rnd(0, BURST_H - 4), G.rnd(4, 14), G.rnd(2, 4));
         }
@@ -662,7 +666,7 @@
     }
 
     function drawBits(s, ctx, cam) {
-        var r = 5 + Math.sin(G.t * 8);
+        var r = (s.touch ? 8 : 5) + Math.sin(G.t * 8);
         ctx.fillStyle = HOT;
         s.bits.forEach(function (b) {
             if (b.got || !onScreen(b.x, 0, cam)) return;
@@ -697,7 +701,7 @@
         var x = PX + (PS - w) / 2, y = s.g > 0 ? s.y + PS - h : s.y;
         ctx.fillStyle = DIM;
         for (var i = 1; i <= 3; i++) ctx.fillRect(PX - i * 11, s.y - s.vy * 0.012 * i + i * 2, PS - i * 4, PS - i * 4);
-        ctx.shadowColor = AMBER; ctx.shadowBlur = 14;
+        ctx.shadowColor = AMBER; ctx.shadowBlur = s.touch ? 0 : 14;
         ctx.fillStyle = HOT;
         ctx.fillRect(x, y, w, h);
         ctx.shadowBlur = 0;
@@ -720,7 +724,7 @@
         }
         ctx.fillStyle = DIM;
         ctx.globalAlpha = a;
-        for (var n = 0; n < 90; n++) ctx.fillRect(G.rnd(x0, G.W), G.rnd(top, top + h), G.rnd(3, 16), 2);
+        for (var n = 0; n < (s.touch ? 40 : 90); n++) ctx.fillRect(G.rnd(x0, G.W), G.rnd(top, top + h), G.rnd(3, 16), 2);
         ctx.globalAlpha = 1;
     }
 
@@ -732,8 +736,21 @@
         ctx.fillRect(x + 3, y + 3, (w - 6) * p, 6);
         ctx.fillStyle = s.cp ? HOT : MIDC;
         ctx.fillRect(x + w * s.cpX / s.len - 1, y - 5, 3, 22);
-        G.text('LINE', x - 12, y + 12, { size: 20, color: MIDC, align: 'right' });
-        G.text(Math.floor(p * 100) + '%', x + w + 12, y + 12, { size: 20, color: AMBER });
+        G.text('LINE', x - 12, y + 12, { size: s.touch ? 28 : 20, color: s.touch ? AMBER : MIDC, align: 'right' });
+        G.text(Math.floor(p * 100) + '%', x + w + 12, y + 12, { size: s.touch ? 28 : 20, color: AMBER });
+    }
+
+    // Zone labels in the world scroll away before a stretch ends. Repeat
+    // every active mode above the wires, leaving both deadly lanes visible.
+    function drawTouchStatus(s) {
+        if (!s.touch || s.redial > 0) return;
+        var modes = [];
+        if (zoneAt(s, 'jam')) modes.push('JAMMED - NO FLIP');
+        if (zoneAt(s, 'turbo')) modes.push('2X SPEED');
+        if (zoneAt(s, 'fog')) modes.push('DROPOUT');
+        if (modes.length) G.text(modes.join(' / '), G.W / 2, 70, { size: 28, color: HOT, align: 'center' });
+        var ready = s.ground ? 'FLIP READY' : 'LAND TO FLIP';
+        G.text(zoneAt(s, 'jam') ? 'FLIP LOCKED' : ready, G.W / 2, 478, { size: 26, color: AMBER, align: 'center' });
     }
 
     function drawMessages(s, ctx) {
@@ -759,6 +776,7 @@
         drawPacket(s, ctx);
         drawFog(s, ctx);
         drawBar(s, ctx);
+        drawTouchStatus(s);
         drawMessages(s, ctx);
     }
 
