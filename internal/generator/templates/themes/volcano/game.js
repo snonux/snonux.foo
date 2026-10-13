@@ -16,7 +16,7 @@
     'use strict';
     var G = window.SnoGame;
     var WL = 180, WR = 780, SHAFT = WR - WL;                 // inner faces of the shaft walls
-    var PW = 20, PH = 30, LEDGE_H = 14;
+    var PW = 20, PH = 30, LEDGE_H = 14, PHONE_X_SCALE = 1.35;
     var GRAV = 1800, RUN = 280, JUMP = 700, KICK = 640, KICK_VX = 340, SLIDE = 110, MAX_FALL = 900;
     // The lava never trails the highest ledge reached by more than this:
     // five or six ledges, so a missed jump that ends on a ledge further down
@@ -294,7 +294,7 @@
                 x: G.W / 2 - PW / 2, y: -PH, vx: 0, vy: 0, ground: true, on: b.ledges[0], wall: 0, wallUsed: 0,
                 coy: 0, buf: 0, cut: false, stun: 0, inv: 0, face: 1, run: 0
             },
-            lavaY: LAVA_START, bestY: 0, camY: CAM_FLOOR, time: 0, top: 0, gemsGot: 0,
+            touch: G.isTouch(), lavaY: LAVA_START, bestY: 0, camY: CAM_FLOOR, time: 0, top: 0, gemsGot: 0,
             bombT: b.cfg.bomb, quakeT: b.cfg.quake, quakeWarn: false,
             surgeT: b.cfg.surge, surgeLeft: 0, surgeWarn: false, rumbleT: 0.4, slideT: 0
         };
@@ -333,6 +333,11 @@
         G.noise(0.8, { filter: 'bandpass', freq: 3200, slide: 350, vol: 0.32 });
         G.tone(210, 0.6, { type: 'sawtooth', slide: 45, vol: 0.2 });
     }
+
+    function viewX(s, x) { return s.touch ? G.W / 2 + (x - G.W / 2) * PHONE_X_SCALE : x; }
+
+    // Engine particles are painted after draw(), outside the world's scale.
+    function burst(s, x, y, options) { G.burst(viewX(s, x), y, options); }
 
     function onScreen(s, y) { return y > s.camY - 30 && y < s.camY + G.H + 30; }
 
@@ -375,11 +380,11 @@
         if (l.t > 0) return;
         if (l.state === 'shake') {
             l.state = 'gone'; l.t = REFORM;
-            G.burst(l.x + l.w / 2, l.y + 6, { n: 14, color: C.crumble, speed: 120, gravity: 900, size: 5, life: 0.8 });
+            burst(s, l.x + l.w / 2, l.y + 6, { n: 14, color: C.crumble, speed: 120, gravity: 900, size: 5, life: 0.8 });
             if (onScreen(s, l.y)) sndCollapse();
         } else {
             l.state = 'idle';
-            G.burst(l.x + l.w / 2, l.y + 6, { n: 8, color: C.ember, speed: 60, life: 0.4 });
+            burst(s, l.x + l.w / 2, l.y + 6, { n: 8, color: C.ember, speed: 60, life: 0.4 });
         }
     }
 
@@ -434,7 +439,7 @@
     // A press is remembered for a moment (buffer) and a ledge just left
     // still counts (coyote time), which makes edge jumps feel fair. Each
     // wall grants one kick until the climber touches a ledge again.
-    function tryJump(p) {
+    function tryJump(s, p) {
         if (G.hit.a) p.buf = 0.15;
         if (p.buf <= 0 || p.stun > 0) return;
         if (p.coy > 0) {
@@ -443,7 +448,7 @@
         } else if (p.wall && p.wallUsed !== p.wall) {
             p.vy = -KICK; p.vx = -p.wall * KICK_VX; p.wallUsed = p.wall; p.buf = 0; p.cut = false; p.face = -p.wall;
             sndKick();
-            G.burst(p.wall < 0 ? WL : WR, p.y + PH, { n: 8, color: C.dim, speed: 140, angle: p.wall < 0 ? 0 : Math.PI, spread: 1.6, life: 0.35 });
+            burst(s, p.wall < 0 ? WL : WR, p.y + PH, { n: 8, color: C.dim, speed: 140, angle: p.wall < 0 ? 0 : Math.PI, spread: 1.6, life: 0.35 });
         }
     }
 
@@ -461,7 +466,7 @@
         p.y = l.y - PH; p.vy = 0; p.coy = 0.12; p.wallUsed = 0;
         if (!wasGround && impact > 350) {
             sndLand();
-            G.burst(p.x + PW / 2, l.y, { n: 5, color: C.dim, speed: 70, angle: -Math.PI / 2, spread: 2.4, life: 0.3 });
+            burst(s, p.x + PW / 2, l.y, { n: 5, color: C.dim, speed: 70, angle: -Math.PI / 2, spread: 2.4, life: 0.3 });
         }
         if (l.i > s.top) { G.addScore((l.i - s.top) * 10 * G.level); s.top = l.i; s.bestY = l.y; }
         if (l.kind === 'crumble' && l.state === 'idle') { startCrumble(l, CRUMBLE); sndCrack(); }
@@ -488,14 +493,14 @@
         var p = s.p;
         p.buf -= dt; p.stun -= dt; p.inv -= dt;
         var dir = steer(p, dt);
-        tryJump(p);
+        tryJump(s, p);
         steamLift(s, p, dt);
         movePlayer(s, p, dt, dir);
         // Wall-slide dust, gated so it is a trickle and not a tick-rate spray.
         s.slideT -= dt;
         if (p.wall && !p.ground && p.vy === SLIDE && s.slideT <= 0) {
             s.slideT = 0.12;
-            G.burst(p.wall < 0 ? WL : WR, p.y + 8, { n: 2, color: C.dim, speed: 40, life: 0.3 });
+            burst(s, p.wall < 0 ? WL : WR, p.y + 8, { n: 2, color: C.dim, speed: 40, life: 0.3 });
         }
     }
 
@@ -510,7 +515,7 @@
         p.vx = (p.x + PW / 2 < fromX ? -1 : 1) * 120; p.vy = -320;
         sndKnock();
         G.shake(5, 0.2);
-        G.burst(p.x + PW / 2, p.y + PH / 2, { n: 12, color: C.hot, speed: 200, life: 0.4 });
+        burst(s, p.x + PW / 2, p.y + PH / 2, { n: 12, color: C.hot, speed: 200, life: 0.4 });
     }
 
     // ------------------------------------------------------------------
@@ -570,7 +575,7 @@
         b.y += b.vy * dt;
         if (G.circRect(b.x, b.y, b.r, p.x, p.y, PW, PH)) knock(s, b.x);
         else if (!bombLands(s, b, before)) return b.y < s.camY + G.H + 60;
-        G.burst(b.x, b.y, { n: 14, color: C.ember, speed: 190, gravity: 500, life: 0.5 });
+        burst(s, b.x, b.y, { n: 14, color: C.ember, speed: 190, gravity: 500, life: 0.5 });
         if (onScreen(s, b.y)) G.sfx('boom');
         return false;
     }
@@ -621,8 +626,8 @@
             if (g.got || Math.abs(g.x - p.x - PW / 2) > 18 || Math.abs(g.y - p.y - PH / 2) > 24) return;
             g.got = true; s.gemsGot++;
             G.addScore(50);
-            G.popup(g.x, g.y - 10, '+50', C.hot);
-            G.burst(g.x, g.y, { n: 8, color: C.hot, speed: 110, life: 0.4 });
+            G.popup(viewX(s, g.x), g.y - 10, '+50', C.hot);
+            burst(s, g.x, g.y, { n: 8, color: C.hot, speed: 110, life: 0.4 });
             sndGem();
         });
     }
@@ -631,7 +636,7 @@
         var p = s.p;
         sndBurn();
         G.flash(C.lava, 0.3);
-        G.burst(p.x + PW / 2, p.y + PH, { n: 30, color: C.hot, speed: 300, gravity: 600, angle: -Math.PI / 2, spread: 2.2, life: 0.9 });
+        burst(s, p.x + PW / 2, p.y + PH, { n: 30, color: C.hot, speed: 300, gravity: 600, angle: -Math.PI / 2, spread: 2.2, life: 0.9 });
         G.die();
     }
 
@@ -850,6 +855,10 @@
     function drawPlayer(s, ctx) {
         var p = s.p, x = Math.round(p.x), y = Math.round(p.y - s.camY);
         if (p.inv > 0 && Math.floor(s.time * 20) % 2) return;
+        // Keep the feet on the collision plane while making the helmet and
+        // suit readable in the phone's small playfield.
+        ctx.save();
+        if (s.touch) { ctx.translate(0, y + PH); ctx.scale(1, 1.25); ctx.translate(0, -y - PH); }
         var stride = p.ground ? Math.sin(p.run) * 3 : 3;
         ctx.fillStyle = '#000';
         ctx.fillRect(x, y - 1, PW, PH + 1);
@@ -861,6 +870,7 @@
         ctx.fillRect(x + 2, y, PW - 4, 10);
         ctx.fillStyle = C.bg;
         ctx.fillRect(p.face > 0 ? x + 10 : x + 3, y + 4, 7, 4);
+        ctx.restore();
     }
 
     // Lava under the bottom edge still shows as heat pulsing up from below,
@@ -904,7 +914,7 @@
     // the picture alive even when nothing else moves.
     function drawEmbers(s, ctx) {
         ctx.fillStyle = C.ember;
-        for (var k = 0; k < 34; k++) {
+        for (var k = 0; k < (s.touch ? 18 : 34); k++) {
             var y = G.H - ((s.time * (30 + hash(k + 50) * 70) + hash(k + 9) * G.H) % G.H);
             ctx.globalAlpha = 0.25 + hash(k + 21) * 0.5;
             ctx.fillRect(WL + hash(k) * SHAFT + Math.sin(s.time * 2 + k) * 8, y, 2, 2);
@@ -915,13 +925,13 @@
     // The height meter in the left rock wall: lava fills it from below, the
     // tick is the climber, the top is the crater rim.
     function drawMeter(s, ctx) {
-        var x = 82, y0 = 76, len = 420, span = -s.rimY;
+        var x = s.touch ? 36 : 82, y0 = 76, len = 420, span = -s.rimY;
         var at = function (wy) { return y0 + len * (1 - G.clamp(-wy / span, 0, 1)); };
         ctx.fillStyle = '#000'; ctx.fillRect(x - 2, y0 - 2, 16, len + 4);
         ctx.fillStyle = C.rockLit; ctx.fillRect(x, y0, 12, len);
         ctx.fillStyle = C.lava; ctx.fillRect(x, at(s.lavaY), 12, y0 + len - at(s.lavaY));
         ctx.fillStyle = C.cream; ctx.fillRect(x - 6, at(s.p.y + PH) - 2, 24, 4);
-        G.text('RIM', x + 6, y0 - 12, { size: 18, bold: true, color: C.hot, align: 'center' });
+        G.text('RIM', x + 6, y0 - 12, { size: s.touch ? 26 : 18, bold: true, color: C.hot, align: 'center' });
         // The surge warning blinks in the middle of the shaft, large enough
         // to read on a phone: the lava it warns of is often out of view.
         if (s.surgeWarn && Math.floor(s.time * 6) % 2) {
@@ -930,6 +940,11 @@
     }
 
     function draw(s, ctx) {
+        ctx.save();
+        // Magnify across the shaft, trimming only decorative wall margins.
+        // Keep vertical scale and camera unchanged: steam and wall-kick
+        // targets must stay visible above the climber on both phone layouts.
+        if (s.touch) { ctx.translate(G.W / 2, 0); ctx.scale(PHONE_X_SCALE, 1); ctx.translate(-G.W / 2, 0); }
         drawBackdrop(s, ctx);
         // Everything in the world scrolls, so it is clipped below the HUD
         // strip instead of each sprite checking for it.
@@ -944,8 +959,9 @@
         drawLava(s, ctx);
         drawEmbers(s, ctx);
         drawWalls(s, ctx);
-        drawMeter(s, ctx);
         ctx.restore();
+        ctx.restore();
+        drawMeter(s, ctx);
     }
 
     function hud(s) {
