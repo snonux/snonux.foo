@@ -88,7 +88,7 @@
         // speed: every process is 2% faster per level (18% on level ten); the
         // levels differ mainly in what comes at the player, not in how fast.
         var s = {
-            level: level, cfg: cfg, rnd: G.rng(level * 7919), time: 0, speed: 1 + (level - 1) * 0.02,
+            level: level, cfg: cfg, touch: G.isTouch(), rnd: G.rng(level * 7919), time: 0, speed: 1 + (level - 1) * 0.02,
             p: { x: G.W / 2, y: (T + B) / 2, vx: 0, vy: 0, inv: 1.5, cool: 0, spread: 0, bombs: 1, ax: 1, ay: 0 },
             enemies: [], shots: [], ebul: [], picks: [], queue: [], blocks: cfg.blocks || [],
             wave: 0, waveT: 0, pid: 1000 + level * 311, blast: null, banner: 0, bellT: 0,
@@ -722,15 +722,16 @@
     function drawBackdrop(s, ctx) {
         ctx.fillStyle = BG;
         ctx.fillRect(0, 0, G.W, G.H);
-        G.text('  PID S COMMAND', L + 12, T + 22, { size: 12, color: FAINT });
-        for (var i = 0; i < s.enemies.length && i < 26; i++) {
+        // Tiny process-list decoration competes with the live glyphs on a phone.
+        if (!s.touch) G.text('  PID S COMMAND', L + 12, T + 22, { size: 12, color: FAINT });
+        for (var i = 0; i < s.enemies.length && i < (s.touch ? 0 : 26); i++) {
             var e = s.enemies[i];
             G.text(('     ' + e.pid).slice(-5) + ' ' + (e.kind === 'Z' ? 'Z' : 'R') + ' ' + TYPES[e.kind].name, L + 12, T + 38 + i * 16, { size: 12, color: FAINT });
         }
         ctx.strokeStyle = DIM; ctx.lineWidth = 1;
         ctx.strokeRect(L + 0.5, T + 0.5, R - L - 1, B - T - 1);
         var cursor = Math.floor(G.t * 2.5) % 2 ? '_' : ' ';
-        G.text('root@snonux:~# ' + s.msg + cursor, L + 2, G.H - 7, { size: 13, color: DIM, max: R - L - 4 });
+        G.text((s.touch ? '# ' : 'root@snonux:~# ') + s.msg + cursor, L + 2, G.H - 7, { size: s.touch ? 20 : 13, color: DIM, max: R - L - 4 });
     }
 
     function drawBlocks(s, ctx) {
@@ -754,10 +755,10 @@
         });
     }
 
-    function drawPipe(ctx, e, color) {
+    function drawPipe(s, ctx, e, color) {
         var a = Math.atan2(e.dy, e.dx);
         if (e.mode === 'aim') {
-            ctx.strokeStyle = RED; ctx.lineWidth = 1;
+            ctx.strokeStyle = RED; ctx.lineWidth = s.touch ? 3 : 1;
             ctx.globalAlpha = 0.35 + 0.4 * (1 - e.mt);
             ctx.setLineDash([8, 8]);
             ctx.beginPath(); ctx.moveTo(e.x, e.y); ctx.lineTo(e.x + e.dx * e.dash * TYPES['>'].speed, e.y + e.dy * e.dash * TYPES['>'].speed); ctx.stroke();
@@ -769,13 +770,16 @@
         ctx.restore();
     }
 
-    function drawSpawner(ctx, e, color) {
+    function drawSpawner(s, ctx, e, color) {
         var pulse = 1 - G.clamp(e.cool / e.nest.every, 0, 1), label = e.nest.kind === '>' ? '[pipe]' : (e.nest.kind === 'Z' ? '[cron]' : '[fork]');
         ctx.strokeStyle = DIM; ctx.lineWidth = 1;
         ctx.beginPath(); ctx.arc(e.x, e.y, e.r + pulse * 6, 0, Math.PI * 2); ctx.stroke();
-        glyph(label, e.x, e.y - 3, 17, color);
+        glyph(label, e.x, e.y - 3, s.touch ? 20 : 17, color);
         var left = Math.ceil(e.hp / TYPES.S.hp * 6);
-        glyph('######'.slice(0, left) + '......'.slice(left), e.x, e.y + 13, 10, DIM);
+        if (s.touch) {
+            ctx.fillStyle = DIM; ctx.fillRect(e.x - 24, e.y + 12, 48, 5);
+            ctx.fillStyle = GREEN; ctx.fillRect(e.x - 24, e.y + 12, left * 8, 5);
+        } else glyph('######'.slice(0, left) + '......'.slice(left), e.x, e.y + 13, 10, DIM);
     }
 
     function drawBoss(ctx, e) {
@@ -798,24 +802,25 @@
             return;
         }
         var color = e.flash > 0 ? WHITE : GREEN;
-        if (e.kind === '>') { drawPipe(ctx, e, color); return; }
-        if (e.kind === 'S') { drawSpawner(ctx, e, color); return; }
+        if (e.kind === '>') { drawPipe(s, ctx, e, color); return; }
+        if (e.kind === 'S') { drawSpawner(s, ctx, e, color); return; }
         if (e.kind === 'I') { drawBoss(ctx, e); return; }
         if (e.kind === 'Z') { glyph('Z', e.x + Math.sin(e.t * 4) * 2, e.y, 24, color); return; }
-        if (e.kind === '&') { glyph('&', e.x, e.y, 18 + e.gen * 6, color); return; }
+        if (e.kind === '&') { glyph('&', e.x, e.y, Math.max(s.touch ? 24 : 18, 18 + e.gen * 6), color); return; }
         // A daemon turns red just before it fires.
         if (e.kind === 'd') { glyph('d', e.x, e.y, 23, e.cool < 0.4 ? RED : color); return; }
         glyph('#', e.x, e.y, 36, color);
-        glyph(String(Math.ceil(e.hp)), e.x, e.y - 24, 11, DIM);
+        var healthY = s.touch ? (e.y - 30 < G.HUD + 10 ? e.y + 30 : e.y - 30) : e.y - 24;
+        glyph(String(Math.ceil(e.hp)), e.x, healthY, s.touch ? 20 : 11, s.touch ? GREEN : DIM);
     }
 
     // Player shots are one of - \ | / depending on their heading.
     function drawBullets(s) {
         s.shots.forEach(function (b) {
             var oct = Math.round(Math.atan2(b.vy, b.vx) / (Math.PI / 4));
-            glyph('-\\|/'.charAt(((oct % 4) + 4) % 4), b.x, b.y, 16, WHITE);
+            glyph('-\\|/'.charAt(((oct % 4) + 4) % 4), b.x, b.y, s.touch ? 20 : 16, WHITE);
         });
-        s.ebul.forEach(function (b) { glyph('o', b.x, b.y, 18, RED); });
+        s.ebul.forEach(function (b) { glyph('o', b.x, b.y, s.touch ? 24 : 18, RED); });
     }
 
     function drawPlayer(s) {
@@ -823,7 +828,12 @@
         // Blinks while invulnerable after a hit or a (re)start.
         if (p.inv > 0 && Math.floor(p.inv * 12) % 2) return;
         glyph('@', p.x, p.y, 24, p.spread > 0 ? AMBER : WHITE, GREEN);
-        glyph('.', p.x + p.ax * 20, p.y + p.ay * 20 - 5, 18, DIM);
+        var aimX = p.x + p.ax * 20, aimY = p.y + p.ay * 20 - 5;
+        if (s.touch) {
+            aimX = G.clamp(aimX, 12, G.W - 12);
+            aimY = G.clamp(aimY, G.HUD + 12, G.H - 12);
+        }
+        glyph('.', aimX, aimY, s.touch ? 24 : 18, s.touch ? GREEN : DIM);
     }
 
     function drawBlast(s, ctx) {
@@ -858,7 +868,8 @@
 
     function hud(s) {
         var p = s.p, left = s.cfg.forkBomb ? 'PROCS ' + liveCount(s) + '/' + s.cfg.cap : 'WAVE ' + s.wave + '/' + s.cfg.waves.length + ' PROCS ' + s.enemies.length;
-        return left + ' BOMB ' + p.bombs + (p.spread > 0 ? ' SPREAD ' + Math.ceil(p.spread) : '');
+        if (s.touch) left = (s.cfg.forkBomb ? '' : 'W' + s.wave + '/' + s.cfg.waves.length + ' ') + 'P' + (s.cfg.forkBomb ? liveCount(s) : s.enemies.length) + (s.cfg.cap ? '/' + s.cfg.cap : '');
+        return left + ' BOMB ' + p.bombs + (p.spread > 0 ? (s.touch ? ' !' : ' SPREAD ') + Math.ceil(p.spread) : '');
     }
 
     G.register('terminal', {
