@@ -44,6 +44,10 @@
     var CORE_R = { star: 20, hole: 18, pulsar: 15, giant: 46 };
     var C = { bg: '#020214', gold: '#ffd166', purple: '#9b5de5', blue: '#4cc9f0', fg: '#d4e8ff', red: '#ff5d73', dim: '#6f7fa8' };
     var WELL_COLOR = { star: C.gold, hole: C.purple, pulsar: C.blue, giant: C.purple };
+    var PHONE_HINTS = ['Thrust away from stars; shots curve', 'Two suns slingshot rocks',
+        'Keep clear of both moving holes', 'Red saucers fire curved shots', 'Keep moving between the three cores',
+        'Purple rocks need two hits; gold means one', 'Dodge the sweeping blue beam',
+        'Small red saucers are snipers', 'Watch the moving hole and blue beam', 'Orbit the giant; avoid its core'];
 
     // One entry per level. `rocks` lists the big rocks of each wave (the next
     // wave warps in when the last rock of the current one is gone) and `iron`
@@ -266,7 +270,7 @@
     function init(level) {
         var L = LEVELS[level - 1], rnd = G.rng(level * 7919 + 13);
         var s = {
-            time: 0, hint: L.hint, wells: L.wells.map(makeWell), spawns: L.spawns,
+            time: 0, touch: G.isTouch(), hint: L.hint, wells: L.wells.map(makeWell), spawns: L.spawns,
             rocks: [], shots: [], foes: [], foeShots: [], stars: makeStars(rnd),
             waves: L.rocks, wave: 0, iron: L.iron || 0, swirl: !!L.swirl, banner: 0,
             saucerEvery: L.saucer || 0, saucerT: (L.saucer || 0) * 0.6, sniper: L.sniper || 0, maxFoes: L.maxFoes || 1,
@@ -275,6 +279,12 @@
         };
         s.ship = newShip(bestSpawn(s, false), SHIELD_START);
         placeRocks(s, rnd, 0);
+        // Thin decoration after setup so phone and desktop keep the same seed
+        // and rock layout, regardless of how many stars they draw.
+        if (s.touch) {
+            s.stars = s.stars.filter(function (_, i) { return i % 4 === 0; });
+            s.hint = PHONE_HINTS[level - 1];
+        }
         return s;
     }
 
@@ -719,12 +729,14 @@
     function drawSky(s, ctx) {
         ctx.fillStyle = C.bg;
         ctx.fillRect(0, 0, G.W, G.H);
-        var neb = ctx.createRadialGradient(700, 150, 20, 700, 150, 520);
-        neb.addColorStop(0, 'rgba(155,93,229,0.20)');
-        neb.addColorStop(0.5, 'rgba(76,201,240,0.06)');
-        neb.addColorStop(1, 'rgba(2,2,20,0)');
-        ctx.fillStyle = neb;
-        ctx.fillRect(0, TOP, G.W, PH);
+        if (!s.touch) {
+            var neb = ctx.createRadialGradient(700, 150, 20, 700, 150, 520);
+            neb.addColorStop(0, 'rgba(155,93,229,0.20)');
+            neb.addColorStop(0.5, 'rgba(76,201,240,0.06)');
+            neb.addColorStop(1, 'rgba(2,2,20,0)');
+            ctx.fillStyle = neb;
+            ctx.fillRect(0, TOP, G.W, PH);
+        }
         ctx.fillStyle = C.fg;
         s.stars.forEach(function (st) {
             ctx.globalAlpha = 0.3 + 0.3 * Math.sin(s.time * st.sp + st.ph);
@@ -738,16 +750,16 @@
     function drawField(s, ctx, w, x, y) {
         var reach = dangerRadius(w) * 1.7;
         ctx.strokeStyle = WELL_COLOR[w.kind];
-        ctx.lineWidth = 1;
-        for (var i = 0; i < 3; i++) {
+        ctx.lineWidth = s.touch ? 2 : 1;
+        for (var i = 0; i < (s.touch ? 1 : 3); i++) {
             var f = 1 - ((s.time * 0.22 + i / 3) % 1);
             ctx.globalAlpha = 0.34 * (1 - f);
             circle(ctx, x, y, w.r + reach * f);
             ctx.stroke();
         }
-        ctx.globalAlpha = 0.5;
+        ctx.globalAlpha = s.touch ? 0.85 : 0.5;
         ctx.strokeStyle = C.red;
-        ctx.setLineDash([4, 8]);
+        ctx.setLineDash(s.touch ? [8, 8] : [4, 8]);
         ctx.lineDashOffset = s.time * 14;
         circle(ctx, x, y, dangerRadius(w) + w.r);
         ctx.stroke();
@@ -768,15 +780,15 @@
     // rotate so the hole never looks static.
     function drawHole(s, ctx, w, x, y) {
         ctx.globalAlpha = 0.55;
-        drawGlow(ctx, x, y, w.r * 2.6, C.purple);
+        if (!s.touch) drawGlow(ctx, x, y, w.r * 2.6, C.purple);
         ctx.globalAlpha = 1;
         ctx.fillStyle = '#000';
         circle(ctx, x, y, w.r);
         ctx.fill();
-        ctx.lineWidth = 2;
+        ctx.lineWidth = s.touch ? 3 : 2;
         ctx.strokeStyle = C.purple;
         ctx.stroke();
-        var rings = w.kind === 'giant' ? 3 : 1;
+        var rings = w.kind === 'giant' && !s.touch ? 3 : 1;
         for (var i = 0; i < rings; i++) {
             var a = s.time * (1.4 - i * 0.3) + i * 2;
             ctx.strokeStyle = i % 2 ? C.gold : C.blue;
@@ -790,13 +802,13 @@
         var beat = 1 + 0.08 * Math.sin(s.time * 3 + w.cx);
         var pulsar = w.kind === 'pulsar';
         ctx.globalAlpha = 0.6;
-        drawGlow(ctx, x, y, w.r * 2.8 * beat, pulsar ? C.blue : C.gold);
+        if (!s.touch) drawGlow(ctx, x, y, w.r * 2.8 * beat, pulsar ? C.blue : C.gold);
         ctx.globalAlpha = 1;
         ctx.fillStyle = pulsar ? '#eaffff' : '#fff3c4';
         circle(ctx, x, y, w.r * (pulsar ? 0.6 : 0.8) * beat);
         ctx.fill();
         ctx.strokeStyle = pulsar ? C.blue : C.gold;
-        ctx.lineWidth = 2;
+        ctx.lineWidth = s.touch ? 3 : 2;
         circle(ctx, x, y, w.r);
         ctx.stroke();
     }
@@ -824,12 +836,12 @@
         ctx.globalAlpha = 1;
     }
 
-    function drawRock(ctx, k) {
+    function drawRock(s, ctx, k) {
         var ghost = k.warp > 0;
         ctx.fillStyle = k.iron ? '#2a1746' : '#141a3c';
         // A cracked iron rock turns gold: one more hit breaks it.
         ctx.strokeStyle = k.iron ? (k.hp > 1 ? C.purple : C.gold) : C.fg;
-        ctx.lineWidth = k.iron ? 3 : 2;
+        ctx.lineWidth = k.iron || s.touch ? 3 : 2;
         // A rock still warping in is a dashed outline that grows solid.
         if (ghost) { ctx.globalAlpha = 0.9 - 0.6 * k.warp / WARP; ctx.setLineDash([5, 6]); }
         eachImage(k.x, k.y, k.r * 1.2, function (x, y) {
@@ -858,7 +870,7 @@
 
     function drawFoe(s, ctx, f) {
         var r = f.r;
-        ctx.lineWidth = 2;
+        ctx.lineWidth = s.touch ? 3 : 2;
         ctx.strokeStyle = C.red;
         ctx.fillStyle = '#2b0d1c';
         ctx.beginPath();
@@ -890,9 +902,10 @@
             pull(s, o, G.STEP);
             move(o, G.STEP);
             if (coreAt(s, o, 0)) break;
-            if (i % 4) continue;
+            if (i % (s.touch ? 6 : 4)) continue;
             ctx.globalAlpha = 0.85 * (1 - i / 52);
-            ctx.fillRect(o.x - 2, o.y - 2, 4, 4);
+            var dot = s.touch ? 6 : 4;
+            ctx.fillRect(o.x - dot / 2, o.y - dot / 2, dot, dot);
         }
         ctx.globalAlpha = 1;
     }
@@ -923,10 +936,13 @@
             }
             ctx.fillStyle = '#0b1638';
             ctx.strokeStyle = C.blue;
-            ctx.lineWidth = 2;
+            ctx.lineWidth = s.touch ? 3 : 2;
             shipPath(ctx, x, y, p.a);
             ctx.fill();
             ctx.stroke();
+            // A bright centre distinguishes the player from blue aim dots at
+            // portrait size without changing the ship's collision footprint.
+            if (s.touch) { ctx.fillStyle = C.fg; circle(ctx, x, y, 3.5); ctx.fill(); }
             if (p.inv <= 0) return;
             // The spawn shield pulses and fades as it runs out.
             ctx.globalAlpha = Math.min(1, p.inv) * (0.5 + 0.4 * Math.sin(s.time * 18));
@@ -946,7 +962,7 @@
         ctx.clip();
         s.wells.forEach(function (w) { drawWell(s, ctx, w); });
         s.wells.forEach(function (w) { drawBeam(ctx, w); });
-        s.rocks.forEach(function (k) { drawRock(ctx, k); });
+        s.rocks.forEach(function (k) { drawRock(s, ctx, k); });
         drawShots(s, ctx);
         s.foes.forEach(function (f) { drawFoe(s, ctx, f); });
         drawShip(s, ctx);
@@ -955,7 +971,7 @@
         // off the title screen where it would sit on top of the menu text.
         if (s.time > 0 && s.time < 7) {
             ctx.globalAlpha = Math.min(1, 7 - s.time);
-            G.text(s.hint, G.W / 2, G.H - 16, { size: 20, color: C.fg, align: 'center', max: G.W - 40 });
+            G.text(s.hint, G.W / 2, G.H - 16, { size: s.touch ? 26 : 20, color: C.fg, align: 'center', max: G.W - 40 });
             ctx.globalAlpha = 1;
         }
         if (s.banner > 0) drawBanner(s, ctx);
@@ -969,6 +985,8 @@
     }
 
     function hud(s) {
+        if (s.touch) return 'W' + (s.wave + 1) + '/' + s.waves.length + '  ROCKS ' + s.rocks.length +
+            '  HYPER ' + (s.hyper > 0 ? Math.ceil(s.hyper) + 's' : 'OK');
         var wave = s.waves.length > 1 ? 'WAVE ' + (s.wave + 1) + '/' + s.waves.length + '  ' : '';
         return wave + 'ROCKS ' + s.rocks.length + '  HYPER ' + (s.hyper > 0 ? Math.ceil(s.hyper) + 's' : 'OK');
     }
