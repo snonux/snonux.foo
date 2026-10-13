@@ -28,10 +28,10 @@
     var GREEN = '#00ffb3', TEAL = '#00cfe8', PURPLE = '#c084fc', NAVY = '#050d1a', SNOW = '#e0f8f0', RED = '#ff5d7a';
     var PINE_TIERS = ['#0b4a44', '#0f6457', '#14806b'];
     var TAU = Math.PI * 2;
-    // Overlay text is 20px: on a phone the canvas is drawn at 40-60% size and
-    // anything smaller cannot be read at speed. Labels beside the skier stay
+    // Overlay text grows from 20 to 28px on touch: at portrait scale that
+    // gives an 11px label instead of an 8px label. Labels beside the skier stay
     // below POP_TOP, clear of the status row and the yeti marker under the sky.
-    var LABEL = 20, POP_TOP = HORIZON + 84;
+    var POP_TOP = HORIZON + 84;
 
     // ------------------------------------------------------------------
     // Course generation
@@ -50,6 +50,7 @@
         // and slower chasers to make up for it.
         var soft = G.isTouch() ? 1 : 0;
         return {
+            touch: !!soft, label: soft ? 28 : 20,
             level: level, len: len, gap: gap, gateW: 150 - level * 4,
             // The lateral step between two gates is capped by their spacing,
             // otherwise a late level would ask for turns nobody can make.
@@ -245,10 +246,10 @@
     // (a gate and a jump) both stay readable and the stack never reaches up
     // into the yeti marker's row.
     function say(s, text, color, alert) {
-        var sk = s.sk, right = sk.x < G.W / 2, y = Math.max(POP_TOP + 24, sk.y - s.cam + 6);
+        var sk = s.sk, right = sk.x < G.W / 2, y = Math.max(POP_TOP + s.cfg.label + 4, sk.y - s.cam + 6);
         // A warning is not pushed out by score labels: the older score goes.
         if (s.pops.length > 1) s.pops.splice(s.pops[0].alert && !s.pops[1].alert ? 1 : 0, 1);
-        if (s.pops.length) s.pops[0].y = Math.min(s.pops[0].y, y - 24);
+        if (s.pops.length) s.pops[0].y = Math.min(s.pops[0].y, y - s.cfg.label - 4);
         s.pops.push({ x: sk.x + (right ? 28 : -28), y: y, align: right ? 'left' : 'right', text: text, color: color, alert: !!alert, life: 1.1 });
     }
 
@@ -745,11 +746,12 @@
         G.text('FINISH', G.W / 2, y - 12, { size: 30, bold: true, color: GREEN, align: 'center', glow: GREEN });
     }
 
-    function drawFlag(ctx, x, y, inward, color) {
-        ctx.strokeStyle = SNOW; ctx.lineWidth = 2;
-        ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x, y - 24); ctx.stroke();
+    function drawFlag(ctx, x, y, inward, color, touch) {
+        var height = touch ? 34 : 24, width = touch ? 22 : 15;
+        ctx.strokeStyle = SNOW; ctx.lineWidth = touch ? 3 : 2;
+        ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x, y - height); ctx.stroke();
         ctx.fillStyle = color;
-        tri(ctx, x, y - 24, x, y - 12, x + inward * 15, y - 18);
+        tri(ctx, x, y - height, x, y - height / 2, x + inward * width, y - height * 0.75);
     }
 
     function drawGates(s, ctx) {
@@ -765,8 +767,8 @@
                 ctx.beginPath(); ctx.moveTo(g.x - g.w / 2, y); ctx.lineTo(g.x + g.w / 2, y); ctx.stroke();
                 ctx.setLineDash([]);
             }
-            drawFlag(ctx, g.x - g.w / 2, y, 1, color);
-            drawFlag(ctx, g.x + g.w / 2, y, -1, color);
+            drawFlag(ctx, g.x - g.w / 2, y, 1, color, s.cfg.touch);
+            drawFlag(ctx, g.x + g.w / 2, y, -1, color, s.cfg.touch);
         }
         ctx.globalAlpha = 1;
     }
@@ -807,7 +809,10 @@
         ctx.fillStyle = 'rgba(2,8,18,0.4)'; ellipse(ctx, sk.x + sk.z * 0.3, y + 4, 11, 5);
         ctx.save();
         ctx.translate(sk.x, y - sk.z);
-        ctx.scale(1 + sk.z / 90, 1 + sk.z / 90);
+        // A portrait phone scales the course to 40%; keep the skier distinct
+        // without cropping the full-width gates or shortening the downhill view.
+        var size = (s.cfg.touch ? 1.45 : 1) * (1 + sk.z / 90);
+        ctx.scale(size, size);
         ctx.rotate(sk.stun > 0 ? s.clock * 14 : -sk.face);
         ctx.strokeStyle = TEAL; ctx.lineWidth = 3; ctx.lineCap = 'round';
         ctx.beginPath();
@@ -917,7 +922,8 @@
         if (!g || g.y - s.cam < G.H - 20) return;
         ctx.fillStyle = s.nextGate % 2 ? PURPLE : GREEN;
         ctx.globalAlpha = 0.6 + 0.4 * Math.sin(s.clock * 8);
-        tri(ctx, g.x - 12, G.H - 22, g.x + 12, G.H - 22, g.x, G.H - 8);
+        var half = s.cfg.touch ? 20 : 12, top = s.cfg.touch ? 32 : 22;
+        tri(ctx, g.x - half, G.H - top, g.x + half, G.H - top, g.x, G.H - 8);
         ctx.globalAlpha = 1;
     }
 
@@ -932,26 +938,30 @@
     function drawWind(s, ctx) {
         var n = Math.round(Math.abs(s.wind.v) / 30), dir = s.wind.v > 0 ? 1 : -1;
         if (!n) return;
-        var arrows = n * 16 + 10;
-        plate(ctx, G.W / 2 - 40 - (dir < 0 ? arrows : 0), 80 + arrows);
-        G.text('WIND', G.W / 2, HORIZON + 28, { size: LABEL, color: SNOW, align: 'center', bold: true, max: 68 });
+        var arrows = n * 16 + 10, half = s.cfg.touch ? 54 : 40;
+        plate(ctx, G.W / 2 - half - (dir < 0 ? arrows : 0), half * 2 + arrows);
+        G.text('WIND', G.W / 2, HORIZON + 28, { size: s.cfg.label, color: SNOW, align: 'center', bold: true, max: s.cfg.touch ? 90 : 68 });
         ctx.fillStyle = TEAL;
         for (var i = 1; i <= n; i++) {
-            var x = G.W / 2 + dir * (26 + i * 16);
+            var x = G.W / 2 + dir * (half - 14 + i * 16);
             tri(ctx, x, HORIZON + 12, x, HORIZON + 30, x + dir * 11, HORIZON + 21);
         }
     }
 
     function drawRibbon(ctx, t, phase, color) {
         ctx.fillStyle = color;
-        for (var x = 0; x < G.W; x += 12) {
-            var base = 78 + 9 * Math.sin(x * 0.008 + t * 0.5 + phase) + 5 * Math.sin(x * 0.021 - t * 0.8 + phase);
-            var h = 26 + 14 * Math.sin(x * 0.013 + t * 0.9 + phase * 2);
-            // Curtains are brightest along their lower hem.
-            // Clipped so the curtains never reach into the HUD strip.
-            var top = Math.max(G.HUD + 4, base - h);
-            ctx.globalAlpha = 0.12; ctx.fillRect(x, top, 12, base - top);
-            ctx.globalAlpha = 0.22; ctx.fillRect(x, base - h * 0.35, 12, h * 0.35);
+        // Batch each brightness band instead of issuing 160 fills per ribbon.
+        // The same curtains stay animated at the phone's native canvas scale.
+        for (var band = 0; band < 2; band++) {
+            ctx.globalAlpha = band ? 0.22 : 0.12;
+            ctx.beginPath();
+            for (var x = 0; x < G.W; x += 12) {
+                var base = 78 + 9 * Math.sin(x * 0.008 + t * 0.5 + phase) + 5 * Math.sin(x * 0.021 - t * 0.8 + phase);
+                var h = 26 + 14 * Math.sin(x * 0.013 + t * 0.9 + phase * 2);
+                var top = band ? base - h * 0.35 : Math.max(G.HUD + 4, base - h);
+                ctx.rect(x, top, 12, base - top);
+            }
+            ctx.fill();
         }
         ctx.globalAlpha = 1;
     }
@@ -1010,8 +1020,8 @@
         band.addColorStop(1, 'rgba(240,250,255,0)');
         ctx.fillStyle = band;
         ctx.fillRect(0, HORIZON, G.W, 60);
-        plate(ctx, 12, 216);
-        G.text('AVALANCHE ' + Math.max(0, Math.round(gap / 10)) + 'm', 20, HORIZON + 28, { size: LABEL, bold: true, color: gap < 150 ? RED : SNOW, max: 200 });
+        plate(ctx, 12, s.cfg.touch ? 280 : 216);
+        G.text('AVALANCHE ' + Math.max(0, Math.round(gap / 10)) + 'm', 20, HORIZON + 28, { size: s.cfg.label, bold: true, color: gap < 150 ? RED : SNOW, max: s.cfg.touch ? 264 : 200 });
     }
 
     // The yeti's marker sits one row below the status row and keeps its
@@ -1020,12 +1030,12 @@
     function drawYetiMarker(s, ctx, pulse) {
         var ye = s.yeti;
         if (!ye || ye.mode !== 'chase' || ye.y - s.cam > HORIZON + 20) return;
-        var x = G.clamp(ye.x, 24, G.W - 190);
+        var x = G.clamp(ye.x, 24, G.W - (s.cfg.touch ? 250 : 190));
         ctx.globalAlpha = pulse;
         ctx.fillStyle = PURPLE;
         tri(ctx, x - 11, HORIZON + 60, x + 11, HORIZON + 60, x, HORIZON + 43);
         ctx.globalAlpha = 1;
-        G.text('YETI ' + Math.round((s.sk.y - ye.y) / 10) + 'm', x + 18, HORIZON + 60, { size: LABEL, bold: true, color: PURPLE, max: 140 });
+        G.text('YETI ' + Math.round((s.sk.y - ye.y) / 10) + 'm', x + 18, HORIZON + 60, { size: s.cfg.label, bold: true, color: PURPLE, max: s.cfg.touch ? 210 : 140 });
     }
 
     function drawChasers(s, ctx) {
@@ -1037,7 +1047,7 @@
     function drawPops(s, ctx) {
         s.pops.forEach(function (p) {
             ctx.globalAlpha = Math.min(1, p.life * 2);
-            G.text(p.text, p.x, p.y, { size: LABEL, bold: true, color: p.color, align: p.align });
+            G.text(p.text, p.x, p.y, { size: s.cfg.label, bold: true, color: p.color, align: p.align });
         });
         ctx.globalAlpha = 1;
     }
@@ -1050,7 +1060,7 @@
         }
         // Only once the run is under way: the title screen draws this state
         // too and has its own text there.
-        if (s.clock > 0 && s.clock < 2.5) G.text('Follow the gates — tuck for speed', G.W / 2, 470, { size: LABEL, color: SNOW, align: 'center' });
+        if (s.clock > 0 && s.clock < 2.5) G.text(s.cfg.touch ? 'Follow gates — hold TUCK for speed' : 'Follow the gates — tuck for speed', G.W / 2, 470, { size: s.cfg.label, color: SNOW, align: 'center' });
     }
 
     function draw(s, ctx) {
@@ -1080,10 +1090,10 @@
         title: 'POLAR RUSH',
         blurb: 'Ski the gates down to the finish before the clock runs out.',
         controls: [
-            '← → carve — turning bleeds speed',
-            '↓ / TUCK: much faster, but steers worse',
-            'SPACE / JUMP hops rocks and crevasses — a ramp throws you far',
-            'A missed gate costs 3 seconds · tuck to outrun the yeti and the avalanche'
+            '← → carve — turning slows you',
+            '↓ / X / TUCK: faster, wider turns',
+            'SPACE / JUMP: hop rocks and crevasses',
+            'Miss a gate: lose 3s · TUCK escapes chasers'
         ],
         // Two big carve buttons, with the tuck on B instead of ▼: on the
         // 8-way pad a thumb sliding between ◀ and ▶ would hold ▼ half the
