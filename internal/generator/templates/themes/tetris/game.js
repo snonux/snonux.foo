@@ -74,6 +74,10 @@
     function newRow(cells, stub) { return { cells: cells, stub: stub, shift: 0, dy: 0, vy: 0, sx: 0, gone: false }; }
     function rowTop(s, i) { return s.y - (i + 1) * CELL; }
     function colX(c) { return OX + c * CELL + CELL / 2; }
+    // Widen only the phone picture: twelve columns still have identical rules
+    // and vertical timing, but their touch targets are half as wide again.
+    function boardScale(s) { return s.touch ? 1.5 : 1; }
+    function screenX(s, x) { return G.W / 2 + (x - G.W / 2) * boardScale(s); }
 
     // A full row painted in runs of one colour, so the wall reads as packed pieces.
     function paintRow(rnd) {
@@ -146,14 +150,10 @@
         }
     }
 
-    function coarse() {
-        return G.isTouch();
-    }
-
     function init(level) {
         var cfg = LEVELS[level - 1], rnd = G.rng(level * 7919 + 3);
         var s = {
-            cfg: cfg, rnd: rnd, rows: [], carry: [], y: START_Y, col: 5, lx: colX(5), rep: 0, touch: coarse(),
+            cfg: cfg, rnd: rnd, rows: [], carry: [], y: START_Y, col: 5, lx: colX(5), rep: 0, touch: G.isTouch(),
             shots: [], cool: 0, recoil: 0, nextColor: COLORS[Math.floor(rnd() * COLORS.length)],
             lines: 0, combo: 0, comboT: 0, kick: 0, slam: 0, shiftT: cfg.every, slides: 0, surgeT: cfg.surge, warned: false,
             time: 0, flashes: [], rushPay: 0, rushT: 0, beat: 0
@@ -176,8 +176,8 @@
     // both single precise steps and fast sweeps across the board are possible.
     function moveLauncher(s, dt) {
         var dir = (G.key.right ? 1 : 0) - (G.key.left ? 1 : 0);
-        if (G.hit.left || G.hit.right) {
-            stepCol(s, G.hit.right ? 1 : -1, true);
+        if (dir && (G.hit.left || G.hit.right)) {
+            stepCol(s, dir, true);
             s.rep = 0.19;
         } else if (dir) {
             s.rep -= dt;
@@ -202,15 +202,18 @@
     // a mouse click does nothing.
     function tapColumn(s) {
         var m = G.mouse;
-        if (!s.touch || !m.hit || m.y < TOP || m.x < OX - CELL || m.x > OX + BW + CELL) return false;
-        var best = G.clamp(Math.floor((m.x - OX) / CELL), 0, COLS - 1), reach = TAP_REACH;
+        if (!s.touch || !m.hit || !Number.isFinite(m.x) || !Number.isFinite(m.y) || m.y < TOP || m.y > G.H) return false;
+        var x = G.W / 2 + (m.x - G.W / 2) / boardScale(s);
+        if (x < OX || x >= OX + BW) return false;
+        var best = Math.floor((x - OX) / CELL), reach = TAP_REACH;
         if (!useful(s, best)) {
             for (var c = 0; c < COLS; c++) {
-                var d = Math.abs(colX(c) - m.x);
+                var d = Math.abs(colX(c) - x);
                 if (d < reach && useful(s, c)) { best = c; reach = d; }
             }
         }
         s.col = best;
+        s.lx = colX(best);
         return true;
     }
 
@@ -316,7 +319,7 @@
     // ---- shots landing -----------------------------------------------------
 
     function crack(s, cell, sh, low) {
-        var x = colX(sh.c), y = s.y - low * CELL;
+        var x = screenX(s, colX(sh.c)), y = s.y - low * CELL;
         cell.hp--;
         cell.glow = 1;
         G.noise(0.08, { vol: 0.2, freq: 3000 });
@@ -347,7 +350,7 @@
     //   the whole penalty, however often the player misses.
     // A tapped block that misses also jams the launcher (see TAP_JAM).
     function miss(s, sh, stubRow) {
-        var x = colX(sh.c);
+        var x = screenX(s, colX(sh.c));
         if (sh.target && (sh.target.gone || sh.slides !== s.slides)) {
             G.burst(x, s.y, { n: 6, color: sh.color, speed: 120, life: 0.3 });
             return;
@@ -415,7 +418,7 @@
     function popRow(s, row, top) {
         s.flashes.push({ y: top, t: 0.3 });
         row.cells.forEach(function (cell, c) {
-            if (cell) G.burst(colX(c), top + CELL / 2, { n: 4, color: cell.color, speed: 260, gravity: 700, size: 5, life: 0.7 });
+            if (cell) G.burst(screenX(s, colX(c)), top + CELL / 2, { n: 4, color: cell.color, speed: 260, gravity: 700, size: 5, life: 0.7 });
         });
     }
 
@@ -425,7 +428,7 @@
         while (at > 0 && s.rows[at - 1].stub) {
             var top = rowTop(s, at - 1);
             s.rows[at - 1].cells.forEach(function (cell, c) {
-                if (cell) G.burst(colX(c), top + CELL / 2, { n: 5, color: cell.color, speed: 90, gravity: 900, size: 6, life: 0.8 });
+                if (cell) G.burst(screenX(s, colX(c)), top + CELL / 2, { n: 5, color: cell.color, speed: 90, gravity: 900, size: 6, life: 0.8 });
             });
             s.rows[at - 1].gone = true;
             s.rows.splice(at - 1, 1);
@@ -478,7 +481,7 @@
             var row = s.rows.shift(), top = s.y - CELL;
             row.gone = true;
             row.cells.forEach(function (cell, c) {
-                if (cell) G.burst(colX(c), top + CELL / 2, { n: 3, color: cell.color, speed: 300, gravity: 600, size: 5 });
+                if (cell) G.burst(screenX(s, colX(c)), top + CELL / 2, { n: 3, color: cell.color, speed: 300, gravity: 600, size: 5 });
             });
             s.y -= CELL;
         }
@@ -698,9 +701,9 @@
         s.rows.forEach(function (row, i) {
             var mid = rowTop(s, i) - row.dy + CELL / 2;
             if (!row.shift || mid < TOP + 12 || mid > G.H) return;
-            var mark = row.shift > 0 ? '»' : '«', o = { size: 20, bold: true, color: soon ? INK : YELLOW, align: 'center', baseline: 'middle' };
-            G.text(mark, OX - 21, mid, o);
-            G.text(mark, OX + BW + 21, mid, o);
+            var mark = row.shift > 0 ? '»' : '«', o = { size: s.touch ? 28 : 20, bold: true, color: soon ? INK : YELLOW, align: 'center', baseline: 'middle' };
+            G.text(mark, screenX(s, OX - (s.touch ? 15 : 21)), mid, o);
+            G.text(mark, screenX(s, OX + BW + (s.touch ? 15 : 21)), mid, o);
         });
     }
 
@@ -709,6 +712,7 @@
     // not read as part of it. Two short lines of 20px each: on a phone the
     // canvas is drawn at about half size, and smaller type is unreadable.
     function drawLegend(s, ctx) {
+        if (s.touch) { drawPhoneLegend(s, ctx); return; }
         var cfg = s.cfg, y = 66;
         function entry(name, what, paint) {
             paint(16, y + 4);
@@ -725,8 +729,28 @@
         }
     }
 
+    // Keep every late-level cue in the side gutter rather than over the wall.
+    function drawPhoneLegend(s, ctx) {
+        var y = 72;
+        function entry(name, what, paint) {
+            paint(45, y);
+            G.text(name, 63, y + 65, { size: 26, bold: true, color: INK, align: 'center' });
+            G.text(what, 63, y + 94, { size: 24, color: MUTED, align: 'center' });
+            y += 126;
+        }
+        if (s.cfg.armour) entry('STEEL', 'HIT x2', function (x, yy) { drawArmour(ctx, { hp: 2 }, x, yy); });
+        if (s.cfg.bomb) entry('BOMB', '3 ROWS', function (x, yy) { drawBomb(s, ctx, x, yy); });
+        if (s.cfg.shift) entry('SLIDE', '«  »', function (x, yy) { G.text('«»', x + 18, yy + 26, { size: 32, bold: true, color: YELLOW, align: 'center' }); });
+        if (s.cfg.surge) {
+            var warn = s.surgeT < 1.2;
+            G.text(warn ? 'SURGE!' : 'SURGE', 890, 390, { size: 26, max: 100, bold: true, color: warn ? RED : MUTED, align: 'center' });
+            G.text(warn ? 'NOW' : Math.ceil(s.surgeT) + 's', 890, 424, { size: 30, bold: true, color: warn ? RED : INK, align: 'center' });
+        }
+    }
+
     // Right panel: the line quota as a rising meter, and the running combo.
     function drawMeter(s, ctx) {
+        if (s.touch) { drawPhoneMeter(s, ctx); return; }
         var x = OX + BW + 60, top = 96, h = 330, done = G.clamp(s.lines / s.cfg.quota, 0, 1);
         G.text('LINES', x, 62, { size: 14, color: MUTED });
         G.text(s.lines + ' / ' + s.cfg.quota, x, 84, { size: 20, bold: true, color: INK });
@@ -744,6 +768,21 @@
         if (G.key.down) G.text('RUSH +', x + 44, 330, { size: 20, bold: true, color: '#ff922b' });
     }
 
+    function drawPhoneMeter(s, ctx) {
+        var done = G.clamp(s.lines / s.cfg.quota, 0, 1);
+        G.text('LINES', 885, 74, { size: 26, color: MUTED, align: 'center' });
+        G.text(s.lines + '/' + s.cfg.quota, 885, 108, { size: 32, bold: true, color: INK, align: 'center' });
+        ctx.fillStyle = GRID;
+        ctx.fillRect(850, 125, 80, 12);
+        ctx.fillStyle = '#51cf66';
+        ctx.fillRect(850, 125, 80 * done, 12);
+        if (s.combo > 1 && s.comboT > 0) {
+            G.text('COMBO', 885, 208, { size: 24, color: MUTED, align: 'center' });
+            G.text('x' + Math.min(s.combo, 5), 885, 248, { size: 36, bold: true, color: YELLOW, align: 'center' });
+        }
+        if (G.key.down) G.text('RUSH +', 890, 318, { size: 26, max: 100, bold: true, color: '#ff922b', align: 'center' });
+    }
+
     function draw(s, ctx) {
         ctx.fillStyle = '#080b12';
         ctx.fillRect(0, 0, G.W, G.H);
@@ -751,7 +790,10 @@
         // that moves is clipped to the area below it.
         ctx.save();
         ctx.beginPath(); ctx.rect(0, TOP, G.W, G.H - TOP); ctx.clip();
-        drawDrift(s, ctx);
+        if (!s.touch) drawDrift(s, ctx);
+        ctx.translate(G.W / 2, 0);
+        ctx.scale(boardScale(s), 1);
+        ctx.translate(-G.W / 2, 0);
         drawBoard(s, ctx);
         ctx.beginPath(); ctx.rect(OX, TOP, BW, G.H - TOP); ctx.clip();
         drawGhost(s, ctx);
