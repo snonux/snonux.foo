@@ -303,6 +303,9 @@
         return (row && row[tx]) || ' ';
     }
 
+    // Cull decoration only; simulation still runs across the whole stage.
+    function visible(x, w) { return x + w >= G.cam.x - 40 && x <= G.cam.x + G.W + 40; }
+
     function say(s, text) { s.msg = text; s.msgT = 2.2; }
 
     // True at most once per `every` seconds: keeps continuous sounds (acid
@@ -1059,6 +1062,7 @@
 
     function drawMovers(s, ctx) {
         s.movers.forEach(function (m) {
+            if (!visible(Math.min(m.ax, m.bx), Math.abs(m.bx - m.ax) + m.w)) return;
             // Rails show where the platform is going before it gets there.
             ctx.strokeStyle = 'rgba(224,224,224,0.18)'; ctx.lineWidth = 2;
             ctx.beginPath();
@@ -1076,6 +1080,7 @@
 
     function drawLasers(s, ctx) {
         s.lasers.forEach(function (l) {
+            if (!visible(l.x, l.w)) return;
             var on = laserOn(s, l), warn = (s.t + l.ph) % 2.6 > 2.2;
             if (on) {
                 ctx.fillStyle = 'rgba(255,0,0,0.3)';
@@ -1091,7 +1096,7 @@
 
     function drawCheckpoints(s, ctx) {
         s.checks.forEach(function (c, i) {
-            if (!i) return;
+            if (!i || !visible(c.x, 9)) return;
             var y = FLOOR * T;
             ctx.fillStyle = GREY;
             ctx.fillRect(c.x + 3, y - 34, 3, 34);
@@ -1103,7 +1108,9 @@
     }
 
     function drawDoor(s, ctx) {
-        var d = s.door, open = s.haveCard, pulse = 0.5 + Math.sin(s.t * 6) * 0.5;
+        var d = s.door;
+        if (!visible(d.x - 30, d.w + 60)) return;
+        var open = s.haveCard, pulse = 0.5 + Math.sin(s.t * 6) * 0.5;
         ctx.fillStyle = GREY;
         ctx.fillRect(d.x - 6, d.y - 8, d.w + 12, d.h + 8);
         ctx.fillStyle = open ? '#1d6b1d' : '#5a0000';
@@ -1119,7 +1126,7 @@
 
     function drawCard(s, ctx) {
         var c = s.card;
-        if (!c || s.haveCard) return;
+        if (!c || s.haveCard || !visible(c.x - 10, 50)) return;
         var y = c.y + 6 + Math.sin(s.t * 4) * 4;
         ctx.fillStyle = 'rgba(255,215,0,' + (0.18 + Math.sin(s.t * 7) * 0.08) + ')';
         ctx.beginPath(); ctx.arc(c.x + 15, y + 9, 22, 0, Math.PI * 2); ctx.fill();
@@ -1133,17 +1140,19 @@
 
     function drawPickups(s, ctx) {
         s.pickups.forEach(function (pk) {
+            if (!visible(pk.x, T)) return;
             var look = PICK_LOOK[pk.kind], y = pk.y + 6 + Math.sin(s.t * 5 + pk.x) * 3;
             ctx.fillStyle = look[0];
             ctx.fillRect(pk.x + 5, y, 20, 18);
             ctx.strokeStyle = DARK; ctx.lineWidth = 2;
             ctx.strokeRect(pk.x + 5, y, 20, 18);
-            G.text(look[1], pk.x + 15, y + 14, { size: 15, bold: true, color: look[2], align: 'center' });
+            G.text(look[1], pk.x + 15, y + 14, { size: s.touch ? 22 : 15, bold: true, color: look[2], align: 'center' });
         });
     }
 
     function drawBarrels(s, ctx) {
         s.barrels.forEach(function (b) {
+            if (!visible(b.x, b.w)) return;
             // A lit barrel flashes white: get away from it.
             ctx.fillStyle = b.fuse >= 0 && Math.floor(s.t * 40) % 2 ? '#ffffff' : BLOOD;
             ctx.fillRect(b.x, b.y, b.w, b.h);
@@ -1270,6 +1279,7 @@
 
     function drawShots(s, ctx) {
         s.shots.forEach(function (b) {
+            if (!visible(b.x - 16, 32)) return;
             if (!b.foe) { ctx.fillStyle = YEL; ctx.fillRect(b.x - 6, b.y - 1.5, 12, 3); return; }
             if (b.wave) {
                 ctx.fillStyle = Math.floor(s.t * 30) % 2 ? YEL : '#ff6a00';
@@ -1282,6 +1292,7 @@
             ctx.fillRect(b.x - 1.5, b.y - 1.5, 3, 3);
         });
         s.nades.forEach(function (n) {
+            if (!visible(n.x, n.w)) return;
             ctx.fillStyle = Math.floor(n.fuse * 10) % 2 ? '#4a6a2a' : YEL;
             ctx.fillRect(n.x, n.y, n.w, n.h);
         });
@@ -1289,6 +1300,7 @@
 
     function drawBlasts(s, ctx) {
         s.blasts.forEach(function (b) {
+            if (!visible(b.x - b.r, b.r * 2)) return;
             var k = 1 - b.t / 0.35;
             ctx.globalAlpha = Math.max(0, 1 - k);
             ctx.fillStyle = k < 0.3 ? '#ffffff' : (k < 0.6 ? YEL : RED);
@@ -1341,11 +1353,16 @@
     function drawStatus(s, ctx) {
         var p = s.p, low = p.hp <= 35, secs = Math.ceil(s.clock);
         ctx.fillStyle = 'rgba(0,0,0,0.6)';
-        ctx.fillRect(10, 36, 154, 14);
+        var width = s.touch ? 180 : 150, height = s.touch ? 18 : 10;
+        ctx.fillRect(10, 36, width + 4, height + 4);
         ctx.fillStyle = low ? (Math.floor(s.t * 6) % 2 ? RED : BLOOD) : GOLD;
-        ctx.fillRect(12, 38, 150 * G.clamp(p.hp, 0, 100) / 100, 10);
-        G.text('HEALTH', 172, 48, { size: 13, color: LIGHT });
-        if (s.msgT > 0) G.text(s.msg, G.W / 2, 96, { size: 20, bold: true, color: YEL, align: 'center', glow: RED });
+        ctx.fillRect(12, 38, width * G.clamp(p.hp, 0, 100) / 100, height);
+        G.text(s.touch ? 'HP ' + Math.ceil(Math.max(0, p.hp)) : 'HEALTH', width + 22, s.touch ? 54 : 48,
+            { size: s.touch ? 22 : 13, color: LIGHT });
+        // Keep equipment out of the engine's phone HUD: with four hearts,
+        // a special gun and the key it otherwise squeezes every word down.
+        if (s.touch) G.text(equipment(s), G.W - 12, 54, { size: 22, color: LIGHT, align: 'right', max: 540 });
+        if (s.msgT > 0) G.text(s.msg, G.W / 2, 96, { size: s.touch ? 22 : 20, bold: true, color: YEL, align: 'center', glow: RED, max: 640 });
         if (secs <= 20 && secs > 0) {
             G.text(String(secs), G.W / 2, 150, { size: 44, bold: true, color: Math.floor(s.t * 4) % 2 ? RED : YEL, align: 'center', glow: RED });
         }
@@ -1379,18 +1396,23 @@
         drawStatus(s, ctx);
     }
 
-    function hud(s) {
+    function equipment(s) {
         var p = s.p, gun = p.weapon === 'gun' ? 'GUN' : p.weapon.toUpperCase() + ' ' + p.ammo;
-        return 'T-' + Math.max(0, Math.ceil(s.clock)) + '  ' + gun + '  GRN ' + p.nades + (s.haveCard ? '  KEY' : '');
+        return gun + '  GRN ' + p.nades + (s.haveCard ? '  KEY' : '');
+    }
+
+    function hud(s) {
+        return 'T-' + Math.max(0, Math.ceil(s.clock)) + (s.touch ? '' : '  ' + equipment(s));
     }
 
     G.register('nukem', {
         title: 'NUKEM TIME',
         blurb: 'The nuke is ticking. Find the keycard, reach the exit, blow up the rest.',
         controls: [
-            '← → run · ↑ jump (hold for height) · ↓ duck under fire',
+            '← → run · ↑ jump (hold for height) · ↓ duck',
             'SPACE / FIRE shoot · X / NADE throw a grenade',
-            'Shoot barrels for chain reactions · crates hide health, guns and grenades'
+            'Run + ↑ + FIRE together to jump and shoot',
+            'Barrels explode · crates hide supplies'
         ],
         levelNames: ['Rooftops', 'Loading Dock', 'Sky Patrol', 'Acid Sewers', 'Factory Floor', 'Lift Shaft', 'Mutant Lab', 'Laser Grid', 'Blackout', 'The Overlord'],
         colors: { bg: '#0a0a0a', fg: '#e0e0e0', accent: '#ffd700', dim: '#8a8a8a' },
