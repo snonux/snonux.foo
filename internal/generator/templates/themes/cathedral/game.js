@@ -33,6 +33,7 @@
     var LIVES = 4;
     var BUMP = 170;                             // the gargoyle's rebound off the underside of a ledge
     var HOLD_FLAP = 0.51, COMBO_T = 4, COMBO_MAX = 5, PORTAL_GRACE = 0.5;
+    var TOUCH_FLAP = 0.32, TOUCH_CATCH = 34;
     var CRUMBLE_T = 1.2, REGROW_T = 6;
     var GEYSER_WARN = 1.2, GEYSER_BURN = 0.9, GEYSER_H = 300;
     var SPAWNS = [150, 810, 370, 590], SPAWN_Y = 60;
@@ -40,6 +41,7 @@
     var GLASS = [COL.glass, COL.ruby, COL.gold, COL.violet];
     var LANCETS = [110, 285, 675, 850];
     var HERO = { body: '#b9b2c4', wing: '#7d768c', eye: COL.gold, horn: COL.chalk, k: 1, tail: false };
+    var TOUCH_HERO = { body: COL.chalk, wing: '#b9b2c4', eye: COL.gold, horn: COL.bright, k: 1.2, tail: false };
 
     // Demon tiers: how fast they fly, how often they may flap, how hard a
     // flap lifts, how likely each decision is to go for the gargoyle, and
@@ -154,7 +156,8 @@
         var home = s.ledges[0];
         return {
             x: home.x + home.w / 2, y: home.y - 14, vx: 0, vy: 0, hw: 13, hh: 14, face: 1,
-            wing: 0, flapCd: 0, hold: 0, inv: 2, batCd: 0, combo: 0, comboT: 0, roof: PLAYER_ROOF, bump: BUMP, ground: null
+            wing: 0, flapCd: 0, hold: 0, flapRepeat: s.touch ? TOUCH_FLAP : HOLD_FLAP,
+            inv: 2, batCd: 0, combo: 0, comboT: 0, roof: PLAYER_ROOF, bump: BUMP, ground: null
         };
     }
 
@@ -167,13 +170,13 @@
     function init(level) {
         var cfg = LEVELS[level - 1], rnd = G.rng(level * 7919 + 13), i;
         var s = {
-            cfg: cfg, t: 0, ledges: buildLedges(cfg), censers: buildCensers(cfg),
+            cfg: cfg, touch: G.isTouch(), t: 0, ledges: buildLedges(cfg), censers: buildCensers(cfg),
             demons: [], orbs: [], bats: [], geysers: [], glass: [], motes: [],
             wave: -1, waveDelay: 1, batTimer: cfg.bats || 0, geyserTimer: cfg.geysers || 0,
             clashCd: 0, maxTier: Math.min(3, strongestTier(cfg) + 1), banner: { text: '', t: 0 }
         };
         for (i = 0; i < LANCETS.length * 18; i++) s.glass.push(Math.floor(rnd() * GLASS.length));
-        for (i = 0; i < 36; i++) s.motes.push({ x: rnd() * G.W, y: 60 + rnd() * 400, v: 6 + rnd() * 16, ph: rnd() * 6.28 });
+        for (i = 0; i < (s.touch ? 12 : 36); i++) s.motes.push({ x: rnd() * G.W, y: 60 + rnd() * 400, v: 6 + rnd() * 16, ph: rnd() * 6.28 });
         s.p = newPlayer(s);
         return s;
     }
@@ -262,13 +265,13 @@
         p.vx = G.clamp(p.vx, -MAX_VX, MAX_VX);
     }
 
-    // Each press is one wing beat; holding the key repeats at the rate that
-    // just cancels gravity, so a held key hovers and only tapping climbs.
+    // Keyboard holds hover; a phone hold climbs so steering never requires
+    // repeated thumb taps at the same time. Releasing FLAP starts a dive.
     function flapPlayer(p, dt) {
         var held = G.key.a || G.key.up;
         p.flapCd -= dt;
         p.hold = held ? p.hold + dt : 0;
-        var want = G.hit.a || G.hit.up || p.hold > HOLD_FLAP;
+        var want = G.hit.a || G.hit.up || p.hold > p.flapRepeat;
         if (!want || p.flapCd > 0) return;
         p.hold = 0;
         p.vy = Math.max(Math.min(p.vy, 60) - 250, -360);
@@ -541,7 +544,8 @@
         o.vy = Math.min(o.vy, 110);
         if (o.y > ORB_FLOOR) { o.y = ORB_FLOOR; o.vy = 0; }
         o.arm -= dt;
-        if (o.arm <= 0 && Math.abs(wrapDx(p.x, o.x)) < 24 && Math.abs(p.y - o.y) < 26) { collectOrb(s, o); return false; }
+        var catchX = s.touch ? TOUCH_CATCH : 24, catchY = s.touch ? TOUCH_CATCH : 26;
+        if (o.arm <= 0 && Math.abs(wrapDx(p.x, o.x)) < catchX && Math.abs(p.y - o.y) < catchY) { collectOrb(s, o); return false; }
         o.hatch -= dt;
         // A quickening heartbeat warns of the hatch during the last seconds.
         if (o.hatch < 3 && Math.floor(o.hatch * 2) !== Math.floor(before * 2)) G.tone(180, 0.05, { type: 'sine', vol: 0.16 });
@@ -683,7 +687,7 @@
     // Stained glass: seeded panes whose glow breathes slowly, as if clouds
     // passed outside.
     function drawLancet(s, ctx, x, i) {
-        var top = 62, w = 64, bottom = 330, rows = 9, rh = (bottom - top) / rows;
+        var top = 62, w = 64, bottom = 330, rows = s.touch ? 3 : 9, rh = (bottom - top) / rows;
         ctx.save();
         lancetPath(ctx, x, top, w, bottom);
         ctx.clip();
@@ -806,10 +810,11 @@
             ctx.fillStyle = layer[0];
             ctx.beginPath();
             ctx.moveTo(0, G.H);
-            for (var x = 0; x <= G.W; x += 12) {
+            var step = s.touch ? 24 : 12;
+            for (var x = 0; x <= G.W; x += step) {
                 var h = 18 + 10 * Math.sin(s.t * 6 + x * 0.21 + layer[1]) + 7 * Math.sin(s.t * 11 + x * 0.57);
                 ctx.lineTo(x, G.H - 12 - h * layer[2]);
-                ctx.lineTo(x + 6, G.H - 8 - h * layer[2] * 0.3);
+                ctx.lineTo(x + step / 2, G.H - 8 - h * layer[2] * 0.3);
             }
             ctx.lineTo(G.W, G.H);
             ctx.fill();
@@ -897,7 +902,7 @@
     function drawPlayer(s, ctx) {
         var p = s.p;
         if (p.inv > 0 && Math.floor(s.t * 12) % 2) ctx.globalAlpha = 0.4;
-        wrapped(p.x, function (x) { drawCreature(ctx, p, x, HERO, s.t); });
+        wrapped(p.x, function (x) { drawCreature(ctx, p, x, s.touch ? TOUCH_HERO : HERO, s.t); });
         ctx.globalAlpha = 1;
     }
 
@@ -905,7 +910,7 @@
     // it is the time left, and it trembles when the hatch is close.
     function drawOrb(s, ctx, o) {
         var left = Math.max(0, o.hatch / o.max), jitter = o.hatch < 2.5 ? Math.sin(s.t * 50) * 2 : 0;
-        var bob = Math.sin(s.t * 4 + o.x) * 2, r = 7 + Math.sin(s.t * (4 + (1 - left) * 14)) * 1.5;
+        var bob = Math.sin(s.t * 4 + o.x) * 2, r = (s.touch ? 12 : 7) + Math.sin(s.t * (4 + (1 - left) * 14)) * 1.5;
         wrapped(o.x, function (x) {
             ctx.globalAlpha = 0.25;
             ctx.fillStyle = TIERS[o.tier].body;
@@ -915,7 +920,7 @@
             ctx.globalAlpha = 1;
             ctx.fillStyle = COL.bright;
             ctx.beginPath(); ctx.arc(x + jitter - 2, o.y + bob - 2, r * 0.35, 0, Math.PI * 2); ctx.fill();
-            ctx.strokeStyle = COL.chalk; ctx.lineWidth = 2;
+            ctx.strokeStyle = COL.chalk; ctx.lineWidth = s.touch ? 3 : 2;
             ctx.beginPath(); ctx.arc(x + jitter, o.y + bob, r + 5, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * left); ctx.stroke();
         });
     }
@@ -1022,10 +1027,10 @@
         title: 'GARGOYLE',
         blurb: 'Dive on the demons from above, then catch their souls before they hatch again.',
         controls: [
-            'SPACE / FLAP (or ↑): tap fast to climb, hold to hover',
-            '← →: steer — the nave wraps around at the walls',
-            'In a collision the higher one wins — demons fit under the vault, you do not',
-            'Holy fire, censers and geysers kill'
+            'Hold FLAP to climb on phone; release to dive',
+            'SPACE / ↑: tap to climb, hold to hover · ← → steer',
+            'Strike from above, then catch the bright souls',
+            'Walls wrap · avoid fire, censers and geysers'
         ],
         levelNames: ['Matins', 'Lauds', 'The Belfry', 'Crumbling Triforium', 'The Censer', 'Wraith Choir', 'Holy Fire', 'Twin Thuribles', 'Tenebrae', 'Archdemon'],
         colors: { bg: '#110f16', fg: COL.chalk, accent: COL.gold, dim: '#8d849c' },
