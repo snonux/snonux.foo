@@ -184,22 +184,22 @@
         return sky;
     }
 
-    function buildMotes(rnd) {
+    function buildMotes(rnd, touch) {
         var motes = [];
-        for (var i = 0; i < 28; i++) motes.push({ x: rnd() * G.W, y: 40 + rnd() * 420, v: 8 + rnd() * 26, size: 2 + rnd() * 3 });
+        for (var i = 0; i < (touch ? 14 : 28); i++) motes.push({ x: rnd() * G.W, y: 40 + rnd() * 420, v: 8 + rnd() * 26, size: 2 + rnd() * 3 });
         return motes;
     }
 
     function init(level) {
-        var rnd = G.rng(level * 7919 + 13), built = buildGrid(level, rnd), cfg = LEVELS[level - 1];
+        var rnd = G.rng(level * 7919 + 13), built = buildGrid(level, rnd), cfg = LEVELS[level - 1], touch = G.isTouch();
         return {
-            cfg: cfg, grid: built.grid, total: built.total, gone: 0, need: Math.ceil(built.total * cfg.target),
+            touch: touch, cfg: cfg, grid: built.grid, total: built.total, gone: 0, need: Math.ceil(built.total * cfg.target),
             time: cfg.time, done: 0, dirty: false, combo: 0, comboT: 0,
             cab: { x: 70, vx: 0, inv: 0 }, L: 300, Ldot: 0, ball: { x: 70, y: PIVOT_Y + 300, vx: 0, vy: 0 },
             falling: [], loose: [], lit: [], chunks: [],
             wind: { f: 0, t: 0, next: 4 }, tremor: { next: 10, warn: false },
             cool: { tink: 0, thud: 0, engine: 0, reel: 0 },
-            sky: buildSky(rnd), motes: buildMotes(rnd)
+            sky: buildSky(rnd), motes: buildMotes(rnd, touch)
         };
     }
 
@@ -817,15 +817,15 @@
         s.motes.forEach(function (m) { ctx.fillRect(m.x, m.y + Math.sin(G.t + m.x * 0.02) * 6, m.size, m.size); });
     }
 
-    function drawBar(ctx, x, w, part, color, label) {
+    function drawBar(ctx, x, w, part, color, label, touch) {
         ctx.fillStyle = '#000000';
         ctx.fillRect(x, 508, w, 16);
         ctx.fillStyle = color;
         ctx.fillRect(x, 508, w * G.clamp(part, 0, 1), 16);
         ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2;
         ctx.strokeRect(x, 508, w, 16);
-        // 20 px: on a phone the canvas is drawn at well under half size.
-        G.text(label, x, 502, { size: 20, color: '#c8c8c8', max: w });
+        // Short phone labels stay readable without squeezing the text to fit.
+        G.text(label, x, 502, { size: touch ? 28 : 20, color: '#c8c8c8', max: w });
     }
 
     function drawGround(s, ctx) {
@@ -834,16 +834,17 @@
         ctx.fillStyle = '#ffffff';
         ctx.fillRect(0, GROUND, G.W, 4);
         var low = s.time <= 10 && Math.floor(G.t * 4) % 2 === 0;
-        drawBar(ctx, 20, 600, s.gone / s.total, RED, 'DEMOLISHED ' + Math.floor(s.gone / s.total * 100) + '%  —  TARGET ' + Math.round(s.cfg.target * 100) + '%');
-        drawBar(ctx, 660, 280, s.time / s.cfg.time, low ? RED : '#ffffff', 'TIME ' + Math.max(0, Math.ceil(s.time)));
+        var progress = Math.floor(s.gone / s.total * 100) + '% / ' + Math.round(s.cfg.target * 100) + '%';
+        drawBar(ctx, 20, 600, s.gone / s.total, RED, s.touch ? 'DEMOLISH ' + progress : 'DEMOLISHED ' + progress.replace(' / ', '  —  TARGET '), s.touch);
+        drawBar(ctx, 660, 280, s.time / s.cfg.time, low ? RED : '#ffffff', 'TIME ' + Math.max(0, Math.ceil(s.time)), s.touch);
         // The mark the red bar has to reach.
         ctx.fillStyle = '#ffffff';
         ctx.fillRect(20 + 600 * s.need / s.total - 2, 503, 4, 26);
     }
 
-    function drawCracks(ctx, b, x, y) {
-        var part = b.hp / KINDS[b.kind].hp, n = part < 0.4 ? 3 : (part < 0.75 ? 2 : 1), sx = x + 7 + b.shade * 14;
-        ctx.strokeStyle = '#000000'; ctx.lineWidth = 1.5;
+    function drawCracks(ctx, b, x, y, touch) {
+        var part = b.hp / KINDS[b.kind].hp, n = touch ? 1 : (part < 0.4 ? 3 : (part < 0.75 ? 2 : 1)), sx = x + 7 + b.shade * 14;
+        ctx.strokeStyle = '#000000'; ctx.lineWidth = touch ? 3 : 1.5;
         ctx.beginPath();
         for (var i = 0; i < n; i++) {
             ctx.moveTo(sx + i * 9, y + 2); ctx.lineTo(sx + i * 9 - 5, y + CH * 0.45); ctx.lineTo(sx + i * 9 + 4, y + CH - 2);
@@ -851,20 +852,24 @@
         ctx.stroke();
     }
 
-    function drawConcrete(ctx, b, x, y) {
+    function drawConcrete(ctx, b, x, y, touch) {
         var rebar = b.kind === REBAR, g = rebar ? 70 + Math.floor(b.shade * 20) : 128 + Math.floor(b.shade * 56);
         ctx.fillStyle = 'rgb(' + g + ',' + g + ',' + g + ')';
         ctx.fillRect(x, y, CW, CH);
         // Board-marked concrete: a light top edge and a shadowed bottom.
-        ctx.fillStyle = 'rgba(255,255,255,0.18)';
-        ctx.fillRect(x, y, CW, 3);
-        ctx.fillStyle = 'rgba(0,0,0,0.28)';
-        ctx.fillRect(x, y + CH - 5, CW, 5);
+        // At phone scale board texture disappears; keep the block silhouette.
+        if (!touch) {
+            ctx.fillStyle = 'rgba(255,255,255,0.18)';
+            ctx.fillRect(x, y, CW, 3);
+            ctx.fillStyle = 'rgba(0,0,0,0.28)';
+            ctx.fillRect(x, y + CH - 5, CW, 5);
+        }
         if (rebar) {
             ctx.fillStyle = RED;
             for (var i = 0; i < 3; i++) ctx.fillRect(x + 8 + i * 11, y + 3, 3, CH - 6);
         }
-        if (b.hp < KINDS[b.kind].hp) drawCracks(ctx, b, x, y);
+        // One thick phone crack preserves damage feedback without fine detail.
+        if (b.hp < KINDS[b.kind].hp) drawCracks(ctx, b, x, y, touch);
         ctx.strokeStyle = '#000000'; ctx.lineWidth = 2;
         ctx.strokeRect(x + 1, y + 1, CW - 2, CH - 2);
     }
@@ -880,31 +885,33 @@
         ctx.stroke();
     }
 
-    function drawCharge(ctx, b, x, y) {
+    function drawCharge(ctx, b, x, y, touch) {
         var lit = b.fuse > 0, blink = lit && Math.floor(b.fuse * 10) % 2 === 0;
         ctx.fillStyle = blink ? '#ffffff' : RED;
         ctx.fillRect(x, y, CW, CH);
         ctx.fillStyle = '#000000';
         ctx.fillRect(x, y + 4, CW, 3); ctx.fillRect(x, y + CH - 7, CW, 3);
-        G.text(lit ? b.fuse.toFixed(1) : 'TNT', x + CW / 2, y + 20, { size: 13, bold: true, color: '#000000', align: 'center' });
+        // A large warning glyph survives phone scaling; the flashing fuse still
+        // signals the short delay before detonation.
+        G.text(touch ? '!' : (lit ? b.fuse.toFixed(1) : 'TNT'), x + CW / 2, y + (touch ? 24 : 20), { size: touch ? 26 : 13, bold: true, color: '#000000', align: 'center' });
         ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2;
         ctx.strokeRect(x + 1, y + 1, CW - 2, CH - 2);
     }
 
-    function drawBlock(ctx, b) {
+    function drawBlock(ctx, b, touch) {
         // A block about to fall shivers first: the warning to get clear.
         var x = b.c * CW + (b.loose > 0 ? G.rnd(-1.5, 1.5) : 0), y = b.y;
         if (b.dead) return;
         if (b.kind === GLASS) drawGlass(ctx, x, y);
-        else if (b.kind === CHARGE) drawCharge(ctx, b, x, y);
-        else drawConcrete(ctx, b, x, y);
+        else if (b.kind === CHARGE) drawCharge(ctx, b, x, y, touch);
+        else drawConcrete(ctx, b, x, y, touch);
     }
 
     function drawChunks(s, ctx) {
         s.chunks.forEach(function (k) {
             // Landing mark on the ground.
             ctx.fillStyle = RED;
-            ctx.fillRect(k.tx - MARK / 2, GROUND + 6, MARK, 5);
+            ctx.fillRect(k.tx - MARK / 2, GROUND + 6, MARK, s.touch ? 9 : 5);
             ctx.save();
             ctx.translate(k.x, k.y); ctx.rotate(k.rot);
             ctx.fillStyle = '#9a9a9a';
@@ -978,22 +985,24 @@
             ctx.moveTo(x, y); ctx.lineTo(x - (f > 0 ? 46 : -46), y);
         }
         ctx.stroke();
-        G.text(f > 0 ? 'WIND >>>' : '<<< WIND', G.W / 2, 54, { size: 20, bold: true, color: '#ffffff', align: 'center' });
+        G.text(f > 0 ? 'WIND >>>' : '<<< WIND', G.W / 2, s.touch ? 64 : 54, { size: s.touch ? 28 : 20, bold: true, color: '#ffffff', align: 'center' });
     }
 
     function drawNotes(s, ctx) {
         if (s.tremor.warn && Math.floor(G.t * 8) % 2 === 0) {
-            G.text('TREMOR — KEEP MOVING', G.W / 2, 78, { size: 20, bold: true, color: RED, align: 'center' });
+            G.text('TREMOR — KEEP MOVING', G.W / 2, s.touch ? 98 : 78, { size: s.touch ? 28 : 20, bold: true, color: RED, align: 'center' });
         }
         if (G.level === 1 && G.t < 9) {
-            G.text('DRIVE TO SWING THE BALL · BRAKE TO WHIP IT · HIT THE BOTTOM ROW', G.W / 2, 54, { size: 20, color: '#c8c8c8', align: 'center', max: G.W - 40 });
+            var hint = s.touch ? 'DRIVE → BRAKE → HIT THE BASE' : 'DRIVE TO SWING THE BALL · BRAKE TO WHIP IT · HIT THE BOTTOM ROW';
+            G.text(hint, G.W / 2, s.touch ? 64 : 54, { size: s.touch ? 28 : 20, color: '#c8c8c8', align: 'center', max: G.W - 40 });
+            if (s.touch) G.text('↑ SHORTEN · ↓ LENGTHEN CHAIN', G.W / 2, 98, { size: 28, color: '#c8c8c8', align: 'center' });
         }
     }
 
     function draw(s, ctx) {
         drawSky(s, ctx);
         drawGround(s, ctx);
-        eachBlock(s, function (b) { drawBlock(ctx, b); });
+        eachBlock(s, function (b) { drawBlock(ctx, b, s.touch); });
         drawChunks(s, ctx);
         drawMast(s, ctx);
         drawCab(s, ctx);
