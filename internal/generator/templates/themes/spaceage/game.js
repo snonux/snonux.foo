@@ -28,8 +28,9 @@
     // spawning and landing are never under fire.
     var TURRET = { range: 440, near: 150, period: 2.2, shell: 150, lead: 0.6, warmup: 3.5 };
     var DRY = { landed: 1.5, adrift: 5 };             // seconds a dry tank is tolerated
-    // The panel's labels are 18px and its bars 128px long so that they can
-    // still be read on a phone, where the canvas is drawn at about half size.
+    // Keep phone hints short enough to retain their larger type.
+    var TOUCH_HINTS = ['BEACON FIRST — LAND SLOW AND UPRIGHT', 'LAND ON THE CANYON PADS', 'LEAN INTO THE CROSSWIND', 'MATCH THE MOVING DECK', 'FOLLOW THE FUEL CANISTERS', 'KEEP MOVING — DODGE FLAK', 'CARGO WEST — DELIVER EAST', 'SMALL BURNS — AVOID MINES', 'CARGO WEST — HEAVY GRAVITY', 'DOCK BOTH ARMS — MATCH THE SPIN'];
+    // Desktop instruments sit in a compact panel.
     var PANEL = { x: 10, y: 38, w: 212, h: 92, bar: 76, len: 128, row: 21 };
     var C = { bg: '#030a0f', sky: '#06202b', teal: '#00e8e8', dim: '#1a4455', red: '#ff3320', silver: '#c8d8e0', rock: '#082230', far: '#05171f' };
 
@@ -164,9 +165,10 @@
         var cfg = LEVELS[level - 1], rnd = G.rng(level * 733), floorSkeleton = skeleton(cfg, 'floor');
         var s = {
             cfg: cfg, t: 0, dead: false, windX: 0, dry: 0, step: 0, shells: [],
+            touch: G.isTouch(), turnHeld: 0, turnDir: 0,
             floor: profile(floorSkeleton, cfg, rnd), ceil: profile(skeleton(cfg, 'ceil'), cfg, rnd),
             ship: { x: cfg.start[0], y: cfg.start[1], vx: cfg.start[2], vy: 0, ang: 0, fuel: cfg.fuel, landed: -1, off: 0, cargo: false, burning: false },
-            msg: { text: cfg.hint, t: 5 },
+            msg: { text: G.isTouch() ? TOUCH_HINTS[level - 1] : cfg.hint, t: 5 },
             timers: { engine: 0, beep: 0, ping: 0, wind: 0 }
         };
         s.pads = cfg.pads.map(function (def) { return buildPad(s, def, floorSkeleton); });
@@ -364,7 +366,13 @@
 
     function steer(s, dt) {
         var ship = s.ship;
-        ship.ang += ((G.key.right ? 1 : 0) - (G.key.left ? 1 : 0)) * TURN * dt;
+        var dir = (G.key.right ? 1 : 0) - (G.key.left ? 1 : 0);
+        // Short thumb presses allow a small correction; holding still gives
+        // the full turn rate for travelling and matching the station's spin.
+        s.turnHeld = dir && dir === s.turnDir ? s.turnHeld + dt : 0;
+        s.turnDir = dir;
+        var rate = s.touch ? TURN * G.lerp(0.5, 1, Math.min(1, s.turnHeld / 0.25)) : TURN;
+        ship.ang += dir * rate * dt;
         if (G.hit.left || G.hit.right) G.noise(0.05, { filter: 'highpass', freq: 3000, vol: 0.06 });   // RCS puff
         ship.burning = (G.key.up || G.key.a) && ship.fuel > 0;
     }
@@ -497,7 +505,11 @@
         var ship = s.ship;
         s.t += dt;
         placePads(s);
-        if (ship.landed >= 0) ride(s);
+        if (ship.landed >= 0) {
+            // Rotation is parked on a pad; takeoff starts a fresh correction.
+            s.turnHeld = 0; s.turnDir = 0;
+            ride(s);
+        }
         else { steer(s, dt); fly(s, dt); }
         collectCans(s);
         updateTurrets(s, dt);
@@ -515,7 +527,8 @@
         var grad = ctx.createLinearGradient(0, 0, 0, G.H), p = s.sky.planet, px = p.x - s.camX * 0.08;
         grad.addColorStop(0, C.bg); grad.addColorStop(1, C.sky);
         ctx.fillStyle = grad; ctx.fillRect(0, 0, G.W, G.H);
-        s.sky.stars.forEach(function (st) {
+        s.sky.stars.forEach(function (st, k) {
+            if (s.touch && k % 2) return;
             var x = (((st.x - s.camX * 0.2) % G.W) + G.W) % G.W;
             ctx.globalAlpha = 0.45 + 0.4 * Math.sin(s.t * 2 + st.ph);
             ctx.fillStyle = C.silver; ctx.fillRect(x, st.y, st.r, st.r);
@@ -560,7 +573,7 @@
         ctx.strokeStyle = C.dim; ctx.lineWidth = 2; ctx.stroke();
         trace(ctx, line, i0, i1, 0);
         ctx.strokeStyle = C.teal; ctx.lineWidth = 2;
-        ctx.shadowColor = C.teal; ctx.shadowBlur = 8; ctx.stroke();
+        ctx.shadowColor = C.teal; ctx.shadowBlur = s.touch ? 0 : 8; ctx.stroke();
         ctx.shadowBlur = 0;
     }
 
@@ -683,8 +696,8 @@
         });
         s.turrets.forEach(function (tu) { drawTurret(ctx, tu); });
         s.mines.forEach(function (m) { drawMine(ctx, s, m); });
-        ctx.fillStyle = C.red; ctx.shadowColor = C.red; ctx.shadowBlur = 10;
-        s.shells.forEach(function (sh) { ctx.beginPath(); ctx.arc(sh.x, sh.y, 3, 0, Math.PI * 2); ctx.fill(); });
+        ctx.fillStyle = C.red; ctx.shadowColor = C.red; ctx.shadowBlur = s.touch ? 0 : 10;
+        s.shells.forEach(function (sh) { ctx.beginPath(); ctx.arc(sh.x, sh.y, s.touch ? 4 : 3, 0, Math.PI * 2); ctx.fill(); });
         ctx.shadowBlur = 0;
     }
 
@@ -701,12 +714,31 @@
         ctx.stroke(); ctx.globalAlpha = 1;
     }
 
+    // Phone instruments form a transparent row below the engine HUD. Fuel
+    // already appears in that HUD; keep the three touchdown limits visible.
+    function drawTouchPanel(ctx, s) {
+        ctx.save();
+        if (s.ship.y < 100) ctx.globalAlpha = 0.2;
+        var f = padFrame(s.ship, target(s));
+        var rows = [['DESC', f.down / LIMIT.down], ['SIDE', f.side / LIMIT.side], ['TILT', f.tilt / LIMIT.tilt]];
+        rows.forEach(function (row, k) {
+            var x = 24 + k * 310, v = s.ship.landed >= 0 ? 0 : Math.max(0, row[1]);
+            G.text(row[0], x, 63, { size: 26, bold: true, color: C.silver });
+            G.text(v >= 1 ? (k === 2 ? 'OFF' : 'FAST') : 'OK', x + 210, 63, { size: 26, color: v >= 1 ? C.red : C.teal });
+            ctx.fillStyle = C.dim; ctx.fillRect(x, 72, 270, 5);
+            ctx.fillStyle = v >= 1 ? C.red : C.teal; ctx.fillRect(x, 72, Math.min(270, v * 135), 5);
+            ctx.fillStyle = C.silver; ctx.fillRect(x + 134, 69, 2, 11);
+        });
+        ctx.restore();
+    }
+
     // The instrument panel: closing speed, side slip and tilt against the
     // target pad, each with its limit mark at half scale, and the tank (full
     // scale, no mark). Red means that touching down now would wreck the
     // ship, or that the tank is nearly dry. It fades while the ship flies
     // behind it, so it never hides the capsule.
     function drawPanel(ctx, s) {
+        if (s.touch) { drawTouchPanel(ctx, s); return; }
         var ship = s.ship, f = padFrame(ship, target(s)), landed = ship.landed >= 0, P = PANEL;
         var under = ship.x - s.camX < P.x + P.w + 24 && ship.y < P.y + P.h + 24;
         var rows = [['DESC', f.down / LIMIT.down], ['SIDE', f.side / LIMIT.side], ['TILT', f.tilt / LIMIT.tilt], ['FUEL', ship.fuel / TANK * 2]];
@@ -730,7 +762,7 @@
         var pad = target(s), sx = pad.cx - s.camX, off = sx < 0 ? -1 : (sx > G.W ? 1 : 0);
         if (s.msg.t > 0) {
             ctx.globalAlpha = Math.min(1, s.msg.t);
-            G.text(s.msg.text, G.W / 2, 156, { size: 20, color: C.teal, align: 'center', glow: C.teal, max: G.W - 60 });
+            G.text(s.msg.text, G.W / 2, 156, { size: s.touch ? 28 : 20, color: C.teal, align: 'center', glow: s.touch ? undefined : C.teal, max: G.W - 60 });
             ctx.globalAlpha = 1;
         }
         if (!off || Math.sin(s.t * 6) < -0.4) return;
