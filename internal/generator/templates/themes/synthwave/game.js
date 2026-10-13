@@ -258,7 +258,7 @@
             lastSeg: Math.floor(PZ / SEG), time: leg + 6, time0: leg + 6, cpTime: leg,
             wind: 0, gust: 0, gustDir: 1, gustIn: 6, bolt: 0, boltIn: 5,
             cp: 0, clock: 0, skyX: 0, sunX: 0, msg: '', msgT: 0, engT: 0, skidT: 0, beepT: 0, crashT: 0, dustT: 0, safeT: 0, swipeT: 0,
-            stars: sky.stars, ridge: sky.ridge
+            stars: sky.stars, ridge: sky.ridge, touch: G.isTouch(), gateMsg: '', gateT: 0, hazardMsg: '', hazardT: 0, nearT: 0
         };
         decorate(s.segs, L, rnd);
         placeOil(s.segs, L, rnd, s.finish);
@@ -274,7 +274,10 @@
     function segAt(s, z) { return s.segs[G.clamp(Math.floor(z / SEG), 0, s.segs.length - 1)]; }
     function playerSeg(s) { return segAt(s, s.pos + PZ); }
 
-    function say(s, text) { s.msg = text; s.msgT = 1.6; }
+    function say(s, text) {
+        s.msg = text; s.msgT = 1.6;
+        if (text === 'OIL!' || text === 'HEAD-ON!') { s.hazardMsg = text; s.hazardT = 1.6; }
+    }
 
     // Thrust fades toward the top speed (air drag), and the slope adds or
     // takes its share, so hills really change how fast the car can go.
@@ -365,6 +368,7 @@
         s.cp++;
         s.nitro = Math.min(1, s.nitro + 0.34);
         say(s, 'CHECKPOINT  +' + s.cpTime + 's');
+        s.gateMsg = s.msg; s.gateT = s.msgT;
         G.addScore(500);
         [523, 784, 1047, 1568].forEach(function (f, i) { G.tone(f, 0.14, { type: 'triangle', vol: 0.16, delay: i * 0.07 }); });
     }
@@ -534,7 +538,8 @@
         G.addScore(near ? 100 * (car.dir < 0 ? 2 : 1) : 25);
         if (!near) return;
         s.nitro = Math.min(1, s.nitro + (car.dir < 0 ? 0.15 : 0.1));
-        G.popup(W / 2 + (car.off - s.x) * 300, PLAYER_Y - 90, 'NEAR MISS', '#35e0ff');
+        if (s.touch) s.nearT = 1.2;
+        else G.popup(W / 2 + (car.off - s.x) * 300, PLAYER_Y - 90, 'NEAR MISS', '#35e0ff');
         G.noise(0.22, { filter: 'bandpass', freq: 500, slide: 2600, q: 2, vol: 0.14 });
         G.tone(1320, 0.07, { type: 'triangle', vol: 0.1 });
     }
@@ -609,7 +614,7 @@
     function tickTimers(s, dt) {
         s.clock += dt;
         s.time -= dt;
-        ['msgT', 'engT', 'skidT', 'crashT', 'dustT', 'slip', 'beepT', 'safeT', 'swipeT'].forEach(function (k) { if (s[k] > 0) s[k] -= dt; });
+        ['msgT', 'gateT', 'hazardT', 'nearT', 'engT', 'skidT', 'crashT', 'dustT', 'slip', 'beepT', 'safeT', 'swipeT'].forEach(function (k) { if (s[k] > 0) s[k] -= dt; });
         // The last ten seconds beep, faster in the last five.
         if (s.time < 10 && s.time > 0 && s.beepT <= 0) {
             s.beepT = s.time < 5 ? 0.5 : 1;
@@ -1214,6 +1219,7 @@
 
     function drawDash(s, ctx) {
         var kmh = Math.round(s.speed / MAX * 290), k, x;
+        if (s.touch) { drawTouchDash(s, ctx, kmh); return; }
         G.text(String(kmh), W - 96, H - 34, { size: 38, bold: true, color: '#fff', align: 'right', glow: '#ff2d78' });
         G.text('KM/H', W - 24, H - 34, { size: 14, color: '#ffd9f0', align: 'right' });
         G.text('NITRO', W - 196, H - 13, { size: 12, color: '#35e0ff', align: 'right' });
@@ -1224,10 +1230,26 @@
         for (k = 1; k <= s.L.cps; k++) { x = 24 + 220 * k / (s.L.cps + 1); ctx.fillRect(x - 1, H - 27, 2, 18); }
     }
 
+    // Small corner panels leave the car and approaching traffic unobstructed.
+    function drawTouchDash(s, ctx, kmh) {
+        var k, x;
+        ctx.fillStyle = 'rgba(13,2,33,0.75)';
+        ctx.fillRect(12, H - 78, 256, 66); ctx.fillRect(W - 250, H - 105, 238, 93);
+        G.text('COURSE', 24, H - 51, { size: 24, color: '#fff' });
+        bar(ctx, 24, H - 36, 220, 18, (s.pos + PZ) / (s.finish * SEG), '#ff2d78');
+        ctx.fillStyle = '#ffd24a';
+        for (k = 1; k <= s.L.cps; k++) { x = 24 + 220 * k / (s.L.cps + 1); ctx.fillRect(x - 2, H - 40, 4, 26); }
+        G.text(kmh + ' KM/H', W - 24, H - 70, { size: 30, bold: true, color: '#fff', align: 'right' });
+        G.text('NITRO', W - 24, H - 44, { size: 24, color: '#35e0ff', align: 'right' });
+        bar(ctx, W - 226, H - 34, 202, 18, s.nitro, s.boost ? '#fff' : '#35e0ff');
+        if (s.nearT > 0) G.text('NEAR MISS', 24, H - 91, { size: 26, bold: true, color: '#35e0ff', glow: '#12041f' });
+    }
+
     function drawClock(s, ctx) {
         var low = s.time < 10, blink = low && Math.floor(s.clock * 4) % 2;
-        G.text('TIME', W / 2, 50, { size: 13, color: '#ffd9f0', align: 'center' });
-        G.text(String(Math.max(0, Math.ceil(s.time))), W / 2, 92, { size: 44, bold: true, color: blink ? '#fff' : (low ? '#ff2d55' : '#ffd24a'), align: 'center', glow: low ? '#ff2d55' : '#ff6b2b' });
+        G.text('TIME', W / 2, s.touch ? 59 : 50, { size: s.touch ? 24 : 13, color: '#ffd9f0', align: 'center' });
+        G.text(String(Math.max(0, Math.ceil(s.time))), W / 2, s.touch ? 104 : 92, { size: s.touch ? 48 : 44, bold: true, color: blink ? '#fff' : (low ? '#ff2d55' : '#ffd24a'), align: 'center', glow: low ? '#ff2d55' : '#ff6b2b' });
+        if (s.touch) { drawTouchNotices(s); return; }
         if (s.msgT > 0) {
             ctx.globalAlpha = Math.min(1, s.msgT * 2);
             G.text(s.msg, W / 2, 140, { size: 26, bold: true, color: '#35e0ff', align: 'center', glow: '#35e0ff' });
@@ -1241,6 +1263,22 @@
             G.text('HOLD  ↑  TO DRIVE', W / 2, 172, { size: 18, color: '#fff', align: 'center' });
             ctx.globalAlpha = 1;
         }
+    }
+
+    // A checkpoint must not erase an oil/head-on warning or a crosswind.
+    // All notices stay above the horizon, away from the driving surface.
+    function drawTouchNotices(s) {
+        var opts = { size: 28, bold: true, color: '#35e0ff', align: 'center', glow: '#12041f' };
+        var hazard = s.hazardT > 0 ? s.hazardMsg : '';
+        if (s.gateT > 0) G.text(s.gateMsg, W / 2, 142, opts);
+        if (s.slip > 0 || hazard) {
+            opts.color = '#fff';
+            if (s.slip > 0) hazard = hazard && hazard !== 'OIL!' ? 'OIL! · ' + hazard : 'OIL!';
+            G.text(hazard, W / 2, 178, opts);
+        }
+        opts.color = '#ffd24a';
+        if (s.gust > 0) G.text(s.gustDir > 0 ? 'CROSSWIND  > > >' : '< < <  CROSSWIND', W / 2, 214, opts);
+        else if (s.speed < 200 && s.pos < SEG * 4) G.text('HOLD  ↑  TO DRIVE', W / 2, 214, opts);
     }
 
     function draw(s, ctx) {
