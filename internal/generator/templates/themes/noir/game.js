@@ -142,9 +142,11 @@
     // State
     // ------------------------------------------------------------------
 
-    function makeRain(level) {
+    function makeRain(level, mobile) {
         var drops = [];
-        for (var i = 0; i < 90 + level * 12; i++) {
+        // At phone scale dense rain hides the gun and newspaper silhouettes.
+        var count = mobile ? 48 + level * 4 : 90 + level * 12;
+        for (var i = 0; i < count; i++) {
             drops.push({ x: G.rnd(0, W), y: G.rnd(G.HUD, H), v: G.rnd(620, 900), land: G.rnd(GROUND + 4, H) });
         }
         return drops;
@@ -157,14 +159,14 @@
     }
 
     function init(level) {
-        var cfg = LEVELS[level - 1];
+        var cfg = LEVELS[level - 1], mobile = G.isTouch();
         return {
-            cfg: cfg, rnd: G.rng(level * 7919 + 13), targets: [], busts: 0, streak: 0,
+            cfg: cfg, mobile: mobile, rnd: G.rng(level * 7919 + 13), targets: [], busts: 0, streak: 0,
             spawnT: 0.8, grace: 0,
             boss: cfg.boss ? { hp: cfg.boss, max: cfg.boss, wait: 2.2, last: -1 } : null,
             cx: W / 2, cy: 250, vx: 0, vy: 0, steering: false, lock: null, lastMx: G.mouse.x, lastMy: G.mouse.y, hovered: false,
             ammo: CHAMBERS, reload: 0, cool: 0, kick: 0, muzzle: 0, spin: 0, reloadFull: RELOAD_TIME,
-            holes: [], rain: makeRain(level), splashes: makeSplashes(), splashI: 0, wind: -40 - level * 16,
+            holes: [], rain: makeRain(level, mobile), splashes: makeSplashes(), splashI: 0, wind: -40 - level * 16,
             boltIn: G.rnd(4, 9), bolt: 0, dim: 0, wasDark: false, stepT: 0
         };
     }
@@ -565,7 +567,7 @@
         // A press from a pointer that has never moved with its button up is
         // a finger on a touch screen (a mouse hovers, a finger cannot), and a
         // finger gets TAP_SLOP.
-        if (G.hit.a || G.mouse.hit) pullTrigger(s, G.mouse.hit && !s.hovered);
+        if (G.hit.a || G.mouse.hit) pullTrigger(s, G.mouse.hit && (G.isTouch() || !s.hovered));
     }
 
     // ------------------------------------------------------------------
@@ -815,13 +817,13 @@
 
     // The draw timer. It is painted after the darkness, so it is the one
     // thing that always shows, even in a power cut.
-    function drawRing(ctx, tg) {
+    function drawRing(ctx, tg, mobile) {
         if (!tg.def.hostile || tg.phase !== 'aim') return;
         var f = G.clamp(tg.t / tg.draw, 0, 1), r = 25 * tg.sc;
-        ctx.lineWidth = 2;
-        ctx.strokeStyle = 'rgba(169,55,43,0.35)';
+        ctx.lineWidth = mobile ? 4 : 2;
+        ctx.strokeStyle = mobile ? SILVER : 'rgba(169,55,43,0.35)';
         ctx.beginPath(); ctx.arc(tg.hx, tg.hy, r, 0, TAU); ctx.stroke();
-        ctx.lineWidth = 5;
+        ctx.lineWidth = mobile ? 7 : 5;
         ctx.strokeStyle = f > 0.7 && Math.sin(tg.t * 40) > 0 ? HOT : BLOOD;
         ctx.beginPath(); ctx.arc(tg.hx, tg.hy, r, -Math.PI / 2, -Math.PI / 2 + f * TAU); ctx.stroke();
         // The glow of his cigarette.
@@ -839,9 +841,10 @@
         ctx.strokeStyle = '#222';
         ctx.lineWidth = 1;
         ctx.beginPath();
-        for (var row = 0, y = G.HUD; y < GROUND; y += 14, row++) {
+        var brickH = s.mobile ? 28 : 14, brickW = s.mobile ? 80 : 40;
+        for (var row = 0, y = G.HUD; y < GROUND; y += brickH, row++) {
             ctx.moveTo(0, y); ctx.lineTo(W, y);
-            for (var x = (row % 2) * 20; x < W; x += 40) { ctx.moveTo(x, y); ctx.lineTo(x, y + 14); }
+            for (var x = (row % 2) * brickW / 2; x < W; x += brickW) { ctx.moveTo(x, y); ctx.lineTo(x, y + brickH); }
         }
         ctx.stroke();
         ctx.fillStyle = '#060606';
@@ -1033,6 +1036,7 @@
     }
 
     function drawCylinder(ctx, s) {
+        if (s.mobile) { drawPhoneAmmo(ctx, s); return; }
         var x = 58, y = 488, loading = s.reload > 0 ? 1 - s.reload / s.reloadFull : 1;
         ctx.fillStyle = 'rgba(11,11,11,0.8)'; ctx.strokeStyle = SILVER; ctx.lineWidth = 2;
         ctx.beginPath(); ctx.arc(x, y, 30, 0, TAU); ctx.fill(); ctx.stroke();
@@ -1049,13 +1053,28 @@
         if (s.streak > 2) G.text('STREAK x' + s.streak, x + 42, y + 28, { size: 20, color: SILVER });
     }
 
+    // A simple row remains countable when the whole canvas is only 390 px
+    // wide. Reload and streak occupy separate columns, even when both show.
+    function drawPhoneAmmo(ctx, s) {
+        var loading = s.reload > 0 ? Math.floor((1 - s.reload / s.reloadFull) * CHAMBERS) : s.ammo;
+        ctx.fillStyle = 'rgba(11,11,11,0.92)';
+        ctx.fillRect(14, STREET_Y, W - 28, H - STREET_Y);
+        for (var i = 0; i < CHAMBERS; i++) {
+            ctx.fillStyle = i < loading ? LAMP : '#393632';
+            ctx.fillRect(28 + i * 23, 515, 15, 20);
+        }
+        var label = s.reload > 0 ? 'RELOADING' : (s.ammo === 0 ? 'LOAD TO RELOAD' : 'AMMO ' + s.ammo + '/6');
+        G.text(label, 186, 533, { size: 30, bold: true, color: s.ammo === 0 ? HOT : LAMP });
+        if (s.streak > 2) G.text('STREAK x' + s.streak, W - 28, 533, { size: 28, color: SILVER, align: 'right' });
+    }
+
     function drawCrosshair(ctx, s) {
         var x = s.cx, y = Math.max(G.HUD + 26, s.cy - s.kick);   // recoil must not lift it into the HUD
         if (s.muzzle > 0) {
             ctx.fillStyle = 'rgba(240,234,214,0.5)';
             ctx.beginPath(); ctx.arc(x, y, 26, 0, TAU); ctx.fill();
         }
-        ctx.strokeStyle = LAMP; ctx.lineWidth = 2;
+        ctx.strokeStyle = LAMP; ctx.lineWidth = s.mobile ? 3 : 2;
         ctx.beginPath();
         ctx.arc(x, y, 15, 0, TAU);
         ctx.moveTo(x - 24, y); ctx.lineTo(x - 8, y); ctx.moveTo(x + 8, y); ctx.lineTo(x + 24, y);
@@ -1081,7 +1100,7 @@
         drawTargets(ctx, s, 2);
         drawRain(ctx, s);
         drawLight(ctx, s);
-        s.targets.forEach(function (tg) { drawRing(ctx, tg); });
+        s.targets.forEach(function (tg) { drawRing(ctx, tg, s.mobile); });
         drawCylinder(ctx, s);
         drawCrosshair(ctx, s);
     }
