@@ -226,10 +226,10 @@
     function init(level) {
         var cfg = LEVELS[level - 1], rnd = G.rng(level * 7919 + 13);
         var s = {
-            cfg: cfg, t: 0, cam: 0, scroll: cfg.speed, top: [], bot: [], drain: 3.2 + level * 0.1,
+            cfg: cfg, phone: G.isTouch(), t: 0, cam: 0, scroll: cfg.speed, top: [], bot: [], drain: 3.2 + level * 0.1,
             sub: { x: 220, y: MID, vx: 0, vy: 0 }, hull: 100, o2: 100, inv: 0, dark: 0, scraped: -9, chain: 0,
             ents: [], next: 0, torps: [], charges: [], shots: [],
-            reload: 0, chargeReload: 0, ping: 1.5, ring: 9, engine: 0, alarm: 0, gulp: 0, flow: null, boss: null
+            damage: 0, damageText: '', reload: 0, chargeReload: 0, ping: 1.5, ring: 9, engine: 0, alarm: 0, gulp: 0, flow: null, boss: null
         };
         buildCave(s, rnd);
         s.sub.y = (topAt(s, s.sub.x) + botAt(s, s.sub.x)) / 2;     // start mid-channel, wherever that is
@@ -306,6 +306,7 @@
     function hurt(s, dmg, grace) {
         if (s.inv > 0 || dmg <= 0) return false;
         s.hull -= dmg;
+        s.damage = 0.9; s.damageText = '-' + dmg + ' HULL';
         s.inv = grace || 0.7;
         G.popup(s.sub.x, s.sub.y - 22, '-' + dmg, C.coral);
         G.shake(5, 0.2);
@@ -701,6 +702,7 @@
         s.cam = Math.min(s.cfg.len, s.cam + s.scroll * dt);
         G.cam.x = s.cam;
         s.inv = Math.max(0, s.inv - dt);
+        s.damage = Math.max(0, s.damage - dt);
         s.ping -= dt; s.ring += dt;
         if (s.ping <= 0) { s.ping = 3.5; s.ring = 0; SND.ping(); }
     }
@@ -744,7 +746,7 @@
             ctx.fill();
         }
         ctx.fillStyle = 'rgba(202,240,248,0.35)';
-        for (i = 0; i < 46; i++) {
+        for (i = 0; i < (s.phone ? 24 : 46); i++) {
             var px = ((i * 137 - s.cam * 0.5 - s.t * 9) % G.W + G.W) % G.W;
             ctx.fillRect(px, (i * 71 + s.t * 7 * (i % 3 + 1)) % G.H, 1 + i % 2, 1 + i % 2);
         }
@@ -796,13 +798,15 @@
             var top = topAt(s, c.x), bot = botAt(s, c.x), h = bot - top;
             ctx.fillStyle = 'rgba(202,240,248,0.08)';
             ctx.fillRect(c.x - COL_W / 2, top, COL_W, h);
-            if (c.hint) G.text('AIR', c.x, top + 30, { size: 22, bold: true, align: 'center', color: s.o2 < 50 && Math.sin(s.t * 10) > 0 ? C.coral : C.foam });
+            if (c.hint || s.phone) G.text('AIR', c.x, top + (s.phone ? 38 : 30), { size: s.phone ? 30 : 22, bold: true, align: 'center', color: s.o2 < 50 && Math.sin(s.t * 10) > 0 ? C.coral : C.foam });
             ctx.strokeStyle = 'rgba(202,240,248,0.85)';
             ctx.lineWidth = 1.5;
-            for (var i = 0; i < 12; i++) {
+            ctx.beginPath();
+            for (var i = 0; i < (s.phone ? 8 : 12); i++) {
                 var y = bot - ((s.t * 70 + i * 61) % h), x = c.x + Math.sin(s.t * 2 + i * 1.7) * (COL_W / 2 - 14);
-                ctx.beginPath(); ctx.arc(x, y, 3 + i % 4, 0, TAU); ctx.stroke();
+                ctx.moveTo(x + 3 + i % 4, y); ctx.arc(x, y, 3 + i % 4, 0, TAU);
             }
+            ctx.stroke();
         });
     }
 
@@ -868,7 +872,7 @@
         disc(ctx, e.x - 24, e.y - 22, lit ? 7 : 4);
         ctx.shadowBlur = 0;
         // The flashing lure is tiny on a phone, so the warning is spelled out.
-        if (e.state === 'warn') G.text('!', e.x, e.y - 36, { size: 26, bold: true, align: 'center', color: C.amber });
+        if (!s.phone && e.state === 'warn') G.text('!', e.x, e.y - 36, { size: 26, bold: true, align: 'center', color: C.amber });
     }
 
     function drawEsub(s, e, ctx) {
@@ -998,11 +1002,11 @@
     function drawGlows(s, ctx) {
         if (s.dark <= 0.01) return;
         ctx.globalAlpha = s.dark * (0.6 + 0.4 * Math.sin(s.t * 5));
-        ctx.shadowBlur = 12;
+        ctx.shadowBlur = s.phone ? 0 : 12;
         s.ents.forEach(function (e) {
             var k = KINDS[e.kind], lure = e.kind === 'angler';
             ctx.fillStyle = k.color; ctx.shadowColor = k.color;
-            disc(ctx, e.x - (lure ? 24 : 0), e.y - (lure ? 22 : 0), 3.5);
+            disc(ctx, e.x - (lure ? 24 : 0), e.y - (lure ? 22 : 0), s.phone ? 5 : 3.5);
         });
         ctx.shadowBlur = 0; ctx.globalAlpha = 1;
     }
@@ -1030,28 +1034,52 @@
 
     // A bar starting at x with its label to the left of it. Label and bar are
     // sized to stay readable on a phone, where the canvas is drawn at 40%.
-    function gauge(ctx, x, label, frac, color) {
-        G.text(label, x - 7, 49, { size: 20, bold: true, color: C.foam, align: 'right' });
+    function gauge(ctx, x, label, frac, color, phone) {
+        var y = phone ? 40 : 35, w = phone ? 180 : 120, h = phone ? 20 : 13;
+        G.text(label, x - 7, phone ? 60 : 49, { size: phone ? 30 : 20, bold: true, color: C.foam, align: 'right' });
         ctx.fillStyle = 'rgba(3,4,94,0.75)';
-        ctx.fillRect(x, 35, 120, 13);
+        ctx.fillRect(x, y, w, h);
         ctx.fillStyle = color;
-        ctx.fillRect(x, 35, 120 * G.clamp(frac, 0, 1), 13);
+        ctx.fillRect(x, y, w * G.clamp(frac, 0, 1), h);
         ctx.strokeStyle = 'rgba(202,240,248,0.55)'; ctx.lineWidth = 1;
-        ctx.strokeRect(x + 0.5, 35.5, 120, 13);
+        ctx.strokeRect(x + 0.5, y + 0.5, w, h);
     }
 
     // Gauges sit just under the engine's HUD strip. The third one shows the
     // way through the trench, or the kraken's health once it is awake.
     function drawGauges(s, ctx) {
-        var low = s.o2 < 25 && Math.sin(s.t * 14) > 0, k = s.boss;
-        gauge(ctx, 56, 'AIR', s.o2 / 100, low ? C.coral : C.foam);
-        gauge(ctx, 270, 'HULL', s.hull / 100, s.hull < 35 ? C.coral : C.aqua);
-        if (k && k.awake) gauge(ctx, 832, 'KRAKEN', k.hp / k.max, C.coral);
-        else gauge(ctx, 832, 'TRIP', s.cam / s.cfg.len, C.teal);
+        var low = s.o2 < 25 && Math.sin(s.t * 14) > 0, k = s.boss, phone = s.phone;
+        gauge(ctx, phone ? 90 : 56, 'AIR', s.o2 / 100, low ? C.coral : C.foam, phone);
+        gauge(ctx, phone ? 410 : 270, 'HULL', s.hull / 100, s.hull < 35 ? C.coral : C.aqua, phone);
+        if (k && k.awake) gauge(ctx, phone ? 772 : 832, 'KRAKEN', k.hp / k.max, C.coral, phone);
+        else gauge(ctx, phone ? 772 : 832, 'TRIP', s.cam / s.cfg.len, C.teal, phone);
         if (s.ring < 1.2) {
             ctx.strokeStyle = 'rgba(202,240,248,' + (0.35 * (1 - s.ring / 1.2)) + ')'; ctx.lineWidth = 2;
             ctx.beginPath(); ctx.arc(s.sub.x - s.cam, s.sub.y, 20 + s.ring * 260, 0, TAU); ctx.stroke();
         }
+    }
+
+    // These are the existing attack tells, painted after darkness so a tiny
+    // lure or shaking tooth still gives a thumb time to react. Edge markers
+    // retain the warning when trimming moves its source beyond the view.
+    function drawPhoneWarnings(s, ctx) {
+        if (!s.phone) return;
+        s.ents.forEach(function (e) {
+            var warn = e.kind === 'angler' && e.state === 'warn' ||
+                e.kind === 'vent' && e.warn || e.kind === 'stal' && e.state === 'shake' ||
+                e.kind === 'esub' && e.fire < 0.4 && e.life > 0;
+            if (!warn) return;
+            var x = G.clamp(e.x - s.cam, 18, G.W - 18), y = G.clamp(e.y - 38, 104, G.H - 70);
+            G.text('!', x, y, { size: 34, bold: true, align: 'center', color: C.amber });
+        });
+        if (s.o2 >= 25 && s.hull >= 35 && s.damage <= 0) return;
+        // The cave reaches y=524 and y=50: full-width backplates would hide
+        // the submarine and hazards there. Outline only the warning letters.
+        if (s.o2 < 25) G.text('AIR LOW', 16, G.H - 12, { size: 30, bold: true, color: C.coral, glow: C.navy });
+        if (s.damage > 0) G.text(s.damageText, G.W / 2, G.H - 12,
+            { size: 30, bold: true, align: 'center', color: C.coral, glow: C.navy });
+        if (s.hull < 35) G.text('HULL LOW', G.W - 16, G.H - 12,
+            { size: 30, bold: true, align: 'right', color: C.coral, glow: C.navy });
     }
 
     function draw(s, ctx) {
@@ -1074,6 +1102,7 @@
         drawSub(s, ctx);
         ctx.restore();
         drawGauges(s, ctx);
+        drawPhoneWarnings(s, ctx);
     }
 
     function hud(s) {
