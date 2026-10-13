@@ -87,8 +87,38 @@ try {
     assert.equal(result.resizeCorrect, true, 'resizing must refresh both layers at the new scale');
     assert.equal(result.nativeResolution, true, 'cached grid lines must retain native device resolution');
     assert.equal(result.layoutChanges, true, 'a new level must render its own obstacles');
+    const mobile = await page.eval(`(function(){
+        var G=SnoGame,def=window.__neonDef,isTouch=G.isTouch,text=G.text;
+        var pic=document.createElement('canvas');pic.width=960;pic.height=540;
+        var ctx=pic.getContext('2d'),labels=[],sameRules=true,minHudSize=21;
+        try{
+            for(var level=1;level<=10;level++){
+                G.isTouch=function(){return false;};var desktop=def.init(level);
+                G.isTouch=function(){return true;};var phone=def.init(level);
+                sameRules=sameRules&&desktop.cfg===phone.cfg&&
+                    desktop.base.every(function(v,i){return v===phone.base[i];})&&
+                    JSON.stringify(desktop.cycles)===JSON.stringify(phone.cycles);
+                ctx.font=G.font(21);
+                var width=ctx.measureText(def.hud(phone)+'   ♥♥♥♥').width;
+                minHudSize=Math.min(minHudSize,21*Math.min(1,412/width));
+            }
+            G.text=function(str,x,y,opts){labels.push({text:str,y:y,size:opts.size});};
+            phone=def.init(9);phone.note={text:'TRAILS LOCKED',t:2};
+            def.draw(phone,ctx);
+            return {sameRules:sameRules,minHudSize:minHudSize,labels:labels,
+                fourWay:def.touch.dirs===4,unusedHidden:def.touch.hide.includes('b')};
+        }finally{G.isTouch=isTouch;G.text=text;}
+    })()`);
+    assert.equal(mobile.sameRules, true, 'mobile must retain every level layout, rider and rule');
+    assert.ok(mobile.minHudSize >= 18, 'the mobile HUD must fit without shrinking below 18 canvas pixels');
+    for (const name of ['YOU', 'TRAILS LOCKED', 'ROUND 1 · FIRST TO 2']) {
+        const label = mobile.labels.find((label) => label.text === name);
+        assert.ok(label && label.size >= 24 && label.y > 30, `${name} must be readable below the HUD`);
+    }
+    assert.equal(mobile.fourWay, true, 'grid steering must select one direction per thumb gesture');
+    assert.equal(mobile.unusedHidden, true, 'the unused B button must stay hidden');
     assert.deepEqual(page.problems, [], 'no browser errors');
-    console.log('ok   neon arena: all levels, animation, collapse, reset, scaling and layout changes');
+    console.log('ok   neon arena: caching, scaling, animation, mobile labels/HUD and unchanged level rules');
 } finally {
     await close();
 }

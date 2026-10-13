@@ -145,6 +145,7 @@
         var cfg = LEVELS[level - 1], base = buildLayout(level, cfg);
         var s = {
             cfg: cfg, base: base, blocks: blockCells(base), wins: 0, round: 0, time: 0, tick: 0,
+            touch: G.isTouch(),
             grid: new Uint8Array(N), mark: new Uint16Array(N), queue: new Int16Array(N), stamp: 0,
             note: { text: '', t: 0 }
         };
@@ -622,7 +623,7 @@
     function drawPod(s, ctx) {
         if (!s.pod) return;
         var x = s.pod.x * CELL + CELL / 2, y = OY + s.pod.y * CELL + CELL / 2, r = 6 + 2 * Math.sin(s.time * 8);
-        ctx.shadowColor = C.yellow; ctx.shadowBlur = 14;
+        ctx.shadowColor = C.yellow; ctx.shadowBlur = s.touch ? 8 : 14;
         ctx.fillStyle = C.yellow;
         ctx.beginPath();
         ctx.moveTo(x, y - r); ctx.lineTo(x + r, y); ctx.lineTo(x, y + r); ctx.lineTo(x - r, y);
@@ -639,7 +640,7 @@
 
     // A wide soft stroke under a thin bright one reads as glow without the
     // cost of blurring thousands of trail cells.
-    function drawTrail(ctx, c, h) {
+    function drawTrail(ctx, c, h, touch) {
         var t = c.trail, last = t.length - 1;
         ctx.beginPath();
         ctx.moveTo(cellX(t[Math.min(c.tail, last)]), cellY(t[Math.min(c.tail, last)]));
@@ -648,15 +649,17 @@
         ctx.lineJoin = 'miter'; ctx.lineCap = 'butt';
         ctx.strokeStyle = c.color;
         ctx.globalAlpha = 0.28; ctx.lineWidth = 9; ctx.stroke();
-        ctx.globalAlpha = 1; ctx.lineWidth = 4; ctx.stroke();
+        // At portrait scale a four-pixel wall is barely a CSS pixel wide.
+        // Keep its bright core visible without changing occupied grid cells.
+        ctx.globalAlpha = 1; ctx.lineWidth = touch ? 6 : 4; ctx.stroke();
         ctx.strokeStyle = 'rgba(255,255,255,0.75)'; ctx.lineWidth = 1.2; ctx.stroke();
     }
 
     function drawCycle(s, ctx, c) {
         if (!c.alive) return;
         var h = headPos(c), flat = DX[c.dir] !== 0, w = flat ? 16 : 9, ht = flat ? 9 : 16;
-        drawTrail(ctx, c, h);
-        ctx.shadowColor = c.color; ctx.shadowBlur = c.boosting ? 26 : 14;
+        drawTrail(ctx, c, h, s.touch);
+        ctx.shadowColor = c.color; ctx.shadowBlur = s.touch ? (c.boosting ? 12 : 6) : (c.boosting ? 26 : 14);
         ctx.fillStyle = c.color;
         ctx.fillRect(h.x - w / 2, h.y - ht / 2, w, ht);
         ctx.shadowBlur = 0;
@@ -678,9 +681,9 @@
         var h = headPos(s.me), bob = Math.sin(s.time * 9) * 3;
         var left = Math.max(1, Math.ceil(s.timer / COUNT_STEP));
         G.text(String(left), G.W / 2, G.H / 2 + 30, { size: 96, bold: true, color: C.fg, align: 'center', glow: C.cyan });
-        G.text('ROUND ' + s.round + ' · FIRST TO ' + s.cfg.need, G.W / 2, G.H / 2 + 64, { size: 15, color: C.dim, align: 'center' });
+        G.text('ROUND ' + s.round + ' · FIRST TO ' + s.cfg.need, G.W / 2, G.H / 2 + 64, { size: s.touch ? 24 : 15, color: s.touch ? C.fg : C.dim, align: 'center' });
         drawPips(s, ctx);
-        G.text('YOU', h.x, h.y - 26 + bob, { size: 13, bold: true, color: C.cyan, align: 'center', glow: C.cyan });
+        G.text('YOU', h.x, h.y - 26 + bob, { size: s.touch ? 24 : 13, bold: true, color: C.cyan, align: 'center', glow: C.cyan });
         ctx.fillStyle = C.cyan;
         ctx.beginPath();
         ctx.moveTo(h.x - 5, h.y - 21 + bob); ctx.lineTo(h.x + 5, h.y - 21 + bob); ctx.lineTo(h.x, h.y - 14 + bob);
@@ -696,7 +699,7 @@
         }
         if (s.note.t > 0) {
             ctx.globalAlpha = Math.min(1, s.note.t);
-            G.text(s.note.text, G.W / 2, OY + 40, { size: 20, bold: true, color: C.yellow, align: 'center', glow: C.yellow });
+            G.text(s.note.text, G.W / 2, OY + 40, { size: s.touch ? 24 : 20, bold: true, color: C.yellow, align: 'center', glow: C.yellow });
             ctx.globalAlpha = 1;
         }
     }
@@ -711,6 +714,7 @@
     }
 
     function hud(s) {
+        if (s.touch) return s.wins + '/' + s.cfg.need + '  AI ' + ridersAlive(s) + '  BOOST ' + Math.round(s.me.charge * 100);
         return 'WINS ' + s.wins + '/' + s.cfg.need + '  RIDERS ' + ridersAlive(s) + '  BOOST ' + Math.round(s.me.charge * 100);
     }
 
@@ -718,10 +722,10 @@
         title: 'LIGHT CYCLES',
         blurb: 'Every cycle leaves a wall of light. Box the riders in and outlast them all.',
         controls: [
-            '← → ↑ ↓ (touch: pad) turn the cycle — it never stops',
-            'SPACE (touch: BOOST) boost while the charge lasts',
-            'Recharge: yellow pods, or ride right beside a rival wall',
-            'Win the rounds shown to clear the level — a crash costs a life'
+            'Arrows / pad turn — your cyan cycle never stops',
+            'SPACE / BOOST speeds up while the charge lasts',
+            'Recharge: yellow pods or ride beside a rival wall',
+            'Win the rounds shown; crashing costs a life'
         ],
         levelNames: ['Grid Zero', 'Crossfire', 'Pillars', 'Overclock', 'Fading Light', 'The Maze', 'Ghost Trails', 'Collapse', 'Meltdown', 'The Expert'],
         colors: { bg: C.bg, fg: C.fg, accent: C.cyan, dim: C.dim },
