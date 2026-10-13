@@ -314,7 +314,7 @@
             cfg: L.cfg, pal: SETS[L.cfg.set], top: L.top, sky: L.sky, ceil: L.ceil, solid: makeSolid(L),
             blockList: Object.keys(L.blocks).map(function (k) { var c = k.split(','); return { tx: +c[0], ty: +c[1] }; }),
             foes: L.foes, plats: L.plats, springs: L.springs, pines: L.pines, flags: L.flags, palms: L.palms,
-            totem: L.totem, shots: [], got: 0, combo: 0, cam: 0,
+            totem: L.totem, shots: [], got: 0, combo: 0, cam: 0, touch: G.isTouch(),
             time: CLOCK, flood: 0, tideT: 0, surge: 0, water: WATER,
             cp: { x: 3 * T, y: 12 * T - 28 },
             p: {
@@ -755,17 +755,32 @@
         ctx.fillRect(x + 12, y, 4, pl.h); ctx.fillRect(x + pl.w - 16, y, 4, pl.h);
     }
 
-    function drawPine(ctx, o) {
-        var y = o.y + Math.sin(G.t * 4 + o.x * 0.05) * 2;
-        ctx.fillStyle = '#2f9e6b';
-        ctx.beginPath(); ctx.moveTo(o.x - 6, y - 7); ctx.lineTo(o.x, y - 17); ctx.lineTo(o.x + 6, y - 7); ctx.fill();
-        disc(ctx, o.x, y, 7, 9, '#f97316');
-        disc(ctx, o.x, y, 5.5, 7.5, '#fbbf24');
+    // The route fruit is numerous, so each colour is one path for the viewport.
+    function drawPines(s, ctx, cam) {
+        var visible = s.pines.filter(function (o) { return !o.got && o.x > cam - 20 && o.x < cam + G.W + 20; });
+        var points = visible.map(function (o) { return { x: o.x, y: o.y + Math.sin(G.t * 4 + o.x * 0.05) * 2 }; });
+        ctx.fillStyle = '#2f9e6b'; ctx.beginPath();
+        points.forEach(function (o) {
+            ctx.moveTo(o.x - 6, o.y - 7); ctx.lineTo(o.x, o.y - 17); ctx.lineTo(o.x + 6, o.y - 7); ctx.closePath();
+        });
+        ctx.fill();
+        if (s.touch) pineBodies(ctx, points, 10, 12, '#0a1e2e');
+        pineBodies(ctx, points, 7, 9, '#f97316');
+        pineBodies(ctx, points, 5.5, 7.5, '#fbbf24');
+    }
+
+    function pineBodies(ctx, points, rx, ry, color) {
+        ctx.fillStyle = color; ctx.beginPath();
+        points.forEach(function (o) {
+            ctx.moveTo(o.x + rx, o.y); ctx.ellipse(o.x, o.y, rx, ry, 0, 0, Math.PI * 2); ctx.closePath();
+        });
+        ctx.fill();
     }
 
     function drawPickups(s, ctx, cam) {
-        s.pines.forEach(function (o) { if (!o.got && o.x > cam - 20 && o.x < cam + G.W + 20) drawPine(ctx, o); });
+        drawPines(s, ctx, cam);
         s.springs.forEach(function (sp) {
+            if (sp.x < cam - 40 || sp.x > cam + G.W + 20) return;
             // The leaf dips while it flings the player.
             var dip = sp.t > 0 ? 6 : 0;
             ctx.strokeStyle = '#2f9e6b'; ctx.lineWidth = 6; ctx.lineCap = 'round';
@@ -775,6 +790,7 @@
             ctx.beginPath(); ctx.moveTo(sp.x + 2, sp.y + 8); ctx.quadraticCurveTo(sp.x + 14, sp.y - 6 + dip * 2, sp.x + 26, sp.y + 2 + dip); ctx.stroke();
         });
         s.flags.forEach(function (f) {
+            if (f.x < cam - 40 || f.x > cam + G.W + 20) return;
             var wave = Math.sin(G.t * 6) * 3, top = f.y - 58;
             ctx.fillStyle = '#fef9e7'; ctx.fillRect(f.x - 2, top, 4, 58);
             ctx.fillStyle = f.on ? '#f97316' : 'rgba(254,249,231,0.55)';
@@ -826,16 +842,20 @@
 
     // The visible warning of a swoop: a red "!" under the gull while it lines
     // up, and a red arrowhead over the marked spot until the swoop is over.
-    function drawGullMark(ctx, f, cx, cy) {
+    function drawGullMark(ctx, f, cx, cy, touch) {
         var mx = f.tx + 14, my = f.ty - 12 + Math.sin(G.t * 12) * 3;
-        if (f.state === 1) G.text('!', cx, cy + 40, { size: 28, bold: true, color: '#e11d48', align: 'center' });
+        if (f.state === 1) G.text('!', cx, cy + 40, { size: touch ? 34 : 28, bold: true, color: '#e11d48', align: 'center', glow: touch ? '#0a1e2e' : null });
+        if (touch) {
+            ctx.strokeStyle = '#0a1e2e'; ctx.lineWidth = 3;
+            ctx.beginPath(); ctx.moveTo(mx - 9, my - 12); ctx.lineTo(mx + 9, my - 12); ctx.lineTo(mx, my); ctx.closePath(); ctx.stroke();
+        }
         ctx.fillStyle = '#e11d48';
         ctx.beginPath(); ctx.moveTo(mx - 9, my - 12); ctx.lineTo(mx + 9, my - 12); ctx.lineTo(mx, my); ctx.fill();
     }
 
-    function drawGull(ctx, f) {
+    function drawGull(ctx, f, touch) {
         var cx = f.x + 14, cy = f.y + 8, flap = Math.sin(G.t * (f.state ? 22 : 11) + f.home) * 9, d = f.vx < 0 ? -1 : 1;
-        if (f.state) drawGullMark(ctx, f, cx, cy);
+        if (f.state) drawGullMark(ctx, f, cx, cy, touch);
         ctx.strokeStyle = '#fef9e7'; ctx.lineWidth = 4; ctx.lineCap = 'round';
         ctx.beginPath();
         ctx.moveTo(cx - 16, cy - flap); ctx.lineTo(cx, cy); ctx.lineTo(cx + 16, cy - flap);
@@ -866,15 +886,21 @@
             if (f.x < cam - 60 || f.x > cam + G.W + 60) return;
             if (f.kind === 'crab') drawCrab(ctx, f);
             else if (f.kind === 'urchin') drawUrchin(ctx, f);
-            else if (f.kind === 'gull') drawGull(ctx, f);
-            else if (f.kind === 'monkey') drawMonkey(ctx, f);
+            else if (f.kind === 'gull') drawGull(ctx, f, s.touch);
+            else if (f.kind === 'monkey') {
+                drawMonkey(ctx, f);
+                if (s.touch && f.t < 0.5) G.text('!', f.x + 11, f.y - 8, { size: 28, bold: true, color: '#fbbf24', align: 'center', glow: '#0a1e2e' });
+            }
             else {
                 var x = f.x + (f.state === 1 ? Math.sin(G.t * 80) * 2 : 0);
                 ctx.fillStyle = '#8fb4c8';
                 ctx.beginPath(); ctx.moveTo(x, f.y); ctx.lineTo(x + 8, f.y + f.h); ctx.lineTo(x + 16, f.y); ctx.fill();
+                if (s.touch && f.state === 1) G.text('!', x + 8, f.y + f.h + 28, { size: 28, bold: true, color: '#fbbf24', align: 'center', glow: '#0a1e2e' });
             }
         });
         s.shots.forEach(function (c) {
+            if (c.x < cam - 10 || c.x > cam + G.W + 10 || c.y < G.HUD - 10 || c.y > G.H + 10) return;
+            if (s.touch) disc(ctx, c.x, c.y, 9, 9, '#fef9e7');
             disc(ctx, c.x, c.y, 7, 7, '#5b3a1a');
             disc(ctx, c.x - 2, c.y - 2, 2, 2, '#b7793c');
         });
@@ -884,6 +910,14 @@
         var p = s.p, x = p.x, y = p.y, d = p.face, air = !p.ground;
         // Blinks while the respawn protection lasts.
         if (p.inv > 0 && Math.floor(G.t * 12) % 2) return;
+        // A dark rim separates the small runner from sand, fruit and white clouds.
+        if (s.touch) {
+            ctx.strokeStyle = '#0a1e2e'; ctx.lineWidth = 3;
+            ctx.beginPath(); ctx.moveTo(x - 1, y + 2); ctx.lineTo(x + 21, y + 2);
+            ctx.moveTo(x + 4, y + 4); ctx.lineTo(x + 4, y + 9);
+            ctx.moveTo(x + 16, y + 4); ctx.lineTo(x + 16, y + 9);
+            ctx.moveTo(x + 2, y + 10); ctx.lineTo(x + 2, y + 22); ctx.lineTo(x + 18, y + 22); ctx.lineTo(x + 18, y + 10); ctx.stroke();
+        }
         var stride = air ? 4 : Math.sin(p.run * 6) * 4;
         ctx.fillStyle = '#0e7490';
         ctx.fillRect(x + 3 + stride, y + 20, 6, 8); ctx.fillRect(x + 11 - stride, y + 20, 6, 8);
@@ -922,29 +956,33 @@
         drawTerrain(s, ctx, cam);
         s.plats.forEach(function (pl) { if (pl.x > cam - 100 && pl.x < cam + G.W + 20) drawPlat(s, ctx, pl); });
         drawPickups(s, ctx, cam);
-        drawTotem(s, ctx);
+        if (s.totem.x > cam - 60 && s.totem.x < cam + G.W + 40) drawTotem(s, ctx);
         drawFoes(s, ctx, cam);
         drawPlayer(s, ctx);
         ctx.translate(cam, 0);
         drawWater(s, ctx, cam);
         ctx.restore();
         if (s.cfg.tide && s.tideT >= TIDE.rise - 1 && s.tideT < TIDE.high && Math.floor(G.t * 6) % 2) {
-            G.text('SURGE! GET TO HIGH GROUND', G.W / 2, 64, { size: 18, bold: true, color: '#fef9e7', align: 'center', glow: '#f97316' });
+            // The runner and a warning gull sit left of centre; keep the phone
+            // tide notice in the open sky to their right.
+            G.text(s.touch ? 'SURGE! HIGH GROUND' : 'SURGE! GET TO HIGH GROUND', s.touch ? G.W - 18 : G.W / 2, 64,
+                { size: s.touch ? 28 : 18, bold: true, color: '#fef9e7', align: s.touch ? 'right' : 'center', glow: s.touch ? '#0a1e2e' : '#f97316' });
         }
     }
 
     function hud(s) {
-        return 'PINEAPPLES ' + (s.got % 100) + '/100  TIDE ' + Math.max(0, Math.ceil(s.time));
+        var time = Math.max(0, Math.ceil(s.time));
+        return s.touch ? 'PINE ' + (s.got % 100) + '/100 ' + time + 's' : 'PINEAPPLES ' + (s.got % 100) + '/100  TIDE ' + time;
     }
 
     G.register('tropicale', {
         title: 'ISLAND HOPPER',
         blurb: 'Hop the islands and reach the tiki totem before the tide comes in.',
         controls: [
-            '← → run · SPACE / ↑ / JUMP button: jump (hold = higher)',
-            'Stomp crabs and gulls · avoid urchins · a gull squawks before it swoops',
-            'Palm leaves spring you up, rafts and planks carry you over water',
-            'Flags are checkpoints and add tide time · 100 pineapples = extra life'
+            '← → run · SPACE / ↑ / JUMP: hold to jump higher',
+            'Stomp crabs and gulls · dodge spikes and coconuts',
+            'Ride rafts and lifts · palm leaves spring you up',
+            'Flags save progress +45s · 100 pineapples = 1 life'
         ],
         levelNames: ['Shell Beach', 'Palm Springs', 'Raft Lagoon', 'Gull Ridge', 'Monkey Jungle',
             'Echo Cave', 'Crumble Cliffs', 'Coconut Canopy', 'Spring Tide', 'Tiki Summit'],
