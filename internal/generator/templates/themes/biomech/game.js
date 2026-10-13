@@ -19,9 +19,9 @@
  *
  * Touch: the pad's stick moves the turret in eight directions and A (FIRE) is
  * held for rapid fire; B is unused and hidden. There is no auto-fire on a
- * phone: holding A with the right thumb while the left one steers costs
- * nothing, and the game would have to ask the browser what kind of pointer
- * it has, which a game may not do. So phone and desktop play the same game.
+ * phone: holding A with the right thumb leaves the left one free to steer.
+ * G.isTouch() selects clearer artwork and quicker stick response, while
+ * the arena, movement speed and combat rules stay the same.
  */
 (function () {
     'use strict';
@@ -613,7 +613,7 @@
     function movePlayer(s, dt) {
         var p = s.player;
         var ax = (G.key.right ? 1 : 0) - (G.key.left ? 1 : 0), ay = (G.key.down ? 1 : 0) - (G.key.up ? 1 : 0);
-        var norm = ax && ay ? Math.SQRT1_2 : 1, k = Math.min(1, 14 * dt);
+        var norm = ax && ay ? Math.SQRT1_2 : 1, k = Math.min(1, (s.touch ? 20 : 14) * dt);
         p.vx += (ax * norm * PLAYER_SPEED - p.vx) * k;
         p.vy += (ay * norm * PLAYER_SPEED - p.vy) * k;
         slide(s, p, p.vx * dt, 0);
@@ -699,7 +699,7 @@
     function init(level) {
         var cfg = LEVELS[level - 1];
         var s = {
-            cfg: cfg, hp: [], poison: [], worms: [], queue: cfg.waves.slice(), shots: [], bugs: [],
+            cfg: cfg, touch: G.isTouch(), hp: [], poison: [], worms: [], queue: cfg.waves.slice(), shots: [], bugs: [],
             queen: cfg.queen ? newQueen(cfg.queen) : null,
             player: { x: G.W / 2, y: G.H - 36, vx: 0, vy: 0, inv: 0 },
             next: { spore: cfg.spore || 0, para: cfg.para || 0, eye: cfg.eye || 0 },
@@ -757,11 +757,12 @@
         ctx.fillStyle = BG;
         ctx.fillRect(0, 0, G.W, G.H);
         ctx.lineWidth = 2;
-        for (var i = 0; i < 6; i++) {
-            var base = 70 + i * 82, pulse = 0.3 + 0.14 * Math.sin(s.time * 2.2 + i);
+        var veins = s.touch ? 4 : 6, step = s.touch ? 60 : 40;
+        for (var i = 0; i < veins; i++) {
+            var base = 70 + i * (s.touch ? 123 : 82), pulse = 0.3 + 0.14 * Math.sin(s.time * 2.2 + i);
             ctx.strokeStyle = 'rgba(128,63,93,' + pulse.toFixed(3) + ')';
             ctx.beginPath();
-            for (var x = 0; x <= G.W; x += 40) {
+            for (var x = 0; x <= G.W; x += step) {
                 var y = base + Math.sin(x * 0.011 + s.time * 0.6 + i * 1.7) * 20 + Math.sin(x * 0.027 - s.time * 0.45 + i) * 9;
                 if (x) ctx.lineTo(x, y); else ctx.moveTo(x, y);
             }
@@ -779,15 +780,18 @@
     function drawNode(s, ctx, c, r) {
         var hp = s.hp[idx(c, r)], bad = s.poison[idx(c, r)];
         var x = cellX(c), y = cellY(r), rad = 4 + hp * 2;
-        if (bad) {
+        if (bad && !s.touch) {
             ctx.fillStyle = 'rgba(147,255,216,' + (0.14 + 0.1 * Math.sin(s.time * 6 + c)).toFixed(3) + ')';
             circle(ctx, x, y, rad + 5); ctx.fill();
         }
         ctx.fillStyle = bad ? ACID : BONE;
         ctx.fillRect(x - rad - 2, y - 2, rad * 2 + 4, 4);
         circle(ctx, x, y, rad); ctx.fill();
-        ctx.fillStyle = bad ? '#1d5a48' : '#6f675f';
-        circle(ctx, x, y, rad * 0.4); ctx.fill();
+        // The solid silhouette reads at phone scale; desktop retains the marrow.
+        if (!s.touch) {
+            ctx.fillStyle = bad ? '#1d5a48' : '#6f675f';
+            circle(ctx, x, y, rad * 0.4); ctx.fill();
+        }
     }
 
     function drawNodes(s, ctx) {
@@ -829,7 +833,7 @@
             var p = pts[i], head = p.k === 0;
             ctx.fillStyle = head ? VEIN : FLESH;
             ctx.strokeStyle = p.dive ? ACID : (head ? BONE : VEIN);
-            ctx.lineWidth = 2;
+            ctx.lineWidth = s.touch ? 3 : 2;
             circle(ctx, p.x, p.y, head ? 11 : 9); ctx.fill(); ctx.stroke();
             ctx.fillStyle = head ? ACID : BONE;
             if (head) { ctx.fillRect(p.x - 6, p.y - 3, 4, 5); ctx.fillRect(p.x + 2, p.y - 3, 4, 5); }
@@ -936,7 +940,7 @@
         var p = s.player;
         if (p.inv > 0 && Math.floor(s.time * 14) % 2) return;
         var kick = s.recoil * 4, glow = 4 + Math.sin(s.time * 8) * 1.5;
-        ctx.fillStyle = STEEL; ctx.strokeStyle = BONE; ctx.lineWidth = 2;
+        ctx.fillStyle = STEEL; ctx.strokeStyle = s.touch ? ACID : BONE; ctx.lineWidth = s.touch ? 3 : 2;
         ctx.beginPath();
         ctx.moveTo(p.x - 13, p.y + 10); ctx.lineTo(p.x - 8, p.y - 4); ctx.lineTo(p.x + 8, p.y - 4); ctx.lineTo(p.x + 13, p.y + 10);
         ctx.closePath(); ctx.fill(); ctx.stroke();
@@ -946,12 +950,13 @@
         circle(ctx, p.x, p.y + 3, glow); ctx.fill();
     }
 
-    // Wide enough to stay visible on a phone, where the canvas is drawn at 40 %.
+    // Bright trails remain visible when portrait scales the arena below 40 %.
     function drawShots(s, ctx) {
+        var width = s.touch ? 8 : 5;
         ctx.fillStyle = 'rgba(147,255,216,0.35)';
         s.shots.forEach(function (sh) { ctx.fillRect(sh.x - 5, sh.y - 2, 10, 20); });
         ctx.fillStyle = ACID;
-        s.shots.forEach(function (sh) { ctx.fillRect(sh.x - 2.5, sh.y - 4, 5, 16); });
+        s.shots.forEach(function (sh) { ctx.fillRect(sh.x - width / 2, sh.y - 4, width, 16); });
     }
 
     function draw(s, ctx) {
@@ -966,17 +971,17 @@
     }
 
     function hud(s) {
-        return (s.queen ? 'QUEEN ' + s.queen.hp + '  ' : '') + 'SEGMENTS ' + segmentsLeft(s);
+        return (s.queen ? 'QUEEN ' + s.queen.hp + '  ' : '') + (s.touch ? 'SEG ' : 'SEGMENTS ') + segmentsLeft(s);
     }
 
     G.register('biomech', {
         title: 'SPINE CRAWLER',
         blurb: 'Shoot every segment of the worm before it reaches you.',
         controls: [
-            '← → ↑ ↓ / pad: move the turret in the bottom zone',
+            'ARROWS / pad: move in the bottom zone',
             'SPACE / FIRE (hold): rapid fire',
-            'A shot segment turns to bone and splits the worm · green nodes make it dive',
-            'Level 10: the Queen only bleeds from her head'
+            'Hits leave bone & split worms · green nodes cause dives',
+            'Level 10: shoot the Queen\'s head'
         ],
         levelNames: ['First Vertebra', 'Spore Fall', 'Parasites', 'Twin Spines', 'The Eye',
             'Marrow Bloom', 'Swarm', 'Rib Cage', 'Venom Tide', 'The Queen'],
