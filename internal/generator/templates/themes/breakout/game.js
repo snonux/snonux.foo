@@ -61,6 +61,7 @@
     // and a ball much faster than that cannot be followed on the keys.
     function init(level) {
         var s = {
+            touch: G.isTouch(),
             paddle: { x: G.W / 2, w: 136 - level * 3, base: 136 - level * 3 },
             speed: 310 + level * 10, bricks: buildBricks(level), balls: [], caps: [], shots: [],
             timers: { wide: 0, laser: 0, slow: 0 }, cooldown: 0, lastMouseX: G.mouse.x
@@ -164,10 +165,10 @@
     }
 
     function updateCapsules(s, dt) {
-        var p = s.paddle;
+        var p = s.paddle, halfW = s.touch ? 24 : 16, halfH = s.touch ? 13 : 8;
         s.caps = s.caps.filter(function (c) {
             c.y += 170 * dt;
-            var caught = c.y > PADDLE_Y - 8 && c.y < PADDLE_Y + 18 && Math.abs(c.x - p.x) < p.w / 2 + 12;
+            var caught = c.y > PADDLE_Y - halfH && c.y < PADDLE_Y + (s.touch ? 12 : 10) + halfH && Math.abs(c.x - p.x) < p.w / 2 + (s.touch ? halfW : 12);
             if (caught) applyPower(s, c.kind);
             return !caught && c.y < G.H + 20;
         });
@@ -240,14 +241,21 @@
     }
 
     function drawMoving(s, ctx) {
-        ctx.fillStyle = '#f2eddf';
         s.balls.forEach(function (b) {
+            // A halo makes the small ball trackable on a portrait phone,
+            // without changing its collision radius or the brick layouts.
+            if (s.touch) {
+                ctx.fillStyle = 'rgba(242,237,223,0.3)';
+                ctx.beginPath(); ctx.arc(b.x, b.y, BALL_R + 6, 0, Math.PI * 2); ctx.fill();
+            }
+            ctx.fillStyle = '#f2eddf';
             ctx.beginPath(); ctx.arc(b.x, b.y, BALL_R, 0, Math.PI * 2); ctx.fill();
         });
         s.caps.forEach(function (c) {
+            var halfW = s.touch ? 24 : 16, halfH = s.touch ? 13 : 8;
             ctx.fillStyle = POWER_COLOR[c.kind];
-            ctx.fillRect(c.x - 16, c.y - 8, 32, 16);
-            G.text(c.kind === 'life' ? '+' : c.kind.charAt(0).toUpperCase(), c.x, c.y + 5, { size: 13, bold: true, color: '#1b1c1a', align: 'center' });
+            ctx.fillRect(c.x - halfW, c.y - halfH, halfW * 2, halfH * 2);
+            G.text(c.kind === 'life' ? '+' : c.kind.charAt(0).toUpperCase(), c.x, c.y + (s.touch ? 8 : 5), { size: s.touch ? 22 : 13, bold: true, color: '#1b1c1a', align: 'center' });
         });
         ctx.fillStyle = '#ff8a7a';
         s.shots.forEach(function (sh) { ctx.fillRect(sh.x - 2, sh.y - 12, 4, 12); });
@@ -262,7 +270,7 @@
         if (s.balls.length && s.balls[0].stuck) {
             // The hint pulses so the screen is never completely still.
             ctx.globalAlpha = 0.55 + 0.45 * Math.sin(G.t * 5);
-            G.text('SPACE or click to serve', G.W / 2, 440, { size: 16, color: '#96958f', align: 'center' });
+            G.text(s.touch ? 'SERVE or tap the board' : 'SPACE or click to serve', G.W / 2, 440, { size: s.touch ? 24 : 16, color: '#96958f', align: 'center' });
             ctx.globalAlpha = 1;
         }
     }
