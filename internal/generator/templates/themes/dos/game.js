@@ -29,7 +29,7 @@
     var NESTS = [{ c: 19, r: 0 }, { c: 0, r: 0 }];
     var RUN_SPEED = 4.8, DIG_SPEED = 3.4, SHOT_SPEED = 13;      // cells per second
     var BAG_G = 34, BAG_VMAX = 12;                              // cells per second (squared)
-    var REFILL_AGE = 8, LOST_AGE = 3, FAR = 999;
+    var REFILL_AGE = 8, LOST_AGE = 3, FAR = 999, TOUCH_SCALE = 1.15;
     // Monster speed in cells per second: it climbs a little on every level
     // and stops at DIG_SPEED, so even on level 10 a digger that is cutting
     // fresh tunnel is never run down from behind by a nobbin.
@@ -154,7 +154,7 @@
     function init(level) {
         var cfg = LEVELS[level - 1], rnd = G.rng(level * 7919 + 13), n = COLS * ROWS;
         var s = {
-            cfg: cfg, level: level, time: 0, left: 0, dirt: [], rock: [], gem: [], dug: [], dist: [],
+            cfg: cfg, level: level, touch: G.isTouch(), time: 0, left: 0, dirt: [], rock: [], gem: [], dug: [], dist: [],
             bags: [], golds: [], enemies: [], shot: null, cherry: null, pl: newPlayer(), want: null, dir: null,
             charge: 1, recharge: RECHARGE + level * RECHARGE_STEP, power: 0, combo: 0, dead: 0, inv: 0,
             spawnT: 2.2, spawned: 0, cherryT: 14, pathT: 0, refillT: 0, digT: 0, tickT: 0,
@@ -324,8 +324,9 @@
     // ------------------------------------------------------------------
 
     function fire(s) {
-        if (!G.hit.a) return;
-        if (s.charge < 1 || s.shot) { beep(70, 0.05, 0, 0, 0.06); return; }
+        // Holding the phone button retries at the same recharge rate as tapping.
+        if (!(s.touch ? G.key.a : G.hit.a)) return;
+        if (s.charge < 1 || s.shot) { if (G.hit.a) beep(70, 0.05, 0, 0, 0.06); return; }
         var d = DIRS[s.pl.face];
         s.shot = { x: px(s.pl), y: py(s.pl), dc: d[0], dr: d[1] };
         s.charge = 0;
@@ -700,13 +701,13 @@
     // Dirt is a magenta raster over black (stripes one way or the other, or a
     // weave, depending on the level); tunnels are then cut out of it in black.
     function drawDirt(s, ctx) {
-        var h = ROWS * T, style = s.level % 3, x, y, i;
+        var h = ROWS * T, style = s.level % 3, step = s.touch ? 12 : 6, x, y, i;
         box(ctx, BLACK, 0, 0, G.W, G.H);
         ctx.fillStyle = MAGENTA;
         ctx.beginPath();
-        if (style === 1) for (x = 0; x < G.W; x += 6) ctx.rect(x, OY, 3, h);
-        else for (y = 0; y < h; y += 6) ctx.rect(0, OY + y, G.W, 3);
-        if (style === 2) for (x = 0; x < G.W; x += 12) ctx.rect(x, OY, 3, h);
+        if (style === 1) for (x = 0; x < G.W; x += step) ctx.rect(x, OY, 3, h);
+        else for (y = 0; y < h; y += step) ctx.rect(0, OY + y, G.W, 3);
+        if (style === 2) for (x = 0; x < G.W; x += step * 2) ctx.rect(x, OY, 3, h);
         ctx.fill();
         ctx.fillStyle = BLACK;
         ctx.beginPath();
@@ -741,13 +742,25 @@
         }
     }
 
-    function diamond(ctx, x, y, w, h) {
-        ctx.beginPath();
+    function diamondPath(ctx, x, y, w, h) {
         ctx.moveTo(x, y - h); ctx.lineTo(x + w, y); ctx.lineTo(x, y + h); ctx.lineTo(x - w, y);
-        ctx.closePath(); ctx.fill();
+        ctx.closePath();
+    }
+
+    function diamond(ctx, x, y, w, h) {
+        ctx.beginPath(); diamondPath(ctx, x, y, w, h); ctx.fill();
+    }
+
+    // Keep the whole map visible: hiding distant bags or nests removes the
+    // warning a player needs. Larger sprites and quieter soil survive downscale.
+    function spriteScale(s, ctx, x, y) {
+        ctx.save();
+        if (!s.touch) return;
+        ctx.translate(x, y); ctx.scale(TOUCH_SCALE, TOUCH_SCALE); ctx.translate(-x, -y);
     }
 
     function drawGems(s, ctx) {
+        if (s.touch) { drawPhoneGems(s, ctx); return; }
         var beat = Math.floor(s.time * 8);
         for (var i = 0; i < s.gem.length; i++) {
             if (!s.gem[i]) continue;
@@ -758,6 +771,23 @@
             // A glint runs across the field so the screen is never still.
             if ((c * 7 + r * 13 + beat) % 19 === 0) { box(ctx, WHITE, x + 3, y - 9, 3, 13); box(ctx, WHITE, x - 2, y - 4, 13, 3); }
         }
+    }
+
+    function drawPhoneGems(s, ctx) {
+        var beat = Math.floor(s.time * 8), layers = [[BLACK, 19, 16], [CYAN, 15, 12], [WHITE, 6, 4]];
+        // Gems occupy disjoint cells, so their same-colour shapes can be batched.
+        layers.forEach(function (layer, n) {
+            ctx.fillStyle = layer[0]; ctx.beginPath();
+            for (var i = 0; i < s.gem.length; i++) {
+                if (!s.gem[i]) continue;
+                var c = i % COLS, r = Math.floor(i / COLS), x = cellX(c), y = cellY(r);
+                diamondPath(ctx, x - (n === 2 ? 3 : 0), y - (n === 2 ? 3 : 0), layer[1] * TOUCH_SCALE, layer[2] * TOUCH_SCALE);
+                if (n === 2 && (c * 7 + r * 13 + beat) % 19 === 0) {
+                    ctx.rect(x + 3, y - 9, 3, 13); ctx.rect(x - 2, y - 4, 13, 3);
+                }
+            }
+            ctx.fill();
+        });
     }
 
     // The nest is a pulsing square portal; it flashes just before a spawn.
@@ -785,11 +815,13 @@
         s.bags.forEach(function (b) {
             var x = cellX(b.c + b.slide), y = cellY(b.y);
             if (b.state === 'wobble') x += Math.sin(s.time * 38) * 3.5;
+            spriteScale(s, ctx, x, y);
             disc(ctx, BLACK, x, y + 3, 19, 20);
             disc(ctx, WHITE, x, y + 4, 16, 16);
             box(ctx, WHITE, x - 7, y - 19, 14, 8);
             box(ctx, CYAN, x - 9, y - 13, 18, 4);
             G.text('$', x, y + 12, { size: 20, bold: true, color: MAGENTA, align: 'center' });
+            ctx.restore();
         });
     }
 
@@ -862,16 +894,19 @@
             var x = px(e), y = py(e), step = Math.floor(s.time * 7 + e.c + e.r) % 2 === 0;
             if (e.born > 0 && Math.floor(s.time * 14) % 2) return;
             if (s.power > 0) x += Math.sin(s.time * 50 + e.c) * 1.5;
+            spriteScale(s, ctx, x, y);
+            if (s.touch) disc(ctx, BLACK, x, y, 20, 22);
             if (e.kind === 'n') drawNobbin(s, ctx, x, y, e, scared, step);
             else if (e.kind === 'h') drawHobbin(s, ctx, x, y, e, scared, step);
             else drawGhost(s, ctx, x, y, scared);
+            ctx.restore();
         });
     }
 
     // Drawn facing right and then turned, so one sprite serves all four ways.
     function drawDigger(s, ctx) {
         var pl = s.pl, moving = pl.dc || pl.dr, spin = Math.floor(s.time * (moving ? 16 : 5)) % 2;
-        ctx.save();
+        spriteScale(s, ctx, px(pl), py(pl));
         ctx.translate(px(pl), py(pl));
         if (pl.face === 'left') ctx.scale(-1, 1);
         else if (pl.face !== 'right') ctx.rotate(pl.face === 'up' ? -Math.PI / 2 : Math.PI / 2);
@@ -892,7 +927,7 @@
         disc(ctx, WHITE, x, y - 6, 15);
         box(ctx, WHITE, x - 15, y - 6, 30, 26);
         box(ctx, CYAN, x - 19, y + 16, 38, 6);
-        G.text('RIP', x, y + 8, { size: 14, bold: true, color: BLACK, align: 'center' });
+        G.text('RIP', x, y + 8, { size: s.touch ? 20 : 14, bold: true, color: BLACK, align: 'center' });
     }
 
     function drawPlayer(s, ctx) {
@@ -905,7 +940,7 @@
     function drawShot(s, ctx) {
         var sh = s.shot;
         if (!sh) return;
-        var len = 22, thin = 6, w = sh.dc ? len : thin, h = sh.dc ? thin : len;
+        var len = s.touch ? 26 : 22, thin = s.touch ? 9 : 6, w = sh.dc ? len : thin, h = sh.dc ? thin : len;
         box(ctx, Math.floor(s.time * 30) % 2 ? WHITE : CYAN, sh.x - w / 2, sh.y - h / 2, w, h);
         box(ctx, MAGENTA, sh.x - sh.dc * 18 - 3, sh.y - sh.dr * 18 - 3, 6, 6);
     }
@@ -914,6 +949,11 @@
     // (white once it is ready) as it fills.
     function drawGauge(s, ctx) {
         var cells = Math.floor(s.charge * 10), ready = s.charge >= 1;
+        if (s.touch) {
+            G.text(ready ? 'FIRE READY' : 'FIRE ' + Math.floor(s.charge * 100) + '%', 948, BAR_Y + 25,
+                { size: 26, color: ready ? WHITE : CYAN, align: 'right', max: 164 });
+            return;
+        }
         G.text(ready ? 'LASER RDY' : 'LASER', 846, BAR_Y + 22, { size: 20, color: ready ? WHITE : MAGENTA, align: 'right', max: 100 });
         for (var k = 0; k < 10; k++) {
             box(ctx, k < cells ? (ready ? WHITE : CYAN) : MAGENTA, 854 + k * 10, BAR_Y + (k < cells ? 5 : 15), 8, k < cells ? 20 : 4);
@@ -923,6 +963,7 @@
     // The bottom line is a DOS prompt that types the latest event, next to
     // the laser's charge gauge (and the cherry timer while it runs).
     function drawStatus(s, ctx) {
+        if (s.touch) { drawPhoneStatus(s, ctx); return; }
         var shown = s.msg.slice(0, Math.floor((s.time - s.msgAt) * 40)), cursor = Math.floor(s.time * 3) % 2 ? '_' : ' ';
         box(ctx, BLACK, 0, BAR_Y, G.W, G.H - BAR_Y);
         G.text('C:\\DIGGER>' + shown + cursor, 8, BAR_Y + 22, { size: 20, color: CYAN, max: 540 });
@@ -930,6 +971,18 @@
         if (s.power <= 0) return;
         G.text('TURBO', 614, BAR_Y + 22, { size: 20, color: WHITE, align: 'right', max: 56 });
         box(ctx, MAGENTA, 622, BAR_Y + 7, Math.max(0, s.power) * 10, 16);
+    }
+
+    function drawPhoneStatus(s, ctx) {
+        box(ctx, BLACK, 0, BAR_Y, G.W, G.H - BAR_Y);
+        // The prompt is decorative; the event and both ability states matter
+        // on a narrow screen. Give each its own fixed region so they coexist.
+        G.text(s.msg.replace(' - Abort, Retry, Fail?', '').replace('NOBBIN.EXE', 'NOBBIN')
+            .replace('HOBBIN.COM', 'HOBBIN').replace('CHERRY.COM', 'CHERRY'),
+            8, BAR_Y + 25, { size: 26, color: CYAN, max: 550 });
+        if (s.power > 0) G.text('TURBO ' + Math.ceil(s.power) + 's', 570, BAR_Y + 25,
+            { size: 26, color: WHITE, max: 180 });
+        drawGauge(s, ctx);
     }
 
     function draw(s, ctx) {
