@@ -91,10 +91,36 @@ for (const f of [phone, desktop]) {
     f.calls.length = 0; f.G.debug.start(3); f.def.draw(f.G.debug.s(), f.ctx);
 }
 assert.ok(phone.calls.length < desktop.calls.length, 'phone omits decorative calls despite its larger cues');
-for (const f of [phone, desktop]) {
-    const result = vm.runInNewContext(readFileSync(new URL('./tetris-bot.js', import.meta.url), 'utf8'), { SnoGame: f.G });
-    console.log(JSON.stringify({ touch: f === phone, ...result }));
-    assert.ok(result.wins.every((v) => ['clear', 'victory'].includes(v.screen)), 'ordinary inputs win 1/2/3');
-    assert.ok(result.idle.every((v) => v.screen === 'over'), 'idle fails');
+// The campaign bot (bots/tetris.js) at a casual 0.7 s per shot must win every
+// level on keys and on taps, within one to three minutes, and the run must
+// meet what each wall is about: steel plates cracked and bombs set off on
+// the second and third walls, slides and surges on the last, and the ↓ rush.
+const bot = vm.runInNewContext(readFileSync(new URL('./bots/tetris.js', import.meta.url), 'utf8'));
+function campaignLevel(f, level, play) {
+    const mem = { think: 0.7 };
+    f.G.debug.start(level);
+    const from = f.effects.length, s = f.G.debug.s();
+    let n = 0, slammed = false;
+    for (; n < 36000 && f.G.debug.state().screen === 'play'; n++) {
+        f.G.debug.step(1, (_, st) => play(st, f.G, mem));
+        slammed = slammed || s.slam > 0;
+    }
+    const fx = f.effects.slice(from);
+    const scored = (pts) => fx.filter((e) => e.name === 'addScore' && e.args[0] === pts).length;
+    return { level, screen: f.G.debug.state().screen, seconds: n / 60, lives: f.G.lives, lines: s.lines,
+        plates: scored(20), bombs: fx.filter((e) => e.name === 'sfx' && e.args[0] === 'bigboom').length,
+        slides: s.slides, slammed, rush: scored(2) };
 }
-console.log('ok tetris: phone targets, edge validation, combined cues, identical challenge, input wins and idle losses');
+for (const f of [phone, desktop]) {
+    const runs = [1, 2, 3].map((level) => campaignLevel(f, level, bot.play));
+    console.log(JSON.stringify({ touch: f === phone, runs }));
+    for (const r of runs) {
+        assert.equal(r.screen, r.level === 3 ? 'victory' : 'clear', `level ${r.level}: a casual pace wins it`);
+        assert.ok(r.seconds > 20 && r.seconds < 180, `level ${r.level}: takes under three minutes (${r.seconds.toFixed(0)}s)`);
+        assert.ok(r.rush > 0, `level ${r.level}: the ↓ rush pays out`);
+    }
+    for (const r of runs.slice(1)) assert.ok(r.plates > 0 && r.bombs > 0, `level ${r.level}: steel plates cracked and bombs set off`);
+    assert.ok(runs[2].slides > 0 && runs[2].slammed, 'the last wall slides and surges');
+    for (const level of [1, 2, 3]) assert.equal(campaignLevel(f, level, () => ({})).screen, 'over', `level ${level}: idle loses`);
+}
+console.log('ok tetris: phone targets, edge validation, combined cues, identical challenge, casual campaign wins and idle losses');
