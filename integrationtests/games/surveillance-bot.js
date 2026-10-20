@@ -1,8 +1,8 @@
 // Read-only steering: walls, visible threat locations, drive icons and EMP.
 (function () {
-    function steer(s, memory) {
+    function steer(s, mem) {
         const p = s.player, tile = (x, y) => s.map[y - 1]?.[x] || '#';
-        const blocked = (x, y) => '#r<>^v'.includes(tile(x, y));
+        const blocked = (x, y) => '#<>^v'.includes(tile(x, y));
         const dist = (o, x, y) => Math.hypot(o.x - x, o.y - y);
         const clear = (o, x, y) => {
             const n = Math.ceil(dist(o, x, y) / 4);
@@ -15,21 +15,45 @@
             const t = Math.max(0, Math.min(1, ((x - l.x1) * dx + (y - l.y1) * dy) / (dx * dx + dy * dy)));
             return Math.hypot(x - l.x1 - dx * t, y - l.y1 - dy * t);
         };
-        const live = l => l.off <= 0 && (l.move || (s.clock + l.phase) % (3.3 - s.level * .02) < 1.5);
-        const risk = (x, y) => {
+        // A tripwire is live now or within `ahead` seconds (sampled), so a
+        // crossing never starts just before it comes back.
+        const live = (l, ahead) => {
+            for (let t = 0; t <= (ahead || 0) + 1e-9; t += .1)
+                if (l.off - t <= 0 && (s.clock + t + l.phase) % s.def.blink < 1.5) return true;
+            return false;
+        };
+        const plateTile = (x, y) => s.plates.find(pl => Math.floor(pl.x / 30) === Math.floor(x / 30) && Math.floor(pl.y / 30) === Math.floor(y / 30));
+        // The last charge is kept for a plate door while drives remain.
+        const spare = s.emp > (s.open ? 0 : 1);
+        const guardRisk = (x, y) => {
             let cost = 0;
-            for (const g of s.guards) if (dist(g, x, y) < 38 || sees(g, x, y, 160, 1.5)) cost += 50;
+            for (const g of s.guards) {
+                if (dist(g, x, y) < 38 || sees(g, x, y, 160, 1.5)) cost += 50;
+                let from = g;
+                g.path.slice(0, 4).forEach((q, k) => {
+                    if (dist(q, x, y) < 45) cost += 25;
+                    const ahead = { x: q.x, y: q.y, ang: Math.atan2(q.y - from.y, q.x - from.x) };
+                    if (dist(from, q.x, q.y) > 1 && sees(ahead, x, y, 160, 1.5)) cost += 30 / (k + 1);
+                    from = q;
+                });
+            }
+            return cost;
+        };
+        const risk = (x, y) => {
+            let cost = guardRisk(x, y);
             for (const c of s.cams) if (c.off <= .7 && sees(c, x, y, 195, 1.1)) cost += 12;
             for (const d of s.drones) if (d.off <= .7 && dist(d, x, y) < 74 && clear(d, x, y)) cost += 18;
             for (const l of s.lights) if (l.off <= .7 && dist(l, x, y) < 60) cost += 12;
-            for (const l of s.lasers) if (live(l) && beamDistance(l, x, y) < 18) cost += s.emp ? 4 : 20;
-            if (s.plates.some(pl => pl.off <= .7 && dist(pl, x, y) < 16)) cost += s.emp ? 4 : 80;
+            for (const l of s.lasers) if (live(l) && beamDistance(l, x, y) < 18) cost += 6;
+            const pl = plateTile(x, y);
+            if (pl && pl.off <= 1) cost += spare || s.open && s.emp ? 6 : 80;
             return cost;
         };
-        if (!memory.next || Math.hypot(memory.next.x - p.cx, memory.next.y - p.cy) < 3 || memory.age++ > 10) {
+        if (mem.flee > 0) mem.flee--;
+        if (!mem.next || Math.hypot(mem.next.x - p.cx, mem.next.y - p.cy) < 3 || mem.age++ > 10) {
             const start = Math.floor(p.cy / 30) * 32 + Math.floor(p.cx / 30), costs = { [start]: 0 }, prev = {}, queue = [start];
             let goals = s.open ? [s.exit] : s.drives.filter(d => !d.got);
-            if (s.det > .4) {
+            if (s.det > .4 || mem.flee > 0) {
                 goals = [];
                 for (let y = 2; y < 17; y++) for (let x = 1; x < 31; x++)
                     if (!blocked(x, y) && risk(x * 30 + 15, y * 30 + 15) === 0) goals.push({ x: x * 30 + 15, y: y * 30 + 15 });
@@ -48,16 +72,41 @@
             }
             if (end !== undefined) {
                 while (prev[end] !== undefined && prev[end] !== start) end = prev[end];
-                memory.next = { x: end % 32 * 30 + 15, y: Math.floor(end / 32) * 30 + 15 };
+                mem.next = { x: end % 32 * 30 + 15, y: Math.floor(end / 32) * 30 + 15 };
             }
-            memory.age = 0;
+            mem.age = 0;
         }
-        const n = memory.next || p, dx = n.x - p.cx, dy = n.y - p.cy;
-        const near = s.plates.some(o => o.off <= .8 && dist(o, p.cx, p.cy) < 42) || s.lasers.some(l => live(l) && beamDistance(l, p.cx, p.cy) < 28 && beamDistance(l, n.x, n.y) < 16);
-        const emp = s.emp > 0 && (near || s.det > .7 && s.seen);
-        const press = emp && !memory.empHeld;
-        memory.empHeld = emp;
-        return { right: dx > 2, left: dx < -2, down: dy > 2, up: dy < -2, a: press };
+        const n = mem.next || p, dx = n.x - p.cx, dy = n.y - p.cy;
+        // Gates: a plate on the next tile needs a pulse first (or a wait for
+        // the recharge); a tripwire across it is waited out until it has
+        // gone dark for long enough to cross.
+        const pl = plateTile(n.x, n.y), onPlate = pl && plateTile(p.cx, p.cy) === pl;
+        const plateShut = pl && !onPlate && pl.off <= 1;
+        // A step along a tripwire's own corridor stays in it for its whole
+        // length: that is sprinted, and needs a dark spell long enough.
+        const along = l => Math.abs(l.x2 - l.x1) > Math.abs(l.y2 - l.y1) === Math.abs(dx) > Math.abs(dy);
+        const inBeam = s.lasers.some(l => beamDistance(l, p.cx, p.cy) < 16 && along(l));
+        const beamShut = s.lasers.some(l => beamDistance(l, n.x, n.y) < 20 && beamDistance(l, p.cx, p.cy) > 16 &&
+            live(l, along(l) ? Math.hypot(l.x2 - l.x1, l.y2 - l.y1) / 205 + .3 : .7));
+        const devices = s.cams.concat(s.drones, s.lights).some(o => o.sees);
+        const emp = s.emp > 0 && (plateShut || devices && (s.det > .85 || s.det > .6 && spare));
+        const press = emp && !mem.empHeld;
+        mem.empHeld = emp;
+        // A step that walks into a guard's (coming) view waits instead, and
+        // so does one through a shut door - unless a guard is coming to the
+        // place where it waits: then it backs off to a quiet tile first.
+        const here = guardRisk(p.cx, p.cy);
+        if (beamShut || plateShut && !emp) {
+            if (here <= 0 || mem.flee > 0 || s.det >= .4) return { a: press };
+            mem.flee = 45; mem.next = null;
+        } else if (s.det < .25 && guardRisk(n.x, n.y) > here + 20) {
+            if (here <= 0 || mem.flee > 0) return { a: press };
+            mem.flee = 45; mem.next = null;
+        }
+        // Spotted by a guard: sprint for cover. It is loud, but the guard
+        // already knows, and a walk is barely faster than its chase.
+        const run = s.det > .25 && s.guards.some(g => g.sees) || inBeam;
+        return { right: dx > 2, left: dx < -2, down: dy > 2, up: dy < -2, a: press, b: run };
     }
     return steer;
 })()

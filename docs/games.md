@@ -689,13 +689,21 @@ Engine rumble, radio beeps, calm space-age music.
 
 ### surveillance — Blind Spot (stealth action)
 Top-down facility. `arrows` move, `X` sprint (noisy), `SPACE` EMP pulse
-(limited charges, disables nearby cameras for a few seconds). Collect every
-data drive and reach the exit. Rotating cameras and patrolling guards have
-vision cones blocked by walls; being seen fills a detection meter — full means
-caught (lose a life). Laser tripwires that blink, pressure plates, drones that
-investigate noise. Levels: ten facility layouts with more devices and tighter
-timing; level 10 has a moving searchlight grid. CRT-green on black with red
-alerts; tense sparse music, alarm when spotted.
+(limited charges, disables nearby devices for five seconds; an empty EMP
+recharges one charge in 20s). Collect every data drive and reach the exit.
+Sweeping cameras and patrolling guards have vision cones blocked by walls;
+being seen fills a detection meter — full means caught (lose a life, start
+the level over). Levels: three. 1 Orientation: cameras only, learn cones and
+cover. 2 Hive: a guard, blinking laser tripwires, a pressure plate that seals
+the start room (cross while dark or EMP it) and drones that fly to the noise
+of a sprint. 3 Searchlight Grid: two guards, tripwire mazes and roaming
+searchlights that see over walls, with a plate sealing the exit. Cameras
+swing, guards walk and tripwires blink a little faster each level. Ending:
+EXTRACTED — a helicopter winches the agent off the roof while the camera
+feeds drop to NO SIGNAL, the uplink fills with the stolen drives, and the
+console celebrates with green phosphor fireworks, rolling scanlines and a
+blinking REC light. CRT-green on black with red alerts; tense sparse music,
+alarm when spotted.
 
 ### synthwave — Outrun the Sun (pseudo-3D racer)
 Classic segment-projected road toward a striped sun. `← →` steer, `↑`

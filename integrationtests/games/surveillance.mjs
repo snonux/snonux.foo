@@ -13,7 +13,7 @@ try {
         await page.goto(`${base}/index.html`);
         await page.eval("SnoGame.launch('surveillance')");
         await page.waitFor('SnoGame.debug.state() && SnoGame.debug.state().registered', 'surveillance registration');
-        for (const level of [1, 5, 10]) {
+        for (const level of [1, 2, 3]) {
             const result = await page.eval(`(function () {
                 const steer = ${bot}, memory = {}; SnoGame.debug.start(${level});
                 let ticks = 0;
@@ -21,7 +21,7 @@ try {
                     SnoGame.debug.step(1, (i, s) => steer(s, memory));
                 return { state: SnoGame.debug.state(), ticks };
             })()`);
-            assert.equal(result.state.screen, level === 10 ? 'victory' : 'clear', `${name} level ${level}: ${JSON.stringify(result)}`);
+            assert.equal(result.state.screen, level === 3 ? 'victory' : 'clear', `${name} level ${level}: ${JSON.stringify(result)}`);
             console.log(`ok surveillance ${name} level ${level}: ${result.ticks} ticks, ${result.state.lives} lives`);
             await page.eval(`(function(){SnoGame.debug.start(${level}); const steer = ${bot}, memory = {}; return SnoGame.debug.step(180, (i,s) => steer(s,memory));})()`);
             await page.screenshot(`/tmp/surveillance-${name}-${level}.jpg`);
