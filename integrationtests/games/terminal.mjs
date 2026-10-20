@@ -12,9 +12,9 @@ for (const phone of [null, ...PHONES]) {
         await page.eval(`SnoGame.launch('terminal')`);
         await page.waitFor('SnoGame.debug.state().registered', 'terminal registration');
         const result = await page.eval(bot);
-        assert.ok(result.wins.every((v) => v.screen === (v.level === 10 ? 'victory' : 'clear')), `${mode} ordinary input wins: ${JSON.stringify(result)}`);
+        assert.ok(result.wins.every((v) => v.screen === (v.level === 3 ? 'victory' : 'clear')), `${mode} ordinary input wins: ${JSON.stringify(result)}`);
         assert.ok(result.idle.every((v) => v.screen === 'over'), `${mode} idle must lose`);
-        await page.eval(`SnoGame.debug.start(6); SnoGame.debug.step(240, {codes:{KeyD:true,ArrowLeft:true}})`);
+        await page.eval(`SnoGame.debug.start(2); SnoGame.debug.step(240, {codes:{KeyD:true,ArrowLeft:true}})`);
         await sleep(80);
         await page.screenshot(`/tmp/terminal-${mode}.jpg`);
         const errors = await page.eval('SnoGame.debug.errors.slice()');

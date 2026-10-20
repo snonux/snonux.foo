@@ -14,7 +14,7 @@ function fixture(touch) {
         pick: (a) => a[0], rnd: (a, b) => (a + b) / 2,
         loseLife: () => { if (--G.lives <= 0) screen = 'over'; return G.lives; },
         addLife: (max) => { G.lives = Math.min(max, G.lives + 1); },
-        win: () => { screen = G.level === 10 ? 'victory' : 'clear'; },
+        win: () => { screen = G.level === 3 ? 'victory' : 'clear'; },
         text: (value, x, y, opts) => labels.push({ value, x, y, ...opts }),
     };
     for (const name of ['tone','noise','sfx','burst','shake','flash','popup','addScore']) G[name] = () => {};
@@ -27,7 +27,7 @@ function fixture(touch) {
     return { G, def, labels, strokes, ctx };
 }
 const phone = fixture(true), desktop = fixture(false);
-for (const level of [1, 5, 10]) {
+for (const level of [1, 2, 3]) {
     phone.G.debug.start(level); desktop.G.debug.start(level);
     const c = { codes: { KeyD: true, ArrowUp: true } };
     for (let i = 0; i < 180; i++) { phone.G.debug.step(1, c); desktop.G.debug.step(1, c); }
@@ -35,7 +35,7 @@ for (const level of [1, 5, 10]) {
     assert.equal(compare(phone.G.debug.s()), compare(desktop.G.debug.s()), 'phone retains gameplay, movement and independent firing');
     assert.ok(!phone.def.hud(phone.G.debug.s()).includes('W0/0'), 'fork-bomb mode must not display nonexistent waves');
 }
-phone.G.debug.start(6); const s = phone.G.debug.s();
+phone.G.debug.start(2); const s = phone.G.debug.s();
 s.queue = []; s.wave = 0;
 s.enemies = [
     { kind: '>', x: 100, y: 200, mode: 'aim', mt: 0.1, dx: 1, dy: 0, dash: 0.85, born: 0 },
@@ -49,13 +49,13 @@ assert.ok(phone.labels.some((v) => v.value === 'd' && v.color === '#ff5a3c'), 'd
 assert.ok(phone.labels.some((v) => v.value === '7' && v.size >= 20), 'root health is readable');
 assert.ok(phone.labels.some((v) => v.value === 'o' && v.size >= 20), 'enemy shots readable');
 assert.ok(!phone.labels.some((v) => v.value.includes('COMMAND')), 'phone skips decorative process table');
-phone.G.debug.start(5);
+phone.G.debug.start(2);
 const nests = phone.G.debug.s();
 nests.enemies = nests.enemies.filter((e) => e.kind === 'S');
 assert.ok(nests.enemies.length > 0 && !nests.cfg.forkBomb);
 assert.ok(phone.def.hud(nests).includes('P' + nests.enemies.length), 'normal progress counts nests that still prevent victory');
 for (const [ax, ay] of [[-1, 0], [0, -1]]) {
-    phone.G.debug.start(6);
+    phone.G.debug.start(2);
     const edge = phone.G.debug.s();
     edge.p = { ...edge.p, x: 19, y: 47, ax, ay, inv: 0 };
     edge.enemies = [{ kind: '#', x: 200, y: 54, hp: 7, born: 0 }];
@@ -86,7 +86,7 @@ for (const f of [phone, desktop]) {
 for (const f of [phone, desktop]) {
     const result = vm.runInNewContext(readFileSync(new URL('./terminal-bot.js', import.meta.url), 'utf8'), { SnoGame: f.G });
     console.log(JSON.stringify({ touch: f === phone, ...result }));
-    assert.ok(result.wins.every((v) => ['clear','victory'].includes(v.screen)), 'ordinary controls win levels 1/5/10');
+    assert.ok(result.wins.every((v) => ['clear','victory'].includes(v.screen)), 'ordinary controls win levels 1/2/3');
     assert.ok(result.idle.every((v) => v.screen === 'over'), 'idle fails');
 }
 console.log('ok terminal: unchanged challenge, independent sticks, combined threat cues, ordinary wins and idle failures');

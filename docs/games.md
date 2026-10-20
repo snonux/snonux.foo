@@ -687,12 +687,18 @@ follows speed. Driving synthwave music with a gated-snare beat.
 ### terminal — kill -9 (ASCII twin-stick arena shooter)
 Everything is drawn as monospace glyphs in terminal green. `WASD` moves the
 `@`, the arrow keys fire in eight directions (mouse aim and click also work).
-Rogue processes swarm: `Z` zombies shamble, `&` forks split when shot, `d`
-daemons keep distance and shoot, `>` pipes dash in lines, `#` root shells
+Rogue processes swarm: `Z` zombies shamble, `&` forks split when shot,
+`d` daemons keep distance and shoot, `>` pipes dash in lines, `#` root shells
 soak damage. Pickups: `$` score, `+` life, `!` spread shot, `*` bomb. Clear
-every wave in the level. Levels: bigger waves and mixes, spawners (`[fork]`)
-that must be destroyed, a fork bomb level, and `init` (pid 1) as the level 10
-boss. Bell and keyclick sounds, fast square-wave music.
+every wave in the level. Levels: 1 */bin/sh* — zombies, then splitting forks
+and the first daemons; 2 *| pipeline* — pipes dashing between solid
+directories, root shells, daemons, and two `[fork]` spawners that must be
+destroyed; 3 *init (pid 1)* — a fork bomb whose forks grow and replicate up
+to a full process table, then `init` itself, a boss that cycles rings, fans,
+adopted orphans and, at half health, spirals and pipes (it wakes at the end
+of the arena away from the player). The ending: a shell types out an empty
+process table and a zero load average while ASCII fireworks burst above.
+Bell and keyclick sounds, fast square-wave music.
 
 ### tetris — Block Blaster (quarth-style block shooter)
 A wall of block rows with gaps descends from the top. The launcher at the
