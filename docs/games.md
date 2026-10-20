@@ -528,12 +528,18 @@ hazard, and at level 10 an archdemon that needs three strikes from above.
 Organ-like harmonic-minor music, bell sounds.
 
 ### cosmos — Gravity Well (asteroids with gravity)
-`← →` rotate, `↑` thrust, `SPACE` fire, `X` hyperspace (risky random jump).
-Ship, rocks and bullets all feel the pull of black holes and stars, so shots
-curve and rocks slingshot; the screen wraps. Rocks split twice. Destroy every
-rock to clear the level; falling into a well kills. Levels: more wells, a
-binary pair that orbits, saucers that shoot back from level 4, a pulsar that
-sweeps a deadly beam from level 7, level 10 circles a giant hole. Spacey
+`← →` rotate, `↑` thrust, `SPACE` fire, `X` hyperspace (risky random jump
+that keeps the ship's momentum). Ship, rocks and bullets all feel the pull of
+black holes and stars, so shots curve and rocks slingshot; the screen wraps.
+Rocks split twice; iron rocks (purple) take two hits. Destroy every rock of
+every wave to clear the level; falling into a core kills, rocks bounce off.
+Four ships per level. Levels: 1 *First Light*, one star and two small waves
+to learn the pull; 2 *Binary Waltz*, a pair of black holes orbiting each
+other, iron rocks and saucers that shoot curving shots back; 3 *Event
+Horizon*, the gravity finale: three waves on circular orbits around a giant
+hole, with an orbiting pulsar that sweeps a deadly beam and sniper saucers.
+The ending is a supernova: the giant flares out in shock rings while a new
+constellation is drawn star by star, under gold and blue fireworks. Spacey
 dorian pads and arps.
 
 ### dos — DIGGER.EXE (CGA tunnel digger)

@@ -37,55 +37,35 @@
     // Saucer shots are slow enough to see coming and sidestep from across
     // the screen; a big saucer reloads slower and aims worse than a sniper.
     var FOE_SHOT = 215, FOE_RELOAD = { big: 2.3, small: 1.8 }, FOE_ERR = { big: 0.36, small: 0.22 };
-    // Four ships: the late levels pile saucers, beams and moving wells on
+    // Four ships: the later levels pile saucers, beams and moving wells on
     // top of the rocks, and one stray shot should not decide a run.
     var LIVES = 4;
     var ROCK_R = [0, 12, 22, 38], ROCK_PTS = [0, 100, 50, 20];
     var CORE_R = { star: 20, hole: 18, pulsar: 15, giant: 46 };
     var C = { bg: '#020214', gold: '#ffd166', purple: '#9b5de5', blue: '#4cc9f0', fg: '#d4e8ff', red: '#ff5d73', dim: '#6f7fa8' };
     var WELL_COLOR = { star: C.gold, hole: C.purple, pulsar: C.blue, giant: C.purple };
-    var PHONE_HINTS = ['Thrust away from stars; shots curve', 'Two suns slingshot rocks',
-        'Keep clear of both moving holes', 'Red saucers fire curved shots', 'Keep moving between the three cores',
-        'Purple rocks need two hits; gold means one', 'Dodge the sweeping blue beam',
-        'Small red saucers are snipers', 'Watch the moving hole and blue beam', 'Orbit the giant; avoid its core'];
+    var PHONE_HINTS = ['Thrust away from stars; shots curve', 'Two holes waltz; red saucers fire back',
+        'Orbit the giant; dodge the blue beam'];
 
-    // One entry per level. `rocks` lists the big rocks of each wave (the next
-    // wave warps in when the last rock of the current one is gone) and `iron`
-    // how many of each wave are iron. A well may orbit (cx, cy) at radius
-    // `or` with angular speed `ow`, drift (dvx, dvy) or sweep a beam of length
-    // `beam` at `bw` rad/s. `saucer` is the seconds between saucer visits and
-    // `sniper` the share of them that are small sharpshooters; `swirl` puts
-    // every rock on a circular orbit around the first well. Spawn
-    // points are deliberately off every axis of symmetry, so a ship left
-    // alone always falls into something, and out of reach of every beam.
+    // One entry per level: a lone star to learn the pull, a waltzing pair of
+    // black holes with saucers and iron rocks, and the finale around a giant
+    // hole with an orbiting pulsar. `rocks` lists the big rocks of each wave
+    // (the next wave warps in when the last rock of the current one is gone)
+    // and `iron` how many of each wave are iron. A well may orbit (cx, cy) at
+    // radius `or` with angular speed `ow` or sweep a beam of length `beam` at
+    // `bw` rad/s. `saucer` is the seconds between saucer visits and `sniper`
+    // the share of them that are small sharpshooters; `swirl` puts every rock
+    // on a circular orbit around the first well. Spawn points are
+    // deliberately off every axis of symmetry, so a ship left alone always
+    // falls into something, and out of reach of every beam.
     var LEVELS = [
-        { rocks: [4, 3], spawns: [[150, 430], [810, 120]], hint: 'Stars pull on everything, even your shots. Thrust to stay out',
+        { rocks: [3, 3], spawns: [[150, 430], [810, 120]], hint: 'Stars pull on everything, even your shots. Thrust to stay out',
             wells: [{ kind: 'star', cx: 480, cy: 285, gm: 0.5e6 }] },
-        { rocks: [4, 4], spawns: [[130, 440], [830, 110]], hint: 'Two suns: rocks slingshot from one to the other',
-            wells: [{ kind: 'star', cx: 270, cy: 190, gm: 0.8e6 }, { kind: 'star', cx: 690, cy: 380, gm: 0.8e6 }] },
-        { rocks: [5, 4], spawns: [[120, 440], [840, 100]], hint: 'A binary pair of black holes waltzes around the centre',
+        { rocks: [4, 4], iron: 1, saucer: 14, spawns: [[120, 440], [840, 100]],
+            hint: 'Two black holes waltz. Saucers ignore gravity, their shots do not',
             wells: [{ kind: 'hole', cx: 480, cy: 285, gm: 0.75e6, or: 105, ow: 0.5 },
                 { kind: 'hole', cx: 480, cy: 285, gm: 0.75e6, or: 105, ow: 0.5, ph: Math.PI }] },
-        { rocks: [5, 4], saucer: 13, spawns: [[140, 440], [820, 110]], hint: 'Saucers ignore gravity. Their shots do not',
-            wells: [{ kind: 'hole', cx: 480, cy: 285, gm: 1.3e6 }] },
-        { rocks: [5, 4], saucer: 12, spawns: [[100, 120], [860, 150]], hint: 'Three bodies, no stable orbit anywhere',
-            wells: [{ kind: 'hole', cx: 480, cy: 160, gm: 1.0e6 }, { kind: 'star', cx: 250, cy: 400, gm: 0.7e6 },
-                { kind: 'star', cx: 710, cy: 400, gm: 0.7e6 }] },
-        { rocks: [4, 4], iron: 1, saucer: 12, spawns: [[560, 90], [540, 480]], hint: 'Iron rocks (purple) take two hits each',
-            wells: [{ kind: 'hole', cx: 300, cy: 285, gm: 0.6e6, or: 75, ow: 0.4 },
-                { kind: 'hole', cx: 300, cy: 285, gm: 0.6e6, or: 75, ow: 0.4, ph: Math.PI },
-                { kind: 'star', cx: 760, cy: 285, gm: 0.8e6 }] },
-        { rocks: [5, 5], iron: 1, saucer: 13, spawns: [[90, 440], [870, 110]], hint: 'The pulsar beam kills: stay out of reach or slip in behind it',
-            wells: [{ kind: 'pulsar', cx: 480, cy: 285, gm: 0.9e6, beam: 290, bw: 0.65 }] },
-        { rocks: [4, 4], iron: 1, saucer: 15, sniper: 0.4, spawns: [[490, 80], [510, 490]], hint: 'Small saucers are snipers',
-            wells: [{ kind: 'pulsar', cx: 250, cy: 285, gm: 0.8e6, beam: 200, bw: 0.7 },
-                { kind: 'hole', cx: 720, cy: 285, gm: 0.55e6, or: 70, ow: -0.5 },
-                { kind: 'hole', cx: 720, cy: 285, gm: 0.55e6, or: 70, ow: -0.5, ph: Math.PI }] },
-        { rocks: [4, 4, 3], iron: 1, saucer: 13, maxFoes: 2, spawns: [[100, 450], [860, 100], [300, 50]], hint: 'A rogue black hole is drifting through',
-            wells: [{ kind: 'pulsar', cx: 480, cy: 285, gm: 0.8e6, beam: 230, bw: -0.8 },
-                { kind: 'hole', cx: 150, cy: 150, gm: 0.6e6, dvx: 26, dvy: 16 },
-                { kind: 'star', cx: 800, cy: 440, gm: 0.6e6 }] },
-        { rocks: [4, 4, 4], iron: 1, saucer: 10, sniper: 0.6, maxFoes: 2, swirl: true,
+        { rocks: [3, 4, 4], iron: 1, saucer: 14, sniper: 0.3, swirl: true,
             spawns: [[70, 80], [890, 80], [70, 490], [890, 490]], hint: 'Everything circles the giant. So should you',
             wells: [{ kind: 'giant', cx: 480, cy: 285, gm: 4.5e6 },
                 { kind: 'pulsar', cx: 480, cy: 285, gm: 0.12e6, or: 250, ow: 0.2, beam: 160, bw: 1.0 }] }
@@ -143,19 +123,19 @@
     // Level setup
     // ------------------------------------------------------------------
 
-    // Sets a well's position and its velocity (orbit plus drift), which rocks
-    // need to bounce off a moving core correctly.
+    // Sets a well's position and its orbital velocity, which rocks need to
+    // bounce off a moving core correctly.
     function placeWell(w) {
         var c = Math.cos(w.ph), sn = Math.sin(w.ph);
         w.x = w.cx + c * w.or; w.y = w.cy + sn * w.or;
-        w.vx = w.dvx - sn * w.or * w.ow; w.vy = w.dvy + c * w.or * w.ow;
+        w.vx = -sn * w.or * w.ow; w.vy = c * w.or * w.ow;
     }
 
     function makeWell(d) {
         var w = {
             kind: d.kind, gm: d.gm, r: CORE_R[d.kind],
             cx: d.cx, cy: d.cy, or: d.or || 0, ow: d.ow || 0, ph: d.ph || 0,
-            dvx: d.dvx || 0, dvy: d.dvy || 0, beam: d.beam || 0, bw: d.bw || 0, ba: 0,
+            beam: d.beam || 0, bw: d.bw || 0, ba: 0,
             x: 0, y: 0, vx: 0, vy: 0
         };
         placeWell(w);
@@ -273,7 +253,7 @@
             time: 0, touch: G.isTouch(), hint: L.hint, wells: L.wells.map(makeWell), spawns: L.spawns,
             rocks: [], shots: [], foes: [], foeShots: [], stars: makeStars(rnd),
             waves: L.rocks, wave: 0, iron: L.iron || 0, swirl: !!L.swirl, banner: 0,
-            saucerEvery: L.saucer || 0, saucerT: (L.saucer || 0) * 0.6, sniper: L.sniper || 0, maxFoes: L.maxFoes || 1,
+            saucerEvery: L.saucer || 0, saucerT: (L.saucer || 0) * 0.6, sniper: L.sniper || 0,
             bounties: SAUCER_BOUNTIES,
             cool: 0, hyper: 0, tm: { thrust: 0, warn: 0, hum: 0, pulse: 0 }, ship: null
         };
@@ -294,7 +274,6 @@
 
     function moveWells(s, dt) {
         s.wells.forEach(function (w) {
-            if (w.dvx || w.dvy) { w.cx = wrapX(w.cx + w.dvx * dt); w.cy = wrapY(w.cy + w.dvy * dt); }
             w.ph += w.ow * dt;
             w.ba += w.bw * dt;
             placeWell(w);
@@ -302,7 +281,7 @@
     }
 
     // Rocks survive a core: they ricochet off it elastically, measured in the
-    // core's own frame so an orbiting or drifting well bats them properly. If
+    // core's own frame so an orbiting well bats them properly. If
     // wells ate rocks a level would clear itself while the player kept away.
     // A slow contact is a rock resting on the surface: it is set back on the
     // surface and just stops sinking, silently. A real bounce only turns the
@@ -644,7 +623,8 @@
     function updateFoes(s, dt) {
         if (s.saucerEvery) {
             s.saucerT -= dt;
-            if (s.saucerT <= 0 && s.foes.length < s.maxFoes) { spawnFoe(s); s.saucerT = s.saucerEvery; }
+            // One saucer at a time: the next waits until the sky is clear.
+            if (s.saucerT <= 0 && !s.foes.length) { spawnFoe(s); s.saucerT = s.saucerEvery; }
         }
         s.foes = s.foes.filter(function (f) { return moveFoe(s, f, dt); });
         if (s.foes.length && s.tm.hum <= 0) {
@@ -985,10 +965,72 @@
     }
 
     function hud(s) {
-        if (s.touch) return 'W' + (s.wave + 1) + '/' + s.waves.length + '  ROCKS ' + s.rocks.length +
-            '  HYPER ' + (s.hyper > 0 ? Math.ceil(s.hyper) + 's' : 'OK');
-        var wave = s.waves.length > 1 ? 'WAVE ' + (s.wave + 1) + '/' + s.waves.length + '  ' : '';
-        return wave + 'ROCKS ' + s.rocks.length + '  HYPER ' + (s.hyper > 0 ? Math.ceil(s.hyper) + 's' : 'OK');
+        var wave = (s.touch ? 'W' : 'WAVE ') + (s.wave + 1) + '/' + s.waves.length;
+        return wave + '  ROCKS ' + s.rocks.length + '  HYPER ' + (s.hyper > 0 ? Math.ceil(s.hyper) + 's' : 'OK');
+    }
+
+    // ------------------------------------------------------------------
+    // The ending: the giant's last breath as a supernova, and the new
+    // constellation that its light draws across the sky
+    // ------------------------------------------------------------------
+
+    var NOVA_X = G.W / 2, NOVA_Y = 330;
+
+    // Shock rings race out of the core and a white-gold glare fades into a
+    // steady new star, so the scene keeps moving long after the blast.
+    function drawNova(t, ctx) {
+        var glare = Math.max(0, 1 - t / 2.5);
+        ctx.globalAlpha = 0.35 + 0.5 * glare;
+        drawGlow(ctx, NOVA_X, NOVA_Y, 70 + 160 * glare + 8 * Math.sin(t * 3), glare > 0.2 ? '#fff3c4' : C.gold);
+        ctx.lineWidth = 3;
+        for (var i = 0; i < 4; i++) {
+            var f = (t * 0.45 + i / 4) % 1;
+            ctx.globalAlpha = 0.6 * (1 - f);
+            ctx.strokeStyle = [C.gold, C.blue, C.purple, C.fg][i];
+            circle(ctx, NOVA_X, NOVA_Y, 30 + f * 520);
+            ctx.stroke();
+        }
+        ctx.globalAlpha = 1;
+        ctx.fillStyle = '#ffffff';
+        circle(ctx, NOVA_X, NOVA_Y, 9 + 2 * Math.sin(t * 5));
+        ctx.fill();
+    }
+
+    // A dozen stars in the sky's free corners, joined one line at a time.
+    function constellation(e) {
+        if (!e.data.stars) {
+            e.data.stars = [];
+            for (var i = 0; i < 12; i++) {
+                var side = i % 2 ? 1 : -1;
+                e.data.stars.push({ x: NOVA_X + side * (250 + e.rng() * 200), y: 50 + e.rng() * 440, ph: e.rng() * TAU });
+            }
+        }
+        return e.data.stars;
+    }
+
+    function drawConstellation(e, ctx) {
+        var stars = constellation(e), shown = Math.min(stars.length, Math.floor(e.t * 3));
+        ctx.strokeStyle = C.blue;
+        ctx.lineWidth = 1.5;
+        ctx.globalAlpha = 0.55;
+        ctx.beginPath();
+        // Each side is its own figure: a star links to the previous one there.
+        for (var i = 2; i < shown; i++) {
+            ctx.moveTo(stars[i - 2].x, stars[i - 2].y);
+            ctx.lineTo(stars[i].x, stars[i].y);
+        }
+        ctx.stroke();
+        ctx.fillStyle = C.fg;
+        for (i = 0; i < shown; i++) {
+            ctx.globalAlpha = 0.6 + 0.4 * Math.sin(e.t * 4 + stars[i].ph);
+            ctx.fillRect(stars[i].x - 3, stars[i].y - 3, 6, 6);
+        }
+        ctx.globalAlpha = 1;
+    }
+
+    function drawEnding(e, ctx) {
+        drawNova(e.t, ctx);
+        drawConstellation(e, ctx);
     }
 
     G.register('cosmos', {
@@ -1000,8 +1042,7 @@
             'Never touch a core: it swallows ships and shots, but rocks bounce off',
             'The dotted arc shows where your next shot will curve'
         ],
-        levelNames: ['First Light', 'Twin Suns', 'Binary Waltz', 'Visitors', 'Three-Body Problem',
-            'Iron Belt', 'Lighthouse', 'Crossfire', 'Rogue Hole', 'Event Horizon'],
+        levelNames: ['First Light', 'Binary Waltz', 'Event Horizon'],
         colors: { bg: C.bg, fg: C.fg, accent: C.blue, dim: C.dim },
         lives: LIVES,
         // Slow D dorian: long held lead notes stand in for pads over a
@@ -1019,6 +1060,12 @@
         // The stick keeps ↑ so one thumb can turn and thrust together on its
         // upper corners, leaving the other thumb on FIRE; with ↓ unused, the
         // lower half of the stick turns without thrusting.
-        touch: { a: 'FIRE', b: 'HYPER', hide: ['down'] }
+        touch: { a: 'FIRE', b: 'HYPER', hide: ['down'] },
+        ending: {
+            title: 'SUPERNOVA',
+            text: 'The giant burns out, and its light draws new constellations',
+            colors: [C.gold, C.blue, C.purple, C.fg],
+            draw: drawEnding
+        }
     });
 })();

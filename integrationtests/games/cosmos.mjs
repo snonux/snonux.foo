@@ -52,7 +52,7 @@ function game(touch, level, seed = 42) {
             return lives;
         },
         win: (n) => {
-            screen = level === 10 ? 'victory' : 'clear';
+            screen = level === 3 ? 'victory' : 'clear';
             score += n;
         },
         addScore: (n) => (score += n),
@@ -120,7 +120,8 @@ function steer(s, tick) {
         const x = dx(p.x + p.vx * 0.7 - w.x),
             y = dy(p.y + p.vy * 0.7 - w.y),
             d = Math.hypot(x, y);
-        if (d < w.r + Math.sqrt(w.gm / 270) * 1.5 + 30) {
+        // The pulsar's beam is kept at arm's length like a core.
+        if (d < Math.max(w.r + Math.sqrt(w.gm / 270) * 1.5 + 30, w.beam ? w.beam + 45 : 0)) {
             a = Math.atan2(y, x);
             urgent = true;
         }
@@ -162,7 +163,7 @@ function steer(s, tick) {
     };
 }
 // Drawing changes must not alter seeded layouts or the ordinary pad controls.
-for (const level of [1, 5, 10]) {
+for (const level of [1, 2, 3]) {
     const d = game(false, level),
         p = game(true, level);
     assert.equal(JSON.stringify(d.s.rocks), JSON.stringify(p.s.rocks));
@@ -221,7 +222,7 @@ console.log('ok   cosmos immediate turn/thrust/FIRE/HYPER and idle losses');
 // The controller only reads state; all actions use buttons available on the pad.
 function playLevel(level, controller) {
     const previous = Math.random;
-    const runSeed = level === 10 ? 5 : 1;
+    const runSeed = level === 3 ? 5 : 1;
     let seed = runSeed, ticks = 0;
     try {
         Math.random = () => {
@@ -250,13 +251,13 @@ if (process.argv.includes('--browser')) {
                 'SnoGame.debug.state() && SnoGame.debug.state().registered',
                 'cosmos registration'
             );
-            for (const level of [1, 5, 10]) {
+            for (const level of [1, 2, 3]) {
                 const result = await page.eval(
                     `(${playLevel.toString()})(${level}, ${steer.toString()})`
                 );
                 assert.equal(
                     result.state.screen,
-                    level === 10 ? 'victory' : 'clear',
+                    level === 3 ? 'victory' : 'clear',
                     `${name} level ${level}: ${JSON.stringify(result)}`
                 );
                 console.log(
