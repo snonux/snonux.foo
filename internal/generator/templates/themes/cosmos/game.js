@@ -980,8 +980,9 @@
     // steady new star, so the scene keeps moving long after the blast.
     function drawNova(t, ctx) {
         var glare = Math.max(0, 1 - t / 2.5);
-        ctx.globalAlpha = 0.35 + 0.5 * glare;
-        drawGlow(ctx, NOVA_X, NOVA_Y, 70 + 160 * glare + 8 * Math.sin(t * 3), glare > 0.2 ? '#fff3c4' : C.gold);
+        // Kept soft: the score is printed across the blast.
+        ctx.globalAlpha = 0.3 + 0.3 * glare;
+        drawGlow(ctx, NOVA_X, NOVA_Y, 70 + 110 * glare + 8 * Math.sin(t * 3), glare > 0.2 ? '#fff3c4' : C.gold);
         ctx.lineWidth = 3;
         for (var i = 0; i < 4; i++) {
             var f = (t * 0.45 + i / 4) % 1;
