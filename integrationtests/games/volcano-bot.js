@@ -1,34 +1,44 @@
-(function () {
-    var G = SnoGame, ticks = 0, held = false, kicked = false, lastOn = -1, lastTime = -1;
-    function input(i, s) {
-        if (s.time < lastTime) { held = false; kicked = false; lastOn = -1; }
-        lastTime = s.time;
-        var p = s.p, feet = p.y + 30;
-        var on = p.on, idx = on ? on.i : s.top;
-        var next = s.ledges[Math.min(idx + 1, s.ledges.length - 1)];
-        var tx = Math.max(next.x + 5, Math.min(next.x + next.w - 25, p.x)), a = !p.ground && held;
-        if (on && on.i !== lastOn) { lastOn = on.i; kicked = false; }
-        if (on && on.vent && on.y - next.y > 145) tx = on.vent.x - 10;
-        if (p.ground) {
-            kicked = false;
-            var dy = on.y - next.y;
-            if (dy > 145 && !on.vent) tx = on.hint < 0 ? 180 : 760;
-            var ready = Math.abs(tx - p.x) < (dy > 145 ? 7 : 135);
-            var f = s.falls.find(function (f) {return f.x > Math.min(p.x + 10, tx + 10) && f.x < Math.max(p.x + 10, tx + 10) && next.y < f.y1 && on.y > f.y0;});
-            if (f && (s.time + f.ph) % f.period < f.on + 0.15) { ready = false; tx = Math.max(on.x + 8, Math.min(on.x + on.w - 28, p.x)); }
-            if (dy <= 145 && Math.abs(tx - p.x) > 40 && p.vx * Math.sign(tx - p.x) < 200) ready = false;
-            a = ready && !held && !on.vent;
-        } else if (p.wall && !kicked && s.ledges[idx].hint && p.vy > -220) {
-            a = !held;
-            if (a) kicked = true;
-        }
-        if (!p.ground && s.ledges[idx].hint && !kicked) tx = s.ledges[idx].hint < 0 ? 180 : 760;
-        if (s.ledges[idx].vent && feet > next.y - 35) tx = s.ledges[idx].vent.x - 10;
-        var dx = tx - p.x - p.vx * .11;
-        held = a;
-        var dead = s.ledges[idx].hint && !kicked ? 1 : 6;
-        return {left: dx < -dead, right: dx > dead, a: a};
+// Drives the campaign bot (bots/volcano.js, passed in as BOT) through the
+// level already started with debug.start, for at most LIMIT ticks, and
+// records which of the level's mechanics the climb really met. volcano.mjs
+// runs it in node and, with --browser, in Chrome on desktop and phones.
+(function (bot, limit) {
+    var G = SnoGame, ticks = 0, mem = {}, was = {}, columns = {};
+    var met = { crumble: 0, move: 0, steam: 0, bombs: 0, quakes: 0, surges: 0 };
+    // Counts each mechanic once per occurrence (on its rising edge).
+    function edge(name, now) {
+        if (now && !was[name]) met[name]++;
+        was[name] = now;
     }
-    while (ticks < 36000 && ['play', 'dead', 'intro'].includes(G.debug.state().screen)) { G.debug.step(1, G.debug.state().screen === 'play' ? input : {a: G.debug.state().screen === 'intro' && ticks % 2 === 0}); ticks++; }
-    return {ticks: ticks, state: G.debug.state(), top: G.debug.s().top, ledges: G.debug.s().ledges.length};
-})()
+    // In the air inside a blowing vent's steam column (the game's own test).
+    function inSteam(s, p) {
+        return !p.ground && s.ledges.some(function (l) {
+            var v = l.vent, feet = p.y + 30;
+            return v && (s.time + v.ph) % v.period < v.on && Math.abs(p.x + 10 - v.x) <= 26 && feet <= l.y + 1 && feet >= l.y - 300;
+        });
+    }
+    function record(s) {
+        var p = s.p;
+        edge('crumble', p.on && p.on.kind === 'crumble');
+        edge('move', p.on && p.on.kind === 'move');
+        edge('steam', inSteam(s, p));
+        edge('bombs', s.bombs.length > 0);
+        edge('quakes', s.quakeWarn);
+        edge('surges', s.surgeLeft > 0);
+        s.falls.forEach(function (f, i) { if (p.y + 30 < f.y0) columns[i] = true; });
+    }
+    function input(i, s) {
+        record(s);
+        return bot.play(s, G, mem);
+    }
+    // After a lost life the page shows the dead and intro screens; JUMP
+    // taps through them like a player would.
+    while (ticks < limit && ['play', 'dead', 'intro'].indexOf(G.debug.state().screen) >= 0) {
+        var screen = G.debug.state().screen;
+        G.debug.step(1, screen === 'play' ? input : { a: screen === 'intro' && ticks % 2 === 0 });
+        ticks++;
+    }
+    met.kicks = mem.kicks || 0;
+    met.columns = Object.keys(columns).length;
+    return { ticks: ticks, state: G.debug.state(), top: G.debug.s().top, ledges: G.debug.s().ledges.length, falls: G.debug.s().falls.length, met: met };
+})(BOT, LIMIT)
