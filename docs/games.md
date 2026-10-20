@@ -675,11 +675,17 @@ optimistic major music.
 
 ### spaceage — Orbital Dock (thrust lander)
 `← →` rotate, `↑` or `SPACE` thrust. Gravity, inertia, limited fuel. Land on
-the pad gently and upright (speed and angle limits shown); crash otherwise.
-Terrain is a jagged cave/landscape. Levels: tighter caves, wind, moving pads,
-fuel pickups, gun turrets to avoid, cargo to pick up and deliver (two
-landings), low and high gravity worlds, level 10 docks with a rotating
-starbase. Engine rumble, radio beeps, calm space-age music.
+the pad gently and upright (descent, side slip and tilt limits shown); crash
+otherwise. Terrain is a jagged landscape; each level is a route of pads, and
+every pad on the way refills the tank. Levels: 1 *First Contact* — a beacon
+pad, then the goal; 2 *Cargo Haul* — fetch a crate in the west and deliver it
+east (the loaded capsule is weaker) under a crosswind, past a flak turret
+that hits slow ships, with a fuel canister on the way; 3 *Starbase Halo* — a
+rotating station pulls towards its hub, debris circles it, and the crate
+must be carried from one docking arm to the other while matching the spin.
+The ending ("DOCKED"): the station turns with the capsule docked on its arm,
+beacon rings pulse out, satellites circle a ringed planet, and fireworks.
+Engine rumble, radio beeps, calm space-age music.
 
 ### surveillance — Blind Spot (stealth action)
 Top-down facility. `arrows` move, `X` sprint (noisy), `SPACE` EMP pulse

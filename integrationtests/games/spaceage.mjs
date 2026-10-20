@@ -63,7 +63,7 @@ for (touch of [false, true]) {
     for (const w of result.wins) assert.equal(w.screen, 'clear', JSON.stringify(w));
     for (const idle of result.idle) assert.notEqual(idle.screen, 'play', JSON.stringify(idle));
 }
-for (let level = 1; level <= 10; level++) {
+for (let level = 1; level <= 3; level++) {
     touch = false;
     let a = def.init(level);
     touch = true;
@@ -138,7 +138,7 @@ const ctx = new Proxy(
 );
 const count = (phone) => {
     touch = phone;
-    s = def.init(6);
+    s = def.init(2);
     s.shells = [{ x: 100, y: 200 }];
     labels = [];
     calls = [];
@@ -148,7 +148,7 @@ const count = (phone) => {
 let desktopCalls = count(false),
     phoneCalls = count(true);
 assert.ok(phoneCalls < desktopCalls);
-console.log(`spaceage phone draw calls ${phoneCalls}, desktop ${desktopCalls} (level 6 with shell)`);
+console.log(`spaceage phone draw calls ${phoneCalls}, desktop ${desktopCalls} (level 2 with shell)`);
 for (let text of ['DESC', 'SIDE', 'TILT']) assert.ok(labels.some((l) => l.text === text && l.size >= 26 && l.y > 30));
 assert.ok(
     !calls.some((c) => c.name === 'fillRect' && c.args[1] > 30 && c.args[3] > 15 && c.args[2] > 100),
@@ -176,10 +176,10 @@ if (!process.argv.includes('--local')) {
             await page.waitFor('SnoGame.debug.state() && SnoGame.debug.state().registered', 'registered');
             const result = await page.eval(bot);
             for (const win of result.wins)
-                assert.equal(win.screen, win.level === 10 ? 'victory' : 'clear', JSON.stringify(win));
+                assert.equal(win.screen, win.level === 3 ? 'victory' : 'clear', JSON.stringify(win));
             for (const idle of result.idle) assert.ok(['over', 'dead'].includes(idle.screen), JSON.stringify(idle));
             assert.deepEqual(result.errors, []);
-            console.log('ok spaceage browser ' + (phone?.name || 'desktop') + ': input wins 1/5/10, idle failures');
+            console.log('ok spaceage browser ' + (phone?.name || 'desktop') + ': input wins 1/2/3, idle failures');
         }
     } finally {
         await close();

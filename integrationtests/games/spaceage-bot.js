@@ -79,7 +79,7 @@
             G.debug.step(1, input);
         }
     }
-    [1, 5, 10].forEach(function (level) {
+    [1, 2, 3].forEach(function (level) {
         G.debug.start(level);
         play(control);
         var s = G.debug.s();
@@ -97,7 +97,7 @@
         });
     });
     var idle = [];
-    [1, 5, 10].forEach(function (level) {
+    [1, 2, 3].forEach(function (level) {
         G.debug.start(level);
         play({});
         idle.push({ level: level, screen: G.debug.state().screen });
