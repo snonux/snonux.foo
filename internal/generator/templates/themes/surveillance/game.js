@@ -10,9 +10,10 @@
  * the trace over; when the trace completes the run is over. Sprinting is
  * fast but loud: noise pulls guards and drones towards it. An EMP pulse
  * switches nearby electronics off for a while, and an empty EMP slowly
- * builds one charge back up. Later levels add blinking
- * tripwires, pressure plates, drones, travelling beams and, on level 10, a
- * grid of roaming searchlights that see over the walls.
+ * builds one charge back up. Three levels: the first teaches cones and
+ * cover, the second adds a guard, blinking tripwires, a pressure plate and
+ * drones, and the last is a grid of roaming searchlights that see over the
+ * walls. Clearing it ends in an extraction, celebrated on the console.
  */
 (function () {
     'use strict';
@@ -33,12 +34,7 @@
     var BEAM_ON = 1.5;          // seconds a tripwire stays live per blink
     var BEAM_WARN = 0.4;        // seconds a dark tripwire flickers before it goes live
     var TIP_TIME = 8;           // seconds a level's hint stays on screen
-    var PHONE_TIPS = [
-        'WALLS BLOCK CONES', 'LET GUARDS PASS', 'CROSS BEAMS WHILE DARK',
-        'PLATES: DETOUR OR EMP', 'RUNNING ATTRACTS DRONES', 'ROUND CAMERAS KEEP TURNING',
-        'VAULT: EMP IN AND OUT', 'MOVING BEAMS: USE ALCOVES', 'SAVE AN EMP FOR THE EXIT',
-        'LIGHTS SEE OVER WALLS'
-    ];
+    var PHONE_TIPS = ['WALLS BLOCK CONES', 'BEAMS: CROSS DARK · PLATES: EMP', 'LIGHTS SEE OVER WALLS'];
     var DIRS = [[1, 0], [-1, 0], [0, 1], [0, -1]];
     var FACING = { '>': 0, 'v': Math.PI / 2, '<': Math.PI, '^': -Math.PI / 2 };
 
@@ -46,39 +42,32 @@
      * Map legend (32 x 17 tiles, the border is always wall):
      *   #  wall            S  start           X  exit            o  data drive
      *   e  EMP cell        _  pressure plate  D  drone home      1-9 guard waypoints
-     *   < > ^ v  sweeping camera facing that way      r  camera turning full circle
-     *            (a camera's tile cannot be walked on)
+     *   < > ^ v  sweeping camera facing that way (its tile cannot be walked on)
      *   | -  blinking tripwire (a run of them is one beam)
-     *   ! ~  beam that travels along its corridor (! moves sideways, ~ up and down)
      * time: seconds until the trace completes; every attempt (life) gets the
      *       whole of it. They are about twice what a clean run takes for a
      *       player who has to watch before moving, so standing still loses
      *       in one to three minutes.
      * guards: one string of waypoint digits per guard, walked in a loop
      *         ('1232' walks 1-2-3 and back). No route may overlook the start.
-     * hop: seconds a drone spends at one D before flying to the next (0 = stays home).
-     *      Every changeover sweeps the drones' rings across the rooms between,
-     *      so the hops are long (10s and more) to leave quiet spells for looting.
+     * sweep, patrol, blink: how fast the cameras swing (radians of phase per
+     *        second), how fast a guard walks (px/s, half as fast again when it
+     *        seeks) and how long one tripwire blink lasts (live for BEAM_ON
+     *        of it). Each level turns all three up a little.
      * lights: searchlights as [axis they travel on, lane in px, speed, optional
      *         nearest point they travel to — keeps the start corner dark].
      * tip: the hint shown while the level starts.
      *
      * How the levels keep a blind dash from working (it must be stealth, not
-     * speed, that wins): on levels 2 and 3 the only way on is a corridor one
-     * tile wide that a guard walks from end to end, so whoever does not step
-     * aside into a side passage meets it; from level 4 on the short way
-     * always crosses a pressure plate. On levels 7, 9 and 10 a plate seals
-     * the only way in or out: that is what the EMP is for (and why an empty
-     * EMP recharges - wasting the charges must not strand anyone).
-     *
-     * Room for error on the two hardest maps: the vault's drone (level 7)
-     * hovers between the upper pillars, so its ring just misses the drive
-     * below it; on level 9 the long corridor has a wall stub near each end
-     * that stops the travelling beam short of the two drive nooks, and there
-     * are three EMP charges for two plate doors and a drone-watched room.
+     * speed, that wins): on level 1 four cameras watch the open floor between
+     * the drives; on level 2 the start room's only doors are a tripwire and a
+     * pressure plate, and drones hover over the drive rooms; on level 3 a
+     * plate seals the exit's corner and searchlights cross every room. That
+     * is what the EMP is for (and why an empty EMP recharges - wasting the
+     * charges must not strand anyone): level 3 has three charges and a cell.
      */
     var LEVELS = [
-        { time: 70, emp: 2, guards: [], tip: 'STAY OUT OF THE CONES - WALLS BLOCK THEM', map: [
+        { time: 70, emp: 2, sweep: 0.84, patrol: 58, blink: 3.28, guards: [], tip: 'STAY OUT OF THE CONES - WALLS BLOCK THEM', map: [
             '################################',
             '#......#.....v.....#...........#',
             '#.S....#...........#.....o.....#',
@@ -89,68 +78,15 @@
             '#......#.......................#',
             '####.###########........########',
             '#..............#...............#',
-            '#..............#...............#',
+            '#>.............#...............#',
             '#......o.......#...............#',
             '#..............#..............<#',
             '#..............................#',
             '#.o............................#',
             '#.........^....#.............X.#',
             '################################'] },
-        { time: 90, emp: 2, guards: ['21', '34'], tip: 'A GUARD GRABS WHOEVER IT MEETS - LET IT PASS FROM A SIDE PASSAGE', map: [
-            '################################',
-            '#.......#.......v..............#',
-            '#.S.....#......................#',
-            '#..........###########.........#',
-            '#.......#.....o................#',
-            '##.#############################',
-            '##.######o#############o########',
-            '##.######.#############.########',
-            '##1..........................2##',
-            '################.############.##',
-            '################o############.##',
-            '#############################.##',
-            '#..............................#',
-            '#..3...##....##.4..##..........#',
-            '#......##....##..o.##........X.#',
-            '#........^.....................#',
-            '################################'] },
-        { time: 100, emp: 2, guards: ['12'], tip: 'A LIVE RED BEAM CATCHES AT ONCE - CROSS WHILE IT IS DARK', map: [
-            '################################',
-            '#.......|.......|.............<#',
-            '#.S.....|.......|..............#',
-            '#.......|.......|............o.#',
-            '#############################.##',
-            '#############################.##',
-            '##1........|.........|.......2##',
-            '##.#####.#########.#############',
-            '##.#####o#########o#############',
-            '##.#############################',
-            '#.........#..........#.........#',
-            '#.........#..........#........<#',
-            '#.........|....o.....|.........#',
-            '#.........|..........|.......X.#',
-            '#>........#..........#.........#',
-            '#.........#..........#.........#',
-            '################################'] },
-        { time: 90, emp: 2, guards: ['12', '34'], tip: 'PRESSURE PLATES CATCH AT ONCE - GO ROUND, OR SWITCH THEM OFF WITH AN EMP', map: [
-            '################################',
-            '#.........#.....v..............#',
-            '#.S.......#....3.....#...4...o.#',
-            '#.........#..........#....o....#',
-            '#....##...#...##.....#.........#',
-            '#....##...#.o.##.....#..##.....#',
-            '#.........#........o.#..##.....#',
-            '#.........#..........#.........#',
-            '#...o....._....o....._........<#',
-            '#.........#..........#.........#',
-            '#.........#..........#..##...o.#',
-            '#....##...#...##.....#..##.....#',
-            '#....##...#...##.....#.........#',
-            '#.........#.......o..#.....o...#',
-            '#....1....#....2.....#.......X.#',
-            '#...........o........#o......o.#',
-            '################################'] },
-        { time: 95, emp: 3, guards: ['12'], tip: 'DRONES FLY TO THE NOISE OF A SPRINT - THEIR RING STOPS AT WALLS', map: [
+        { time: 95, emp: 3, sweep: 1.0, patrol: 66, blink: 3.2, guards: ['12'],
+            tip: 'CROSS RED BEAMS WHILE DARK - EMP THE PLATE - NEVER SPRINT NEAR A DRONE', map: [
             '################################',
             '#......#...............#.......#',
             '#.S....#.......o.......#...o...#',
@@ -168,79 +104,7 @@
             '#.......#.........#..........X.#',
             '#......<#....o....#>...........#',
             '################################'] },
-        { time: 100, emp: 3, guards: ['12', '43'], tip: 'THESE CAMERAS TURN FULL CIRCLE - THE PLATE LINES NEED AN EMP OR A DETOUR', map: [
-            '################################',
-            '#.......3..................4...#',
-            '#.S..#..#..#.o#..#..#..#..#..o.#',
-            '#....#..#--#..#..#--#..#..#....#',
-            '#....#..#.o#..#..#o.#o.#..#....#',
-            '#....#.o#..#..#..#..#..#..#....#',
-            '#.........._........_..........#',
-            '#.......r.._...r...._..r....o..#',
-            '#.........._........_..........#',
-            '#....#..#..#..#..#..#..#..#....#',
-            '#....#..#..#..#o.#..#..#..#....#',
-            '#....#--#..#..#..#..#..#--#....#',
-            '#..o.#o.#..#..#..#..#o.#.o#....#',
-            '#..............................#',
-            '#.1...........r............2...#',
-            '#............................X.#',
-            '################################'] },
-        { time: 120, emp: 2, hop: 11, guards: ['1232', '56'], tip: 'THE VAULT DOORS ARE PLATES - ONE EMP TO GET IN, ONE TO GET OUT', map: [
-            '################################',
-            '#............................1.#',
-            '#.S...................D......o.#',
-            '#..............................#',
-            '#...###########__###########...#',
-            '#...#.....5................#...#',
-            '#...#.o.....##....##....o..#...#',
-            '#...#.......##.D..##.......#...#',
-            '#...#......................#..<#',
-            '#.o.#.......##....##.......#...#',
-            '#...#.e.....##.o..##....o..#...#',
-            '#...#.....6................#...#',
-            '#...###########__###########...#',
-            '#..............................#',
-            '#.3.....D....................2.#',
-            '#............................X.#',
-            '################################'] },
-        { time: 110, emp: 2, beam: 55, guards: ['12'], tip: 'TRAVELLING BEAMS NEVER GO DARK - DUCK INTO AN ALCOVE', map: [
-            '################################',
-            '#S..#..##.o##..##..##..##.o##..#',
-            '#......!.......................#',
-            '#..............................#',
-            '###########################..###',
-            '#..o...........................#',
-            '#...............!............o.#',
-            '#....1...................2.....#',
-            '#..###..####..####..####..######',
-            '#.........#.........#..........#',
-            '#....~..o.#....o....#.....~....#',
-            '#.........#.........#..........#',
-            '#......o.......r.........o.....#',
-            '#.........#.........#..........#',
-            '#.........#....o....#.o......X.#',
-            '#....^....#.........#..........#',
-            '################################'] },
-        { time: 160, emp: 3, hop: 10, beam: 52, guards: ['12', '34'], tip: 'THE EXIT ROOM IS SEALED BY A PLATE - KEEP AN EMP FOR IT', map: [
-            '################################',
-            '#......#...............#.......#',
-            '#.S....#.......o.......#...o...#',
-            '#......#...............#...D...#',
-            '#......|.......r.......|...e...#',
-            '#......#...............#.......#',
-            '####_#####...#####...#####_#####',
-            '#..............................#',
-            '#.o.#...1....!.........2..#..o.#',
-            '#..............................#',
-            '######.#####_#####.#####_#######',
-            '#.........#3.......4#..........#',
-            '#.......o.#....D....#.........<#',
-            '#.........|.........#..........#',
-            '#.........#....o....#........X.#',
-            '#....^....#.........#..........#',
-            '################################'] },
-        { time: 150, emp: 3, guards: ['12', '34'], tip: 'SEARCHLIGHTS SEE OVER WALLS - AN EMP PUTS THEM AND THE EXIT PLATE OUT',
+        { time: 150, emp: 3, sweep: 1.2, patrol: 76, blink: 3.1, guards: ['12', '34'], tip: 'SEARCHLIGHTS SEE OVER WALLS - AN EMP PUTS THEM AND THE EXIT PLATE OUT',
             lights: [['x', 75, 70, 240], ['x', 210, 80], ['x', 330, -65], ['x', 450, 95],
                 ['y', 90, 50, 200], ['y', 315, 60], ['y', 555, -75], ['y', 810, 55]], map: [
             '################################',
@@ -285,14 +149,7 @@
     // so nobody can slip by underneath its lens.
     function blocked(s, tx, ty) {
         var ch = tileAt(s, tx, ty);
-        return solid(s, tx, ty) || ch === 'r' || FACING[ch] !== undefined;
-    }
-
-    // Number of open tiles beyond (tx, ty) in one direction.
-    function reach(s, tx, ty, dx, dy) {
-        var n = 0;
-        while (!solid(s, tx + dx * (n + 1), ty + dy * (n + 1))) n++;
-        return n;
+        return solid(s, tx, ty) || FACING[ch] !== undefined;
     }
 
     function angDiff(a, b) { return Math.atan2(Math.sin(a - b), Math.cos(a - b)); }
@@ -355,39 +212,21 @@
     // Building a level from its map
     // ------------------------------------------------------------------
 
-    function camAngle(s, c) {
-        var speed = 0.8 + s.level * 0.04;
-        return c.full ? c.t * speed * 0.75 : c.base + 0.95 * Math.sin(c.t * speed);
-    }
+    function camAngle(s, c) { return c.base + 0.95 * Math.sin(c.t * s.def.sweep); }
 
     function newCam(s, at, ch, rnd) {
         // A random phase per camera keeps neighbouring sweeps out of step.
-        var c = { x: at.x, y: at.y, base: FACING[ch] || 0, full: ch === 'r', t: rnd() * 6, ang: 0, off: 0, sees: false };
+        var c = { x: at.x, y: at.y, base: FACING[ch], t: rnd() * 6, ang: 0, off: 0, sees: false };
         c.ang = camAngle(s, c);
         return c;
     }
 
     function newDrone(at, index) {
-        return { x: at.x, y: at.y, hx: at.x, hy: at.y, i: index, tx: at.x, ty: at.y, mode: 'idle', timer: 0, spin: index * 2, off: 0, sees: false };
+        return { x: at.x, y: at.y, hx: at.x, hy: at.y, tx: at.x, ty: at.y, mode: 'idle', timer: 0, spin: index * 2, off: 0, sees: false };
     }
 
     function beam(x1, y1, x2, y2) {
-        return { x1: x1, y1: y1, x2: x2, y2: y2, move: null, off: 0, phase: 0 };
-    }
-
-    // A travelling beam spans its corridor from wall to wall and runs along
-    // it until the corridor ends; its length is fixed where the map puts it,
-    // so side alcoves stay safe.
-    function sweeper(s, sideways, tx, ty) {
-        var v = s.def.beam || 60, l;
-        if (sideways) {
-            l = beam(cx(tx), (ty - reach(s, tx, ty, 0, -1)) * T, cx(tx), (ty + reach(s, tx, ty, 0, 1) + 1) * T);
-            l.move = { key: 'x', min: cx(tx - reach(s, tx, ty, -1, 0)), max: cx(tx + reach(s, tx, ty, 1, 0)), v: v };
-        } else {
-            l = beam((tx - reach(s, tx, ty, -1, 0)) * T, cy(ty), (tx + reach(s, tx, ty, 1, 0) + 1) * T, cy(ty));
-            l.move = { key: 'y', min: cy(ty - reach(s, tx, ty, 0, -1)), max: cy(ty + reach(s, tx, ty, 0, 1)), v: v };
-        }
-        return l;
+        return { x1: x1, y1: y1, x2: x2, y2: y2, off: 0, phase: 0 };
     }
 
     function placeLaser(s, ch, tx, ty) {
@@ -398,8 +237,6 @@
         } else if (ch === '-' && tileAt(s, tx - 1, ty) !== '-') {
             while (tileAt(s, tx + n, ty) === '-') n++;
             l = beam(tx * T, cy(ty), (tx + n) * T, cy(ty));
-        } else if (ch === '!' || ch === '~') {
-            l = sweeper(s, ch === '!', tx, ty);
         }
         if (!l) return;
         l.phase = s.lasers.length * 0.9;      // tripwires blink out of step
@@ -414,7 +251,7 @@
         else if (ch === 'e') s.cells.push({ x: at.x, y: at.y, got: false });
         else if (ch === '_') s.plates.push({ tx: tx, ty: ty, x: at.x, y: at.y, off: 0 });
         else if (ch === 'D') s.drones.push(newDrone(at, s.drones.length));
-        else if (ch === 'r' || FACING[ch] !== undefined) s.cams.push(newCam(s, at, ch, rnd));
+        else if (FACING[ch] !== undefined) s.cams.push(newCam(s, at, ch, rnd));
         else if (ch >= '1' && ch <= '9') s.marks[ch] = { tx: tx, ty: ty };
         else placeLaser(s, ch, tx, ty);
     }
@@ -637,7 +474,7 @@
 
     function walkGuard(s, g, dt) {
         var n = g.path[0], d = G.dist(g.x, g.y, n.x, n.y);
-        var step = (56 + s.level * 2) * (g.mode === 'seek' ? 1.45 : 1) * dt;
+        var step = s.def.patrol * (g.mode === 'seek' ? 1.45 : 1) * dt;
         if (d <= step) { g.x = n.x; g.y = n.y; g.path.shift(); return; }
         g.x += (n.x - g.x) / d * step; g.y += (n.y - g.y) / d * step;
         if (!g.sees) g.ang = turn(g.ang, Math.atan2(n.y - g.y, n.x - g.x), 5 * dt);
@@ -684,17 +521,13 @@
     }
 
     // Drones fly over walls but cannot see through them. At rest they
-    // circle their home; on patrol levels the home hops along the list of
-    // drone points.
+    // circle their home.
     function updateDrone(s, d, dt) {
         var p = s.player, x = d.tx, y = d.ty;
         d.sees = false;
         if (d.off > 0) return;
         d.spin += dt;
-        if (d.mode === 'idle') {
-            var hop = s.def.hop ? Math.floor(s.clock / s.def.hop) : 0, home = s.drones[(d.i + hop) % s.drones.length];
-            x = home.hx + Math.cos(d.spin * 0.8) * 26; y = home.hy + Math.sin(d.spin * 0.8) * 26;
-        }
+        if (d.mode === 'idle') { x = d.hx + Math.cos(d.spin * 0.8) * 26; y = d.hy + Math.sin(d.spin * 0.8) * 26; }
         var there = glide(d, x, y, 95 * dt);
         if (d.mode === 'seek' && there) { d.mode = 'scan'; d.timer = 3; }
         else if (d.mode === 'scan' && (d.timer -= dt) <= 0) d.mode = 'idle';
@@ -702,21 +535,20 @@
         if (d.sees) s.rate += DRONE_RATE;
     }
 
-    // Tripwires blink; the dark gap shrinks a little on later levels (1.74s
-    // on level 3, 1.6s on level 10).
-    function blinkCycle(s) { return BEAM_ON + 1.8 - s.level * 0.02; }
+    // Tripwires blink; the dark gap shrinks a little on later levels (1.78s
+    // on level 1, 1.6s on level 3).
+    function blinkCycle(s) { return s.def.blink; }
 
-    // Travelling beams never go dark.
     function laserLive(s, l) {
         if (l.off > 0) return false;
-        return !!l.move || (s.clock + l.phase) % blinkCycle(s) < BEAM_ON;
+        return (s.clock + l.phase) % blinkCycle(s) < BEAM_ON;
     }
 
     // A beam that is about to go live says so: it catches at once, so the
     // end of a dark gap - or of an EMP - must be visible before it comes.
     function laserWarming(s, l) {
         if (l.off > 0) return l.off < BEAM_WARN;
-        return !l.move && (s.clock + l.phase) % blinkCycle(s) > blinkCycle(s) - BEAM_WARN;
+        return (s.clock + l.phase) % blinkCycle(s) > blinkCycle(s) - BEAM_WARN;
     }
 
     // Beams and plates are hard alarms: touching one is a catch at once.
@@ -727,17 +559,9 @@
         G.burst(x, y, { n: 8, color: RED, speed: 140, life: 0.3, size: 2 });
     }
 
-    function moveBeam(l, dt) {
-        var m = l.move, pos = l[m.key + '1'] + m.v * dt;
-        if (pos > m.max) { pos = m.max; m.v = -Math.abs(m.v); }
-        if (pos < m.min) { pos = m.min; m.v = Math.abs(m.v); }
-        l[m.key + '1'] = l[m.key + '2'] = pos;
-    }
-
-    function updateLasers(s, dt) {
+    function updateLasers(s) {
         var p = s.player;
         s.lasers.forEach(function (l) {
-            if (l.move && l.off <= 0) moveBeam(l, dt);
             if (s.safe <= 0 && beamHits(s, l, p.cx, p.cy)) trip(s, p.cx, p.cy);
         });
     }
@@ -840,7 +664,7 @@
         updateCams(s, dt);
         s.guards.forEach(function (g) { updateGuard(s, g, dt); });
         s.drones.forEach(function (d) { updateDrone(s, d, dt); });
-        updateLasers(s, dt);
+        updateLasers(s);
         updateLights(s, dt);
         updatePlates(s);
         updateMeter(s, dt);
@@ -1148,6 +972,108 @@
         return 'DRIVES ' + s.got + '/' + s.drives.length + '  EMP ' + emp + '  TRACE ' + Math.max(0, Math.ceil(s.time));
     }
 
+    // ------------------------------------------------------------------
+    // The ending: extraction
+    // ------------------------------------------------------------------
+
+    // The console watches the getaway it failed to stop. A helicopter crosses
+    // the top of the screen with the agent on its winch line, the facility's
+    // camera feeds on the left drop out one by one, the uplink on the right
+    // fills with the stolen drives, and the tube itself celebrates: rolling
+    // scanlines, a flicker and a dark rim. Everything follows from e.t (the
+    // static is a hash, not random state), so the scene keeps nothing.
+    var FEEDS = ['CAM 01', 'CAM 04', 'HALL B', 'VAULT'];
+    var UPLINK = ['> TRACE ABORTED', '> AGENT ON THE LINE', '> DRIVES UPLOADED', '> EXTRACTION OK'];
+
+    function hash(n) { var h = Math.sin(n * 12.9898) * 43758.5453; return h - Math.floor(h); }
+
+    function drawHeli(ctx, t) {
+        var x = (t * 130) % (G.W + 260) - 130, y = 52 + Math.sin(t * 2.2) * 3, rotor = 34 + 30 * Math.abs(Math.sin(t * 38));
+        ctx.strokeStyle = PHOS; ctx.fillStyle = PANEL; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.ellipse(x, y, 30, 12, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(x - 28, y - 2); ctx.lineTo(x - 72, y - 6);                 // tail boom
+        ctx.moveTo(x - 72, y - 14); ctx.lineTo(x - 72, y + 2);                // tail rotor
+        ctx.moveTo(x - rotor, y - 18); ctx.lineTo(x + rotor, y - 18);         // main rotor
+        ctx.moveTo(x, y - 18); ctx.lineTo(x, y - 12);
+        ctx.moveTo(x - 20, y + 16); ctx.lineTo(x + 22, y + 16);               // skids
+        ctx.stroke();
+        ctx.fillStyle = GREEN;
+        ctx.fillRect(x + 8, y - 6, 14, 8);                                     // cockpit glass
+        // The agent on the winch line, swinging a little.
+        var sway = Math.sin(t * 1.6) * 5, ay = y + 34;
+        ctx.strokeStyle = GREY; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(x, y + 12); ctx.lineTo(x + sway, ay - 7); ctx.stroke();
+        ctx.fillStyle = PHOS; ctx.shadowColor = GREEN; ctx.shadowBlur = 10;
+        ctx.beginPath(); ctx.arc(x + sway, ay, 7, 0, Math.PI * 2); ctx.fill();
+        ctx.shadowBlur = 0;
+        // Its beacon blinks red, the only alarm left in the building.
+        if (Math.floor(t * 3) % 2) { ctx.fillStyle = RED; ctx.fillRect(x - 3, y + 10, 6, 4); }
+    }
+
+    // A camera feed: static, then the signal is lost for good.
+    function drawFeed(ctx, t, i, x, y, w, h) {
+        var lost = t > 0.8 + i * 0.5, frame = Math.floor(t * 18);
+        ctx.fillStyle = BG; ctx.fillRect(x, y, w, h);
+        if (!lost) {
+            for (var k = 0; k < 28; k++) {
+                ctx.fillStyle = 'rgba(188,255,212,' + (0.15 + hash(k + frame * 31 + i * 7) * 0.5) + ')';
+                ctx.fillRect(x + hash(k * 3 + frame + i) * (w - 6), y + hash(k * 5 + frame * 2 + i) * (h - 3), 6, 2);
+            }
+        } else {
+            G.text(Math.floor(t * 2 + i) % 2 ? 'NO SIGNAL' : '', x + w / 2, y + h / 2 + 5, { size: 12, color: RED, align: 'center', bold: true });
+        }
+        ctx.strokeStyle = lost ? RED : GREEN; ctx.lineWidth = 1;
+        ctx.strokeRect(x + 0.5, y + 0.5, w, h);
+        G.text(FEEDS[i], x + 4, y + h - 4, { size: 10, color: GREY });
+    }
+
+    function drawFeeds(ctx, t) {
+        for (var i = 0; i < 4; i++) drawFeed(ctx, t, i, 24 + (i % 2) * 102, 222 + Math.floor(i / 2) * 78, 88, 64);
+    }
+
+    // The uplink: drives stream into a bar, then the log reports in.
+    function drawUplink(ctx, t) {
+        var x = 744, y = 222, w = 192, done = Math.min(1, t / 3);
+        G.text('UPLINK ' + Math.floor(done * 100) + '%', x, y + 12, { size: 14, color: done < 1 ? PHOS : GREEN, bold: true });
+        ctx.strokeStyle = GREEN; ctx.lineWidth = 1;
+        ctx.strokeRect(x + 0.5, y + 22.5, w, 14);
+        ctx.fillStyle = done < 1 || Math.floor(t * 4) % 2 ? GREEN : PHOS;
+        ctx.fillRect(x + 3, y + 25, (w - 5) * done, 9);
+        for (var k = 0; k < 6 && done < 1; k++) {                            // drives in flight
+            var f = (t * 0.9 + k / 6) % 1;
+            ctx.fillStyle = GREEN;
+            ctx.fillRect(x - 40 + f * (w * done + 40), y + 48 + Math.sin(f * Math.PI) * -14, 8, 9);
+        }
+        UPLINK.forEach(function (line, i) {
+            if (t > 1 + i * 0.7) G.text(line, x, y + 76 + i * 20, { size: 13, color: i === UPLINK.length - 1 ? GREEN : PHOS });
+        });
+    }
+
+    // The tube: scanlines, a rolling bright band, a faint flicker, a dark
+    // rim, and a recording light in the corner.
+    function drawTube(ctx, t) {
+        var y;
+        ctx.fillStyle = 'rgba(0,0,0,0.22)';
+        for (y = 0; y < G.H; y += 3) ctx.fillRect(0, y, G.W, 1);
+        ctx.fillStyle = 'rgba(99,243,168,0.07)';
+        ctx.fillRect(0, (t * 90) % (G.H + 60) - 60, G.W, 60);
+        ctx.fillStyle = 'rgba(188,255,212,' + (0.02 + 0.02 * hash(Math.floor(t * 24))) + ')';
+        ctx.fillRect(0, 0, G.W, G.H);
+        ctx.strokeStyle = 'rgba(0,0,0,0.5)'; ctx.lineWidth = 18;
+        ctx.strokeRect(0, 0, G.W, G.H);
+        if (Math.floor(t * 2) % 2) { ctx.fillStyle = RED; ctx.beginPath(); ctx.arc(30, 522, 5, 0, Math.PI * 2); ctx.fill(); }
+        G.text('REC  CH 03', 42, 527, { size: 13, color: GREY });
+        G.text('T+' + ('0' + Math.floor(t / 60)).slice(-2) + ':' + ('0' + Math.floor(t % 60)).slice(-2), G.W - 24, 527, { size: 13, color: GREY, align: 'right' });
+    }
+
+    var ENDING = {
+        title: 'EXTRACTED',
+        text: 'every drive out · the trace never caught up',
+        colors: [GREEN, PHOS, '#ffffff', '#7dffc4'],
+        draw: function (e, ctx) { drawHeli(ctx, e.t); drawFeeds(ctx, e.t); drawUplink(ctx, e.t); drawTube(ctx, e.t); }
+    };
+
     G.register('surveillance', {
         title: 'BLIND SPOT',
         blurb: 'Steal every data drive and reach the exit without being seen.',
@@ -1157,7 +1083,7 @@
             'Walls block cones / drones · live beams / plates catch instantly',
             'Caught: restart, lose a life · trace runs out: game over'
         ],
-        levelNames: ['Orientation', 'Night Shift', 'Tripwire', 'Pressure', 'Hive', 'Server Farm', 'The Vault', 'Sweep', 'Panopticon', 'Searchlight Grid'],
+        levelNames: ['Orientation', 'Hive', 'Searchlight Grid'],
         colors: { bg: BG, fg: PHOS, accent: GREEN, dim: GREY },
         // Four lives: a catch sends the player back to the entrance, so each
         // life is one more whole attempt at the level.
@@ -1172,7 +1098,7 @@
             drums: { k: 'x.....x.........', h: '....x.......x.x.' },
             leadWave: 'triangle', bassWave: 'sine', arpWave: 'square', leadOct: 2
         },
-        init: init, update: update, draw: draw, hud: hud,
+        init: init, update: update, draw: draw, hud: hud, ending: ENDING,
         // Movement is free in eight directions, so the pad keeps its diagonals.
         touch: { a: 'EMP', b: 'RUN' }
     });

@@ -4,7 +4,10 @@
  * A data packet runs by itself along a phone-line corridor; SPACE flips
  * gravity between the floor wire and the ceiling wire. Spikes, breaks in the
  * wire, sliding blocks, swinging blocks and bursts of line noise kill. Reach
- * the far end of the line; a relay halfway is the checkpoint.
+ * the far end of the line; a relay halfway is the checkpoint. Three levels:
+ * plain wire hazards, then line noise, swinging blocks and zigzags, then
+ * the finale with jammed zones, double speed and dropouts as well. Clearing
+ * it restores the carrier: the ending scene shows the signal coming back.
  *
  * It is a one-button game. On a phone (coarse pointer) the pad shows only
  * FLIP, and a tap anywhere on the picture flips as well; a mouse click does
@@ -44,23 +47,15 @@
     // hazards on the lane the packet is NOT on (they punish flipping by
     // rhythm). kinds: pattern weights.
     // The numbers are tuned with a bot that presses mid-window with Gaussian
-    // timing error (0.15s, a casual player): it clears level 7 about nine
-    // times in ten and level 10 about seven in ten. `react` therefore falls
-    // gently; speed, the mix of kinds and the stretches carry the rest of
-    // the rise. Level 8 is not much
-    // wider than level 9 because its double-speed stretches hold only plain
-    // hazards and would otherwise be a rest.
+    // timing error (0.15s, a casual player): it clears levels 1 and 2 every
+    // time and the finale about nine times in ten. Level 1 teaches the flip
+    // on plain hazards and sliders; level 2 adds line noise, swinging blocks
+    // and zigzags; the finale has every kind plus jammed zones, double-speed
+    // and dropout stretches, so speed and the mix carry the rise, not `react`.
     var LEVELS = [
-        { v: 270, secs: 46, react: 1.10, tight: 0.6, keep: 0, kinds: { spike: 1 } },
-        { v: 290, secs: 50, react: 0.95, tight: 0.6, keep: 0.12, kinds: { spike: 3, gap: 3 } },
-        { v: 310, secs: 54, react: 0.85, tight: 0.6, keep: 0.15, kinds: { spike: 2, gap: 2, slider: 3 } },
-        { v: 325, secs: 57, react: 0.75, tight: 0.6, keep: 0.18, kinds: { spike: 2, gap: 2, slider: 1, burst: 3 } },
-        { v: 340, secs: 60, react: 0.70, tight: 0.90, keep: 0.20, kinds: { spike: 2, gap: 2, slider: 1, burst: 1, zig: 3 } },
-        { v: 350, secs: 62, react: 0.66, tight: 0.75, keep: 0.22, kinds: { spike: 2, gap: 2, slider: 1, burst: 1, zig: 1, mover: 4 } },
-        { v: 360, secs: 64, react: 0.60, tight: 0.80, keep: 0.22, kinds: { spike: 2, gap: 2, slider: 1, burst: 1, zig: 1, mover: 1, jam: 4 } },
-        { v: 370, secs: 68, react: 0.54, tight: 0.70, keep: 0.26, kinds: { spike: 2, gap: 2, slider: 1, burst: 1, zig: 1, mover: 1, jam: 1, turbo: 1.5 } },
-        { v: 380, secs: 70, react: 0.48, tight: 0.65, keep: 0.28, kinds: { spike: 2, gap: 2, slider: 1, burst: 1, zig: 1, mover: 1, jam: 1, fog: 2 } },
-        { v: 395, secs: 78, react: 0.36, tight: 0.60, keep: 0.30, kinds: { spike: 2, gap: 2, slider: 2, burst: 2, zig: 2, mover: 2, jam: 2, turbo: 1.5, fog: 1.5 } }
+        { v: 280, secs: 52, react: 1.00, tight: 0.6, keep: 0.10, kinds: { spike: 3, gap: 2, slider: 2 } },
+        { v: 320, secs: 62, react: 0.80, tight: 0.75, keep: 0.18, kinds: { spike: 2, gap: 2, slider: 1, burst: 3, zig: 2, mover: 3 } },
+        { v: 355, secs: 72, react: 0.64, tight: 0.75, keep: 0.24, kinds: { spike: 2, gap: 2, slider: 1, burst: 1, zig: 1, mover: 1, jam: 2.5, turbo: 1.5, fog: 1.5 } }
     ];
     // Every kind a level enables appears at least once before the relay and
     // once after it, whatever the seed rolls. The slots of a half are spread
@@ -780,6 +775,48 @@
         drawMessages(s, ctx);
     }
 
+    // The ending: the carrier comes back. A noisy trace settles into a clean
+    // sine with the packet riding it, and the poles along the line light up
+    // one by one. Everything follows from e.t: the noise is a hash, not
+    // random state, so the scene keeps nothing of its own.
+    var POLE_GAP = 120;
+
+    function hash(n) { var h = Math.sin(n * 12.9898) * 43758.5453; return h - Math.floor(h); }
+
+    function drawCarrier(ctx, t) {
+        var clean = Math.min(1, t / 2.5), frame = Math.floor(t * 20), y0 = 346;   // between score and buttons
+        ctx.strokeStyle = HOT; ctx.lineWidth = 3;
+        ctx.beginPath();
+        for (var x = 0; x <= G.W; x += 8) {
+            var y = y0 + Math.sin(x * 0.035 - t * 7) * 18 * clean + (hash(x + frame * 131) - 0.5) * 56 * (1 - clean);
+            if (x) ctx.lineTo(x, y); else ctx.moveTo(x, y);
+        }
+        ctx.stroke();
+        var px = (t * 260) % (G.W + 40) - 20;
+        ctx.fillStyle = HOT;
+        ctx.fillRect(px - PS / 2, y0 + Math.sin(px * 0.035 - t * 7) * 18 * clean - PS / 2, PS, PS);
+    }
+
+    function drawPoles(ctx, t) {
+        for (var i = 0; i * POLE_GAP < G.W; i++) {
+            var x = 60 + i * POLE_GAP, lit = t > 0.6 + i * 0.18;
+            ctx.fillStyle = DIM;
+            ctx.fillRect(x - 2, 518, 4, G.H - 518);
+            ctx.fillRect(x - 18, 524, 36, 3);
+            ctx.fillStyle = lit ? HOT : DARK;
+            ctx.fillRect(x - 5, 510, 10, 8);
+        }
+        ctx.fillStyle = AMBER;
+        ctx.fillRect(0, 522, G.W * Math.min(1, t / 2.4), 2);
+    }
+
+    var ENDING = {
+        title: 'CARRIER RESTORED',
+        text: 'CONNECT 2400 · the line is yours',
+        colors: [HOT, AMBER, '#fff3c4', MIDC],
+        draw: function (e, ctx) { drawCarrier(ctx, e.t); drawPoles(ctx, e.t); }
+    };
+
     function hud(s) {
         var z = zoneAt(s, 'jam') ? '  JAMMED' : (zoneAt(s, 'turbo') ? '  2X' : '');
         return (s.cp ? 'RELAY OK' : 'NO RELAY') + z;
@@ -793,7 +830,7 @@
             'UP / DOWN keys: straight to the ceiling / floor wire',
             'The relay halfway is your checkpoint and restores one life'
         ],
-        levelNames: ['Dial Tone', 'Handshake', 'Party Line', 'Line Noise', 'Crosstalk', 'Switchboard', 'Jammer', 'Overclock', 'Dropout', 'No Carrier'],
+        levelNames: ['Dial Tone', 'Line Noise', 'No Carrier'],
         colors: { bg: BG, fg: AMBER, accent: HOT, dim: DIM },
         lives: 3,
         music: {
@@ -807,7 +844,7 @@
             drums: { k: 'x..x..x...x.x...', s: '....x.......x..x', h: 'x.xxx.xxx.xxx.xx' },
             leadWave: 'square', bassWave: 'triangle', arpWave: 'square', leadOct: 2
         },
-        init: init, update: update, draw: draw, hud: hud,
+        init: init, update: update, draw: draw, hud: hud, ending: ENDING,
         // One button: FLIP alone is a big target, and the canvas is another.
         touch: { a: 'FLIP', hide: ['left', 'right', 'up', 'down', 'b'] }
     });

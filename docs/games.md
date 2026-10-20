@@ -661,16 +661,31 @@ moves slower and its small hitbox is shown, for threading bullets), `X` bomb
 (clears bullets, limited). Enemies arrive in scripted waves
 with bullet patterns (aimed, radial, spiral). Collect plasma orbs: three of a
 colour merge into a weapon upgrade (spread / beam / homing). Each level ends
-with a boss with a health bar and phases. Levels: denser patterns, new enemy
-types, tougher bosses. Small hitbox, generous graze. Fast driving minor music.
+with a boss with a health bar and phases, each boss one phase longer than the
+last. Small hitbox, generous graze (every 40 grazes earn a bomb). Levels:
+1 *First Sparks* — drones, spinners and weavers, then EMBER (aimed fans,
+rings); 2 *Cyclone Front* — lancers, dashing darts, turrets and mines, a
+spread gun to start with, then CYCLONE (crosses, warning-lit lances with
+rain, spirals with fans); 3 *Eye of the Storm* — wardens with lane beams and
+prisms with curving fans join everything, every wreck fires a parting shot,
+the ship starts with spread, beam and homing, and THE EYE fights four phases
+ending in a summoned swarm. The ending: THE EYE blooms into plasma petals and
+rings of sparks under cyan, magenta and yellow fireworks ("STORM BROKEN").
+Fast driving minor music.
 
 ### retro — Carrier Lost (gravity-flip runner)
 Amber monochrome. A data packet runs automatically along a phone line
 corridor; `SPACE` flips gravity between floor and ceiling. Spikes, gaps,
 sliding blocks and noise bursts kill. Reach the end of the line (a distance
-goal, with a progress bar); a checkpoint halfway. Levels: faster scroll,
-tighter patterns, moving blocks, zones where flipping is jammed for a moment,
-double-speed stretches, level 10 mixes all. Deterministic layouts. Modem
+goal, with a progress bar); a relay halfway is the checkpoint and hands back
+a life, and the flip windows narrow after it. Deterministic layouts with a
+guaranteed reaction window per flip. Levels: 1 *Dial Tone* — spikes, breaks
+and sliding blocks at an easy pace; 2 *Line Noise* — faster, with noise
+bursts that flicker a warning first, swinging blocks and zigzags; 3 *No
+Carrier* — the finale mixes every hazard with jammed zones (no flipping),
+double-speed stretches and dropouts that hide the far line. The ending
+("CARRIER RESTORED"): a noisy trace settles into a clean carrier with the
+packet riding it, the poles along the line light up, amber fireworks. Modem
 handshake noises, chiptune pentatonic music.
 
 ### retrofuture — Atomic Defense (missile command)
@@ -678,28 +693,49 @@ Six domed cities and three missile batteries with limited ammunition. Mouse
 aims (keyboard: arrows move the cursor), click or `SPACE` fires from the
 nearest battery with ammo; the counter-missile explodes at the cursor in an
 expanding blast that chains. Enemy ICBMs streak down, some split (MIRV),
-smart bombs dodge blasts, saucers cross and bomb. Survive every wave of the
-level with at least one city. Levels: faster and more missiles, MIRVs,
-smart bombs, saucers, night levels with only trails visible; bonus city for
-points. Googie styling, theremin-like sine slides, optimistic major music.
+smart bombs dodge blasts, saucers cross and bomb. Ammunition refills each
+wave; blasts chain. Survive every wave of the level with at least one city;
+3000 points earn a bonus city. Levels: 1 *First Light* — three waves of plain
+warheads to learn leading a target; 2 *Split Atoms* — salvos, MIRVs that
+split, a few smart bombs and saucers; 3 *Doomsday* — the final assault adds
+heavy warheads (two blasts, flatten the neighbours) and cruise missiles from
+the sides, the second wave is a blackout with only trails visible, and the
+third brings the shielded mothership. The ending ("CITIES SAVED"): six domes
+rise in the foreground under sweeping searchlights, Googie starbursts and
+fireworks in the theme's colours. Googie styling, theremin-like sine slides,
+optimistic major music.
 
 ### spaceage — Orbital Dock (thrust lander)
 `← →` rotate, `↑` or `SPACE` thrust. Gravity, inertia, limited fuel. Land on
-the pad gently and upright (speed and angle limits shown); crash otherwise.
-Terrain is a jagged cave/landscape. Levels: tighter caves, wind, moving pads,
-fuel pickups, gun turrets to avoid, cargo to pick up and deliver (two
-landings), low and high gravity worlds, level 10 docks with a rotating
-starbase. Engine rumble, radio beeps, calm space-age music.
+the pad gently and upright (descent, side slip and tilt limits shown); crash
+otherwise. Terrain is a jagged landscape; each level is a route of pads, and
+every pad on the way refills the tank. Levels: 1 *First Contact* — a beacon
+pad, then the goal; 2 *Cargo Haul* — fetch a crate in the west and deliver it
+east (the loaded capsule is weaker) under a crosswind, past a flak turret
+that hits slow ships, with a fuel canister on the way; 3 *Starbase Halo* — a
+rotating station pulls towards its hub, debris circles it, and the crate
+must be carried from one docking arm to the other while matching the spin.
+The ending ("DOCKED"): the station turns with the capsule docked on its arm,
+beacon rings pulse out, satellites circle a ringed planet, and fireworks.
+Engine rumble, radio beeps, calm space-age music.
 
 ### surveillance — Blind Spot (stealth action)
 Top-down facility. `arrows` move, `X` sprint (noisy), `SPACE` EMP pulse
-(limited charges, disables nearby cameras for a few seconds). Collect every
-data drive and reach the exit. Rotating cameras and patrolling guards have
-vision cones blocked by walls; being seen fills a detection meter — full means
-caught (lose a life). Laser tripwires that blink, pressure plates, drones that
-investigate noise. Levels: ten facility layouts with more devices and tighter
-timing; level 10 has a moving searchlight grid. CRT-green on black with red
-alerts; tense sparse music, alarm when spotted.
+(limited charges, disables nearby devices for five seconds; an empty EMP
+recharges one charge in 20s). Collect every data drive and reach the exit.
+Sweeping cameras and patrolling guards have vision cones blocked by walls;
+being seen fills a detection meter — full means caught (lose a life, start
+the level over). Levels: three. 1 Orientation: cameras only, learn cones and
+cover. 2 Hive: a guard, blinking laser tripwires, a pressure plate that seals
+the start room (cross while dark or EMP it) and drones that fly to the noise
+of a sprint. 3 Searchlight Grid: two guards, tripwire mazes and roaming
+searchlights that see over walls, with a plate sealing the exit. Cameras
+swing, guards walk and tripwires blink a little faster each level. Ending:
+EXTRACTED — a helicopter winches the agent off the roof while the camera
+feeds drop to NO SIGNAL, the uplink fills with the stolen drives, and the
+console celebrates with green phosphor fireworks, rolling scanlines and a
+blinking REC light. CRT-green on black with red alerts; tense sparse music,
+alarm when spotted.
 
 ### synthwave — Outrun the Sun (pseudo-3D racer)
 Classic segment-projected road toward a striped sun. `← →` steer, `↑`

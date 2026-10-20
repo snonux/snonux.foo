@@ -57,13 +57,41 @@ G.debug = {
         }
     },
 };
-const bot = fs.readFileSync('integrationtests/games/spaceage-bot.js', 'utf8');
-for (touch of [false, true]) {
-    const result = vm.runInNewContext(bot, { SnoGame: G });
-    for (const w of result.wins) assert.equal(w.screen, 'clear', JSON.stringify(w));
-    for (const idle of result.idle) assert.notEqual(idle.screen, 'play', JSON.stringify(idle));
-}
-for (let level = 1; level <= 10; level++) {
+// The campaign bot (bots/spaceage.js) flies each level; the run records
+// what it met on the way: pads reached, cargo aboard, canisters, refills.
+const BOT = fs.readFileSync('integrationtests/games/bots/spaceage.js', 'utf8');
+const bot = `(function (bot) {
+    var G = SnoGame, wins = [], idle = [];
+    [1, 2, 3].forEach(function (level) {
+        var mem = {}, cargo = false, cans = 0, refills = 0, fuel = 0;
+        G.debug.start(level);
+        for (var i = 0; i < 20000 && G.debug.state().screen === 'play'; i++) {
+            var s = G.debug.s();
+            fuel = s.ship.fuel;
+            G.debug.step(1, bot.play(s, G, mem));
+            s = G.debug.s();
+            cargo = cargo || s.ship.cargo;
+            cans = Math.max(cans, s.cans.filter(function (c) { return c.taken; }).length);
+            if (s.ship.fuel > fuel + 30) refills++;
+        }
+        wins.push({ level: level, screen: G.debug.state().screen, step: G.debug.s().step, cargo: cargo, cans: cans, refills: refills, time: G.debug.s().t });
+    });
+    [1, 2, 3].forEach(function (level) {
+        G.debug.start(level);
+        for (var i = 0; i < 20000 && G.debug.state().screen === 'play'; i++) G.debug.step(1, {});
+        idle.push({ level: level, screen: G.debug.state().screen });
+    });
+    return { wins: wins, idle: idle, errors: G.debug.errors.slice() };
+})(${BOT})`;
+const checkRun = (result, victory) => {
+    for (const w of result.wins) assert.equal(w.screen, w.level === 3 ? victory : 'clear', JSON.stringify(w));
+    assert.deepEqual(result.wins.map((w) => w.cargo), [false, true, true], 'cargo is hauled on levels 2 and 3');
+    assert.ok(result.wins[0].refills >= 1 && result.wins[1].refills >= 1, 'a beacon and a cargo pad refill the tank');
+    assert.ok(result.wins[1].cans >= 1, 'the canister on the haul is collected');
+    for (const idle of result.idle) assert.ok(['over', 'dead'].includes(idle.screen), JSON.stringify(idle));
+};
+for (touch of [false, true]) checkRun(JSON.parse(JSON.stringify(vm.runInNewContext(bot, { SnoGame: G, Math }))), 'clear');
+for (let level = 1; level <= 3; level++) {
     touch = false;
     let a = def.init(level);
     touch = true;
@@ -138,7 +166,7 @@ const ctx = new Proxy(
 );
 const count = (phone) => {
     touch = phone;
-    s = def.init(6);
+    s = def.init(2);
     s.shells = [{ x: 100, y: 200 }];
     labels = [];
     calls = [];
@@ -148,7 +176,7 @@ const count = (phone) => {
 let desktopCalls = count(false),
     phoneCalls = count(true);
 assert.ok(phoneCalls < desktopCalls);
-console.log(`spaceage phone draw calls ${phoneCalls}, desktop ${desktopCalls} (level 6 with shell)`);
+console.log(`spaceage phone draw calls ${phoneCalls}, desktop ${desktopCalls} (level 2 with shell)`);
 for (let text of ['DESC', 'SIDE', 'TILT']) assert.ok(labels.some((l) => l.text === text && l.size >= 26 && l.y > 30));
 assert.ok(
     !calls.some((c) => c.name === 'fillRect' && c.args[1] > 30 && c.args[3] > 15 && c.args[2] > 100),
@@ -164,7 +192,7 @@ def.draw(s, ctx);
 assert.ok(labels.some((l) => l.text === 'OFF' && l.x === 854), 'unsafe tilt is OFF, not a speed');
 assert.ok(!labels.some((l) => l.text === 'FAST' && l.x === 854));
 console.log(
-    'ok spaceage local: unchanged geometry/thrust, precise short/held/reverse turns, transparent readable instruments, fewer calls, input wins and idle failures',
+    'ok spaceage local: unchanged geometry/thrust, landing limits, precise short/held/reverse turns, transparent readable instruments, fewer calls, input wins with refills, canister and cargo, idle failures',
 );
 if (!process.argv.includes('--local')) {
     const { page, base, close } = await startSession();
@@ -175,11 +203,9 @@ if (!process.argv.includes('--local')) {
             await page.eval("SnoGame.launch('spaceage')");
             await page.waitFor('SnoGame.debug.state() && SnoGame.debug.state().registered', 'registered');
             const result = await page.eval(bot);
-            for (const win of result.wins)
-                assert.equal(win.screen, win.level === 10 ? 'victory' : 'clear', JSON.stringify(win));
-            for (const idle of result.idle) assert.ok(['over', 'dead'].includes(idle.screen), JSON.stringify(idle));
+            checkRun(result, 'victory');
             assert.deepEqual(result.errors, []);
-            console.log('ok spaceage browser ' + (phone?.name || 'desktop') + ': input wins 1/5/10, idle failures');
+            console.log('ok spaceage browser ' + (phone?.name || 'desktop') + ': input wins 1/2/3, idle failures');
         }
     } finally {
         await close();
