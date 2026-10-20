@@ -8,6 +8,10 @@
  * swinging censer and fire geysers smite whatever touches them — demons
  * included, but that only turns them into orbs that hatch again, so hazards
  * never clear a wave for the player.
+ *
+ * Three services: Matins teaches the joust against imps and fiends, The
+ * Censer adds the swinging censer, bats and crumbling ledges, and
+ * the last vigil brings the archdemon among every hazard.
  */
 (function () {
     'use strict';
@@ -77,11 +81,7 @@
     // somewhere to land between dives.
     var LAYOUTS = {
         nave: [[380, 440, 200], [50, 350, 170], [740, 350, 170], [340, 262, 280], [110, 170, 170], [680, 170, 170]],
-        aisles: [[400, 446, 160], [840, 300, 240], [170, 384, 150], [640, 384, 150], [395, 236, 170], [230, 136, 120], [610, 136, 120]],
         hall: [[400, 440, 160], [40, 196, 150], [770, 196, 150], [110, 330, 170], [680, 330, 170], [390, 326, 180]],
-        stairs: [[400, 446, 160], [60, 400, 120], [230, 318, 120], [60, 226, 120], [780, 400, 120], [610, 318, 120], [780, 226, 120], [410, 150, 140]],
-        choir: [[410, 440, 140], [90, 286, 150], [720, 286, 150], [405, 200, 150], [235, 380, 110], [615, 380, 110]],
-        twin: [[400, 446, 160], [850, 330, 220], [400, 300, 160], [410, 170, 140], [205, 392, 110], [645, 392, 110]],
         sanctum: [[410, 446, 140], [70, 330, 150], [740, 330, 150], [60, 180, 130], [770, 180, 130]]
     };
 
@@ -89,17 +89,14 @@
     // indices that fall apart underfoot. bats / geysers: seconds between
     // them. censers: [pivot x, chain length, start angle]. hatch: seconds an
     // orb waits before it re-hatches.
+    // 1: imps, then a fiend; 2: imps and fiends, then a wraith, under a
+    // swinging censer, with bats and two high ledges that crumble; 3: fiends
+    // and wraiths among geysers and every other hazard, and the archdemon as
+    // the last wave.
     var LEVELS = [
-        { layout: 'nave', waves: [[0, 0, 0], [0, 0, 0, 0]], hatch: 9, hint: 'STRIKE FROM ABOVE' },
-        { layout: 'nave', waves: [[0, 0, 1], [0, 1, 1], [0, 0, 1, 1]], hatch: 8.5, hint: 'FIENDS HUNT YOU' },
-        { layout: 'aisles', waves: [[0, 0, 1], [0, 1, 1, 1], [1, 1, 1, 0]], bats: 9, hatch: 8, hint: 'BATS IN THE BELFRY' },
-        { layout: 'stairs', waves: [[0, 0, 1], [0, 1, 1], [1, 1, 0], [0, 1, 2]], crumble: [1, 2, 3, 4, 5, 6, 7], hatch: 8, hint: 'THE STONE CRUMBLES' },
-        { layout: 'hall', waves: [[0, 1, 1], [1, 1, 2], [1, 2, 0], [1, 2, 2, 1]], censers: [[480, 230, 0.9]], hatch: 7.5, hint: 'BEWARE THE CENSER' },
-        { layout: 'choir', waves: [[1, 1, 2], [0, 1, 2], [2, 1, 1], [2, 2, 1]], bats: 13, hatch: 8, hint: 'WRAITHS RISE HIGH' },
-        { layout: 'nave', waves: [[1, 2, 2], [1, 1, 2], [2, 2, 1], [2, 2, 1]], geysers: 6, hatch: 8, hint: 'HOLY FIRE ERUPTS' },
-        { layout: 'twin', waves: [[1, 1, 2], [1, 2, 2], [2, 2, 1, 1], [2, 2, 3, 1], [3, 2, 2, 1]], censers: [[240, 200, 0.75], [720, 200, -0.75]], crumble: [1, 2], bats: 10, hatch: 7.5, hint: 'TWIN THURIBLES' },
-        { layout: 'stairs', waves: [[1, 2, 1], [2, 2, 1], [3, 2, 1], [2, 3, 1, 1]], crumble: [2, 5, 7], geysers: 8, dark: true, hatch: 7.5, hint: 'THE CANDLES GO OUT' },
-        { layout: 'sanctum', waves: [[1, 2, 2], [2, 2, 3], [2, 3, 2, 1], ['B', 1, 1]], censers: [[480, 170, 0.8]], bats: 12, geysers: 9, hatch: 7.5, hint: 'THE LAST VIGIL' }
+        { layout: 'nave', waves: [[0, 0, 0], [0, 0, 1]], hatch: 9, hint: 'STRIKE FROM ABOVE' },
+        { layout: 'hall', waves: [[0, 0, 1], [0, 1, 1], [1, 1, 2]], censers: [[480, 230, 0.9]], crumble: [1, 2], bats: 11, hatch: 8, hint: 'BEWARE THE CENSER' },
+        { layout: 'sanctum', waves: [[1, 1, 2], [2, 1, 1], ['B', 1, 1]], censers: [[480, 170, 0.8]], bats: 12, geysers: 9, hatch: 7.5, hint: 'THE LAST VIGIL' }
     ];
 
     // ------------------------------------------------------------------
@@ -649,8 +646,8 @@
         if (s.wave === s.cfg.waves.length - 1) { G.win(500 + G.lives * 250); return; }
         s.waveDelay -= dt;
         if (s.waveDelay > 0) return;
-        // A cleared wave is blessed with a life back, so the long late
-        // levels stay fair without making the first wave any easier.
+        // A cleared wave is blessed with a life back, so the archdemon is met
+        // with lives in hand without making the first wave any easier.
         if (s.wave >= 0 && G.lives < LIVES) { G.addLife(LIVES); G.popup(s.p.x, s.p.y - 30, 'BLESSED +1', COL.bright); G.sfx('power'); }
         s.wave++;
         s.waveDelay = 1.6;
@@ -973,32 +970,6 @@
         });
     }
 
-    // Tenebrae: only a pool of light around the gargoyle remains; demons
-    // betray themselves by their eyes. The nave wraps, so the light does too:
-    // the screen is split at the point opposite the gargoyle and each side is
-    // lit from whichever image of it (x or x ± W) is nearer.
-    function drawDarkness(s, ctx) {
-        // The halves overlap by a pixel: where they only met, a canvas scaled by
-        // a fractional factor showed a faint bright line down the nave. The
-        // overlap lies in the darkest part, where it cannot be seen.
-        var p = s.p, left = p.x < G.W / 2, seam = Math.round(wrapX(p.x + G.W / 2));
-        var parts = [[0, seam + 1, left ? p.x : p.x - G.W], [seam, G.W, left ? p.x + G.W : p.x]];
-        parts.forEach(function (part) {
-            var g = ctx.createRadialGradient(part[2], p.y, 50, part[2], p.y, 230);
-            g.addColorStop(0, 'rgba(6,5,10,0)'); g.addColorStop(1, 'rgba(6,5,10,0.95)');
-            ctx.fillStyle = g;
-            ctx.fillRect(part[0], G.HUD, part[1] - part[0], FIRE_Y - 24 - G.HUD);
-        });
-        ctx.fillStyle = '#ff5a6e';
-        s.demons.forEach(function (d) {
-            if (d.spawn > 0) return;
-            wrapped(d.x, function (x) {
-                ctx.fillRect(x + d.face * 2 - 1, d.y - 11, 3, 3);
-                ctx.fillRect(x + d.face * 8 - 1, d.y - 11, 3, 3);
-            });
-        });
-    }
-
     function draw(s, ctx) {
         drawBackdrop(s, ctx);
         s.ledges.forEach(function (l) { drawLedge(s, ctx, l); });
@@ -1006,7 +977,6 @@
         s.demons.forEach(function (d) { drawDemon(s, ctx, d); });
         drawBats(s, ctx);
         drawPlayer(s, ctx);
-        if (s.cfg.dark) drawDarkness(s, ctx);
         s.orbs.forEach(function (o) { drawOrb(s, ctx, o); });
         s.geysers.forEach(function (g) { drawGeyser(s, ctx, g); });
         drawFire(s, ctx);
@@ -1023,6 +993,64 @@
         return 'WAVE ' + Math.max(1, s.wave + 1) + '/' + s.cfg.waves.length + '  FOES ' + (s.demons.length + s.orbs.length);
     }
 
+    // ------------------------------------------------------------------
+    // The ending: bells swing and stained glass bursts into light
+    // ------------------------------------------------------------------
+
+    // Cheap repeatable noise: the scene is a pure function of e.t.
+    function noise(n) { var v = Math.sin(n * 127.1) * 43758.5453; return v - Math.floor(v); }
+
+    var END_BELLS = [150, 810], END_BURST = 0.6;
+
+    // A bronze bell swinging from its yoke, with rings of sound spreading
+    // from its mouth on every stroke.
+    function drawEndBell(ctx, x, t, phase) {
+        var swing = Math.sin(t * 2.6 + phase) * 0.45, y = 210;
+        for (var k = 0; k < 3; k++) {
+            var age = (t * 1.3 + phase + k / 3) % 1;
+            ctx.globalAlpha = 0.5 * (1 - age);
+            ctx.strokeStyle = COL.gold; ctx.lineWidth = 3;
+            ctx.beginPath(); ctx.arc(x, y + 70, 30 + age * 110, 0, Math.PI * 2); ctx.stroke();
+        }
+        ctx.globalAlpha = 1;
+        ctx.save();
+        ctx.translate(x, y); ctx.rotate(swing);
+        ctx.fillStyle = '#3b3547'; ctx.fillRect(-40, -12, 80, 10);
+        ctx.fillStyle = COL.gold;
+        ctx.beginPath();
+        ctx.moveTo(-20, 0); ctx.quadraticCurveTo(-24, 40, -46, 78); ctx.lineTo(46, 78); ctx.quadraticCurveTo(24, 40, 20, 0);
+        ctx.closePath(); ctx.fill();
+        ctx.fillStyle = COL.bright; ctx.fillRect(-46, 72, 92, 6);
+        ctx.fillStyle = '#5c1a2c';
+        ctx.beginPath(); ctx.arc(Math.sin(t * 2.6 + phase - 0.6) * 18, 80, 9, 0, Math.PI * 2); ctx.fill();
+        ctx.restore();
+    }
+
+    // Shards of glass fly out from a point in a ring and fade, one burst
+    // after another across the nave.
+    function drawGlassBursts(ctx, t) {
+        var newest = Math.floor(t / END_BURST);
+        for (var k = Math.max(0, newest - 3); k <= newest; k++) {
+            var age = t - k * END_BURST, x = 260 + noise(k) * 440, y = 120 + noise(k + 0.5) * 260;
+            ctx.globalAlpha = Math.max(0, 0.85 * (1 - age / (END_BURST * 4)));
+            for (var j = 0; j < 10; j++) {
+                var a = j / 10 * Math.PI * 2 + k, r = 14 + age * 90;
+                ctx.fillStyle = GLASS[(j + k) % GLASS.length];
+                ctx.beginPath();
+                ctx.moveTo(x + Math.cos(a) * r, y + Math.sin(a) * r);
+                ctx.lineTo(x + Math.cos(a + 0.12) * (r + 26), y + Math.sin(a + 0.12) * (r + 26));
+                ctx.lineTo(x + Math.cos(a - 0.12) * (r + 26), y + Math.sin(a - 0.12) * (r + 26));
+                ctx.closePath(); ctx.fill();
+            }
+        }
+        ctx.globalAlpha = 1;
+    }
+
+    function drawEnding(e, ctx) {
+        drawGlassBursts(ctx, e.t);
+        END_BELLS.forEach(function (x, i) { drawEndBell(ctx, x, e.t, i * Math.PI); });
+    }
+
     G.register('cathedral', {
         title: 'GARGOYLE',
         blurb: 'Dive on the demons from above, then catch their souls before they hatch again.',
@@ -1032,7 +1060,7 @@
             'Strike from above, then catch the bright souls',
             'Walls wrap · avoid fire, censers and geysers'
         ],
-        levelNames: ['Matins', 'Lauds', 'The Belfry', 'Crumbling Triforium', 'The Censer', 'Wraith Choir', 'Holy Fire', 'Twin Thuribles', 'Tenebrae', 'Archdemon'],
+        levelNames: ['Matins', 'The Censer', 'Archdemon'],
         colors: { bg: '#110f16', fg: COL.chalk, accent: COL.gold, dim: '#8d849c' },
         lives: LIVES,
         // An organ processional in D harmonic minor: long pedal bass, slow
@@ -1047,6 +1075,12 @@
             arp: '0.2.1.3.',
             drums: { k: 'x.......x.......', h: '....x.......x...' },
             leadWave: 'square', bassWave: 'triangle', arpWave: 'triangle', leadOct: 2
+        },
+        ending: {
+            title: 'THE NAVE IS HALLOWED',
+            text: 'The archdemon is gone. Every bell rings for the gargoyle.',
+            colors: GLASS.concat([COL.bright]),
+            draw: drawEnding
         },
         init: init, update: update, draw: draw, hud: hud,
         // Flapping is the A button; ↑ flaps too on a keyboard, but on the pad a

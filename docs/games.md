@@ -572,10 +572,21 @@ A stone gargoyle in a cathedral nave. `SPACE` flaps against gravity, `← →`
 steer, the screen wraps left/right, stone ledges to land on. Collide with a
 demon: whoever is higher wins; the loser bursts into a soul orb. Collect the
 orb before it re-hatches into a tougher demon. Clear all demons in every wave
-of the level. Holy fire along the floor kills. Levels: more waves, faster
-demon tiers, bat swarms that push you, crumbling ledges, a swinging censer
-hazard, and at level 10 an archdemon that needs three strikes from above.
-Organ-like harmonic-minor music, bell sounds.
+of the level; a cleared wave blesses a lost life back. Holy fire along the
+floor kills. Levels:
+
+1. **Matins** — imps, then a fiend, in the open nave: learn to strike from
+   above and to catch the souls.
+2. **The Censer** — imps and fiends, then a wraith, under a swinging censer
+   whose burning bowl kills, bat swarms that shove the gargoyle, and two
+   high ledges that crumble underfoot.
+3. **Archdemon** — fiends and wraiths among the censer, bats and fire
+   geysers that open under the gargoyle, then the archdemon: three strikes
+   from above, each one calling reinforcements.
+
+The ending: two bells swing and ring out in golden rings while stained
+glass bursts across the nave (**THE NAVE IS HALLOWED**). Organ-like
+harmonic-minor music, bell sounds.
 
 ### cosmos — Gravity Well (asteroids with gravity)
 `← →` rotate, `↑` thrust, `SPACE` fire, `X` hyperspace (risky random jump).
