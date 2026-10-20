@@ -4,7 +4,10 @@
  * A grid arena in which every cycle drags a solid wall of light behind it.
  * Touching any wall, block or the arena edge derezzes the rider (and takes its
  * wall with it). The player outlasts every AI rider to win a round and needs a
- * number of round wins to clear the level; a lost round costs a life.
+ * number of round wins to clear the level; a lost round costs a life. Three
+ * levels: a first ride against two easy riders, a crowded arena with hunters,
+ * blocks and fading trails, and a duel series with an expert in a collapsing
+ * arena.
  *
  * SPACE boosts on a limited charge. The charge comes back slowly, faster from
  * energy pods, and fastest by "grinding": riding right alongside another
@@ -40,27 +43,22 @@
         rookie: { look: 4, flood: 0, aggr: 0, wobble: 0.03, miss: 0.06, jitter: 6, boost: false },
         scout: { look: 8, flood: 20, aggr: 0, wobble: 0.015, miss: 0.06, jitter: 5, boost: false },
         hunter: { look: 10, flood: 60, aggr: 0.3, wobble: 0.005, miss: 0.045, jitter: 3, boost: true },
-        ace: { look: 12, flood: 200, aggr: 0.4, wobble: 0, miss: 0.03, jitter: 2, boost: true },
         expert: { look: 14, flood: 300, aggr: 0.35, wobble: 0, miss: 0.025, jitter: 2, boost: true }
     };
 
     // need: round wins to clear; speed: cells per second; decay: trail length
     // in cells before the wall fades; shrink: seconds until the first ring
-    // collapses and between rings. The slope is gentle on purpose (speeds of
-    // 12 to 18, slow collapses, two wins on every level but the last): a
-    // casual player who sees the arena a quarter second late should still
-    // clear level 10 in most tries with the four lives.
+    // collapses and between rings. The slope is gentle on purpose: a casual
+    // player who sees the arena a quarter second late should still win the
+    // expert duel in most tries with the four lives.
     var LEVELS = [
-        { need: 2, speed: 12, riders: ['rookie'] },
-        { need: 2, speed: 13, riders: ['rookie', 'scout'] },
-        { need: 2, speed: 14, riders: ['scout', 'scout'], layout: 'pillars', blocks: 5 },
-        { need: 2, speed: 15, riders: ['scout', 'hunter', 'rookie'], pods: true },
-        { need: 2, speed: 15, riders: ['hunter', 'scout', 'rookie'], pods: true, decay: 70 },
-        { need: 2, speed: 16, riders: ['hunter', 'hunter', 'rookie', 'rookie'], pods: true, layout: 'bars', blocks: 6 },
-        { need: 2, speed: 16, riders: ['ace', 'hunter', 'scout', 'rookie'], pods: true, decay: 90, layout: 'pillars', blocks: 4 },
-        { need: 2, speed: 17, riders: ['hunter', 'scout', 'scout'], pods: true, shrink: { start: 12, every: 7 } },
-        { need: 2, speed: 18, riders: ['hunter', 'hunter', 'scout', 'rookie', 'rookie'], pods: true, decay: 110, layout: 'bars', blocks: 4, shrink: { start: 14, every: 7 } },
-        { need: 3, speed: 18, riders: ['expert'], pods: true, layout: 'pillars', blocks: 2, shrink: { start: 12, every: 6 } }
+        // Grid Zero: two easy riders and the first energy pods.
+        { need: 2, speed: 12, riders: ['rookie', 'scout'], pods: true },
+        // Fading Light: a hunter that boosts and cuts off, bars to ride
+        // around, and trails that fade until they lock.
+        { need: 2, speed: 15, riders: ['hunter', 'scout', 'rookie'], pods: true, decay: 80, layout: 'bars', blocks: 5 },
+        // The Expert: a duel series in an arena that collapses ring by ring.
+        { need: 3, speed: 17, riders: ['expert'], pods: true, layout: 'pillars', blocks: 2, shrink: { start: 12, every: 6 } }
     ];
 
     // ------------------------------------------------------------------
@@ -713,6 +711,102 @@
         drawMessages(s, ctx);
     }
 
+    // ------------------------------------------------------------------
+    // The ending: light cycles race up out of the grid and burst into neon
+    // fireworks, while the player's cyan cycle laps the floor below
+    // ------------------------------------------------------------------
+
+    var END_COLORS = [C.cyan, C.magenta, C.yellow, '#ff7a1a', '#5dff6e'];
+    var END_SPEED = 520, END_BURST = 1.3, END_FLOOR = 472;
+
+    function launchRider(e) {
+        var r = e.rng, x = (8 + Math.floor(r() * 64)) * CELL;
+        return {
+            x: x, y: G.H, pts: [{ x: x, y: G.H }], dir: 3, age: 0, turn: 0.2 + r() * 0.2, back: 0,
+            fuse: 0.6 + r() * 0.3, color: END_COLORS[Math.floor(r() * END_COLORS.length)]
+        };
+    }
+
+    // A rider climbs, jinks sideways once and climbs on: every turn is a
+    // corner of its wall, like in the arena.
+    function moveRider(e, c, dt) {
+        c.age += dt;
+        if (c.dir === 3 && !c.back && c.age >= c.turn) {
+            c.dir = e.rng() < 0.5 ? 0 : 2; c.back = c.age + 0.1 + e.rng() * 0.12;
+            c.pts.push({ x: c.x, y: c.y });
+        } else if (c.dir !== 3 && c.age >= c.back) {
+            c.dir = 3;
+            c.pts.push({ x: c.x, y: c.y });
+        }
+        c.x += DX[c.dir] * END_SPEED * dt; c.y += DY[c.dir] * END_SPEED * dt;
+    }
+
+    // The scene keeps its riders and bursts in e.data and steps them by the
+    // time since the last frame.
+    function stepEnding(e) {
+        var d = e.data, dt = Math.min(0.05, e.t - (d.last || 0)), i;
+        d.last = e.t;
+        if (!d.riders) { d.riders = []; d.bursts = []; d.next = 0; }
+        if ((d.next -= dt) <= 0 && d.riders.length < 6) { d.riders.push(launchRider(e)); d.next = 0.3 + e.rng() * 0.4; }
+        for (i = d.riders.length - 1; i >= 0; i--) {
+            var c = d.riders[i];
+            moveRider(e, c, dt);
+            if (c.age < c.fuse) continue;
+            c.pts.push({ x: c.x, y: c.y });
+            d.bursts.push({ x: c.x, y: c.y, age: 0, color: c.color, pts: c.pts });
+            d.riders.splice(i, 1);
+        }
+        for (i = d.bursts.length - 1; i >= 0; i--) if ((d.bursts[i].age += dt) > END_BURST) d.bursts.splice(i, 1);
+    }
+
+    // The arena's wall look: a wide soft stroke, a bright core, a white line.
+    function glowStroke(ctx, color, alpha) {
+        ctx.lineJoin = 'miter'; ctx.lineCap = 'butt';
+        ctx.strokeStyle = color;
+        ctx.globalAlpha = 0.28 * alpha; ctx.lineWidth = 9; ctx.stroke();
+        ctx.globalAlpha = alpha; ctx.lineWidth = 4; ctx.stroke();
+        ctx.strokeStyle = 'rgba(255,255,255,0.75)'; ctx.lineWidth = 1.2; ctx.stroke();
+        ctx.globalAlpha = 1;
+    }
+
+    function wallPath(ctx, pts, hx, hy) {
+        ctx.beginPath();
+        ctx.moveTo(pts[0].x, pts[0].y);
+        for (var k = 1; k < pts.length; k++) ctx.lineTo(pts[k].x, pts[k].y);
+        ctx.lineTo(hx, hy);
+    }
+
+    // The wall fades fast; eight rays of light fly out and a square ring
+    // grows behind them.
+    function drawBurst(ctx, b) {
+        var f = b.age / END_BURST, fade = 1 - f, r = 20 + 230 * Math.sqrt(f);
+        if (b.age < 0.5) { wallPath(ctx, b.pts, b.x, b.y); glowStroke(ctx, b.color, 1 - b.age / 0.5); }
+        ctx.beginPath();
+        for (var k = 0; k < 8; k++) {
+            var cx = Math.cos(k * Math.PI / 4), sy = Math.sin(k * Math.PI / 4);
+            ctx.moveTo(b.x + cx * r * 0.55, b.y + sy * r * 0.55);
+            ctx.lineTo(b.x + cx * r, b.y + sy * r);
+        }
+        glowStroke(ctx, b.color, fade);
+        ctx.beginPath();
+        ctx.rect(b.x - r * 0.4, b.y - r * 0.4, r * 0.8, r * 0.8);
+        glowStroke(ctx, b.color, fade * 0.6);
+    }
+
+    function drawEnding(e, ctx) {
+        stepEnding(e);
+        var d = e.data, x = (e.t * 360) % (G.W + 400) - 120;
+        d.riders.forEach(function (c) {
+            wallPath(ctx, c.pts, c.x, c.y); glowStroke(ctx, c.color, 1);
+            ctx.fillStyle = '#ffffff'; ctx.fillRect(c.x - 4, c.y - 4, 8, 8);
+        });
+        d.bursts.forEach(function (b) { drawBurst(ctx, b); });
+        ctx.beginPath(); ctx.moveTo(x - 280, END_FLOOR); ctx.lineTo(x, END_FLOOR);
+        glowStroke(ctx, C.cyan, 1);
+        ctx.fillStyle = C.cyan; ctx.fillRect(x - 8, END_FLOOR - 4.5, 16, 9);
+        ctx.fillStyle = '#ffffff'; ctx.fillRect(x - 4, END_FLOOR - 2.25, 8, 4.5);
+    }
+
     function hud(s) {
         if (s.touch) return s.wins + '/' + s.cfg.need + '  AI ' + ridersAlive(s) + '  BOOST ' + Math.round(s.me.charge * 100);
         return 'WINS ' + s.wins + '/' + s.cfg.need + '  RIDERS ' + ridersAlive(s) + '  BOOST ' + Math.round(s.me.charge * 100);
@@ -727,7 +821,7 @@
             'Recharge: yellow pods or ride beside a rival wall',
             'Win the rounds shown; crashing costs a life'
         ],
-        levelNames: ['Grid Zero', 'Crossfire', 'Pillars', 'Overclock', 'Fading Light', 'The Maze', 'Ghost Trails', 'Collapse', 'Meltdown', 'The Expert'],
+        levelNames: ['Grid Zero', 'Fading Light', 'The Expert'],
         colors: { bg: C.bg, fg: C.fg, accent: C.cyan, dim: C.dim },
         lives: 4,
         music: {
@@ -744,6 +838,13 @@
         init: init, update: update, draw: draw, hud: hud,
         // Grid turns: one direction at a time, so a thumb a little off axis
         // never queues a second turn. B is unused.
-        touch: { a: 'BOOST', hide: ['b'], dirs: 4 }
+        touch: { a: 'BOOST', hide: ['b'], dirs: 4 },
+        ending: {
+            title: 'END OF LINE',
+            text: 'The last rider derezzes, and the grid lights up for you',
+            colors: END_COLORS,
+            fireworks: false,
+            draw: drawEnding
+        }
     });
 })();

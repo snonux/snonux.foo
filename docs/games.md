@@ -593,11 +593,15 @@ not a requirement.
 
 ### neon — Light Cycles (tron arena)
 Grid arena. Every cycle leaves a solid wall of light; hitting any wall
-destroys you. `arrows` turn, `SPACE` boost (limited charge). Outlast every AI
-rider; win the required number of rounds to clear the level. Levels: more and
-smarter riders (they look ahead and cut you off), faster cycles, arena
-obstacles, trails that decay, a shrinking arena from level 8, level 10 is a
-duel series against an expert. Neon glow, pentatonic synth lead.
+destroys you. `arrows` turn, `SPACE` boost (limited charge, refilled by
+yellow pods and by riding beside a rival's wall). Outlast every AI rider; win
+the required number of rounds to clear the level. Levels: 1 *Grid Zero*, two
+easy riders and the first energy pods; 2 *Fading Light*, three riders
+including a hunter that boosts and cuts you off, bars to ride around, and
+trails that fade until they lock; 3 *The Expert*, the finale: a first-to-three
+duel series against an expert rider in an arena that collapses ring by ring.
+The ending, *End of Line*, sends light cycles racing up out of the grid until
+their trails burst into neon fireworks. Neon glow, pentatonic synth lead.
 
 ### noir — Midnight Alley (crosshair gallery shooter)
 A rainy alley front: windows, doors, a parked car. Gangsters pop out and take
