@@ -561,11 +561,17 @@ PC-speaker style square-wave sounds and music.
 ### invaders — Formation (fixed shooter)
 A marching formation that speeds up as it thins, bunkers that erode where
 they are hit, a bonus saucer across the top. `← →` move, `SPACE` fire (one or
-two shots on screen). Destroy the formation before it lands. Levels: different
-formation shapes, divers that peel off and swoop from level 3, shielded
-invaders, splitting invaders, capsules (rapid, double, shield), a mothership
-boss at levels 5 and 10. Classic four-note march that speeds up with the
-formation, layered over the sequencer.
+two shots on screen). Destroy the formation before it lands. Levels: 1 *First
+Contact*, the classic block of five rows to learn the march and the bunkers;
+2 *Crossfire*, two groups marching against each other with shielded invaders,
+divers that peel off and swoop, weaving bombs and capsules (rapid, double,
+shield) from kills and the saucer; 3 *Mothership*, the finale: the mothership
+boss fires aimed fans and launches minis, escorted by lancers that charge
+beams and splitters that burst into minis; its core glows open now and then
+for triple damage. The ending blows the mothership apart: the hull shudders,
+flashes and bursts into spinning plates and shock rings under mint and amber
+fireworks. Classic four-note march that speeds up with the formation, layered
+over the sequencer.
 
 ### matrix — Bullet Time (time moves when you move)
 Top-down rooms in green code. Time runs at full speed only while the player

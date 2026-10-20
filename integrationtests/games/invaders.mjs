@@ -46,8 +46,17 @@ function steer(i, s) {
             const reach = p.x + Math.max(-340 * eta, Math.min(340 * eta, x - p.x));
             if (Math.abs(reach - bx) < (b.kind === 'zig' ? 85 : 60)) danger += 2500 * (1.4 - eta);
         }
-        for (const b of s.beams) if (Math.abs(x - b.src.x) < 45) danger += 1500;
-        for (const e of s.inv) if (e.state !== 'form' && e.y > 360 && Math.abs(x - e.x - e.vx * .2) < 60) danger += 500;
+        // Beams: their lane, and crossing them just before they fire.
+        for (const b of s.beams) {
+            if (Math.abs(x - b.src.x) < 50 || (b.t > .7 && (p.x - b.src.x) * (x - b.src.x) < 0)) danger += 3000;
+        }
+        // Committed fliers: where they cross the cannon's row, and the path there.
+        for (const e of s.inv) {
+            if (e.state === 'form' || e.state === 'return' || e.y < 330 || e.y > 516) continue;
+            const eta = Math.max(0, (496 - e.y) / Math.max(60, e.vy)), fx = e.x + e.vx * Math.min(eta, .5);
+            const crossing = eta < .7 && fx > Math.min(x, p.x) - 45 && fx < Math.max(x, p.x) + 45;
+            if (Math.abs(x - fx) < 70 || crossing) danger += 1800 * (1.6 - Math.min(1.5, eta));
+        }
         let capsule = 0;
         for (const c of s.caps) if (c.y > 270 && Math.abs(c.x - p.x) < (496 - c.y) * 2) capsule = Math.max(capsule, Math.max(0, 100 - Math.abs(x - c.x)));
         const c = aim + Math.abs(x - p.x) * .14 + danger - capsule;
@@ -65,7 +74,7 @@ function paints(g) {
 const updated = game(false, 1);
 console.log('paint submissions:', paints(updated));
 assert(paints(updated) < 200);
-const phoneHud = game(true, 10);
+const phoneHud = game(true, 3);
 phoneHud.s.power = { rapid: 10, double: 10 }; phoneHud.s.shield = true;
 assert.equal(phoneHud.def.hud(phoneHud.s), 'R+D+S  FOES 28');
 
@@ -93,7 +102,7 @@ for (const touch of [false, true]) {
     const drift = g.s.player.x - x;
     assert(drift < (touch ? 12 : 24), `release drift ${drift}`);
     console.log(`${touch ? 'phone' : 'desktop'} release drift: ${drift.toFixed(2)} world px`);
-    for (const level of [1, 5, 10]) {
+    for (const level of [1, 2, 3]) {
         const run = game(touch, level);
         let ticks = 0;
         while (run.screen() === 'play' && ticks < 36000) { run.step(steer(ticks, run.s)); ticks++; }
@@ -114,7 +123,7 @@ if (process.argv.includes('--browser')) {
             await page.goto(`${base}/index.html`);
             await page.eval("SnoGame.launch('invaders')");
             await page.waitFor('SnoGame.debug.state()?.registered', 'register');
-            for (const level of [1, 5, 10]) {
+            for (const level of [1, 2, 3]) {
                 await page.eval(`SnoGame.debug.start(${level}); SnoGame.debug.step(600, ${steer.toString()})`);
                 await sleep(80);
                 await page.screenshot(`/tmp/invaders-${phone.name}-${level}.jpg`);

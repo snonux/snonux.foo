@@ -3,10 +3,10 @@
  *
  * A fixed shooter: a formation marches side to side, drops a step at every
  * wall and speeds up as it thins. Destroy all of it (and the mothership, on
- * the boss levels) before it lands. Bunkers erode cell by cell where anything
+ * the finale) before it lands. Bunkers erode cell by cell where anything
  * hits them. Later levels add divers that peel off and swoop, shielded
- * invaders, splitters that burst into loose minis, cloaking, lancers that
- * charge a beam, and falling capsules (rapid, double, shield).
+ * invaders, splitters that burst into loose minis, lancers that charge a
+ * beam, and falling capsules (rapid, double, shield).
  */
 (function () {
     'use strict';
@@ -20,6 +20,7 @@
     var BUNK = { cols: 14, rows: 7, cell: 6, y: 408 };
     var MARCH = [146.83, 130.81, 116.54, 110];                   // D C Bb A: the descending four-note march
     var CAPS = ['rapid', 'double', 'shield'];
+    var BOSS_PTS = 1500;
 
     // hp, score and look per invader kind. 's' is shielded (the first hit only
     // pops the shield), 'x' splits into two minis ('m'), 'l' is a lancer.
@@ -61,9 +62,11 @@
         SPR[k] = [compile(ART[k][0].concat(ART[k][1])), compile(ART[k][0].concat(ART[k][2]))];
     });
 
-    // One entry per level:
+    // One entry per level: a classic block to learn the march; Crossfire,
+    // two counter-marching groups with shields, divers and capsules; and the
+    // Mothership with lancers and splitters in its escort.
     //   map      formation shape, one KIND letter per slot ('.' = empty)
-    //   top      y of the first row (default 84; lower on boss levels)
+    //   top      y of the first row (default 84; lower under the mothership)
     //   split    first row of a second group that marches the other way
     //   lo, hi   march speed in px/s with the formation full / almost gone;
     //            lo is high enough that a player who never shoots is landed on
@@ -74,22 +77,14 @@
     //   caps     true when kills and the saucer may drop capsules
     //   dive     mean seconds between divers; divers: how many may be out
     //   zig      share of bombs that weave
-    //   cloak    true when a wave of invisibility sweeps the rows
     //   lance    mean seconds between lancer beams
     //   boss     mothership: hp, fan (seconds between bolt fans), n (bolts per
     //            fan), minis (seconds between mini launches), lance (seconds
     //            between its own beams once below half hp)
     var LV = [
         { map: ['cccccccccc', 'bbbbbbbbbb', 'bbbbbbbbbb', 'aaaaaaaaaa', 'aaaaaaaaaa'], lo: 36, hi: 120, bomb: 1.5, bombV: 165, maxBombs: 2, bunkers: 4 },
-        { map: ['ccc.....ccc', 'bbbbb.bbbbb', 'bbbbbbbbbbb', 'aaaabbbaaaa', '.aaaaaaaaa.', '...aaaaa...'], lo: 38, hi: 130, bomb: 1.3, bombV: 175, maxBombs: 3, bunkers: 4, caps: true },
-        { map: ['cccc...cccc', 'bbbbb.bbbbb', 'bbbbb.bbbbb', 'aaaaa.aaaaa', 'aaaaa.aaaaa', 'aaa.....aaa'], lo: 38, hi: 135, bomb: 1.25, bombV: 180, maxBombs: 3, bunkers: 4, caps: true, dive: 4.5, divers: 1 },
-        { map: ['...ccccc...', '.bbbbbbbbb.', 'bbbbbbbbbbb', 'aaaaaaaaaaa', '.asasasasa.', '...sssss...'], lo: 40, hi: 140, bomb: 1.3, bombV: 190, maxBombs: 3, bunkers: 4, caps: true, dive: 4.2, divers: 1, zig: 0.25 },
-        { map: ['sbbbbbbbs', 'bbbbbbbbb', 'aaaaaaaaa', 'a.a.a.a.a'], top: 144, lo: 36, hi: 120, bomb: 1.4, bombV: 190, maxBombs: 3, bunkers: 3, caps: true, dive: 5, divers: 1, zig: 0.2, boss: { hp: 60, fan: 3, n: 3 } },
-        { map: ['..c.c.c.c..', '.xbbbxbbbx.', 'bbbbbbbbbbb', 'aaaaaaaaaaa', 'aaaaaaaaaaa', '.xaaaaaaax.'], lo: 40, hi: 145, bomb: 1.45, bombV: 195, maxBombs: 4, bunkers: 4, caps: true, dive: 4.6, divers: 1, zig: 0.25 },
-        { map: ['ccccccccccc', 'bsbsbsbsbsb', 'bbbbbbbbbbb', 'aaxaaxaaxaa', 'aaaaaaaaaaa', 'a.a.a.a.a.a'], split: 3, lo: 36, hi: 140, bomb: 1.05, bombV: 200, maxBombs: 4, bunkers: 4, caps: true, dive: 3.6, divers: 2, zig: 0.3 },
-        { map: ['ccccccccccc', 'bbbbbbbbbbb', '.sbsbsbsbs.', 'aaaaaaaaaaa', 'aaaaaaaaaaa', 'x.a.x.a.x.a'], cloak: true, lo: 40, hi: 150, bomb: 1.35, bombV: 205, maxBombs: 4, bunkers: 2, caps: true, dive: 3.8, divers: 2, zig: 0.3 },
-        { map: ['l.c.l.l.c.l', 'bbsbbbbbsbb', 'bbbbbbbbbbb', 'aaaaaaaaaaa', '.xaasasaax.', '.aa.a.a.aa.'], lo: 42, hi: 155, bomb: 1.15, bombV: 210, maxBombs: 4, bunkers: 3, caps: true, dive: 3.5, divers: 2, zig: 0.35, lance: 5.5 },
-        { map: ['l.s.l.s.l', 'bxbbbbbxb', 'aaaaaaaaa', '.a.a.a.a.'], top: 144, lo: 38, hi: 140, bomb: 1.4, bombV: 200, maxBombs: 3, bunkers: 2, caps: true, dive: 4.5, divers: 2, zig: 0.3, lance: 9, boss: { hp: 70, fan: 3.2, n: 5, minis: 14, lance: 8 } }
+        { map: ['ccc.....ccc', 'bsbsbsbsbsb', 'bbbbbbbbbbb', 'aaaaaaaaaaa', 'aaaaaaaaaaa', '.aaaaaaaaa.'], split: 3, lo: 36, hi: 130, bomb: 1.3, bombV: 180, maxBombs: 3, bunkers: 4, caps: true, dive: 4.5, divers: 1, zig: 0.2 },
+        { map: ['l.s.l.s.l', 'bxbbbbbxb', 'aaaaaaaaa', '.a.a.a.a.'], top: 144, lo: 38, hi: 140, bomb: 1.6, bombV: 195, maxBombs: 2, bunkers: 3, caps: true, dive: 5, divers: 1, zig: 0.2, lance: 9, boss: { hp: 60, fan: 3.4, n: 3, minis: 18, lance: 8 } }
     ];
 
     // ------------------------------------------------------------------
@@ -326,7 +321,7 @@
 
     function wrapFlier(s, e) {
         // Re-enter fading in below the saucer's lane (below the mothership on
-        // a boss level) rather than flying down through the score line.
+        // the finale) rather than flying down through the score line.
         e.y = s.boss ? 122 : 72; e.vy = 60; e.bombed = false; e.crunch = false; e.fade = FADE;
         // A diver flies home to its slot; a mini has no slot and dives again.
         if (e.kind === 'm') { e.vx = 0; e.x = 60 + s.rnd() * (G.W - 120); }
@@ -603,7 +598,7 @@
 
     function bossMinis(s, b) {
         var loose = s.inv.filter(function (e) { return e.kind === 'm'; }).length;
-        if (loose >= 4) return;
+        if (loose >= 2) return;
         splitInvader(s, { x: b.x, y: b.y + 20 }, false);
     }
 
@@ -635,8 +630,8 @@
 
     function killBoss(s) {
         var b = s.boss;
-        G.addScore(200 * G.level);
-        G.popup(b.x, b.y, 200 * G.level, C.alert);
+        G.addScore(BOSS_PTS);
+        G.popup(b.x, b.y, BOSS_PTS, C.alert);
         G.burst(b.x, b.y, { n: 70, color: C.alert, speed: 340, life: 1.1 });
         G.burst(b.x, b.y, { n: 40, color: C.white, speed: 200, life: 0.8 });
         G.sfx('bigboom'); G.shake(12, 0.6); G.flash(C.white, 0.25);
@@ -773,17 +768,11 @@
         });
     }
 
-    // On the cloak level a wave of invisibility sweeps through the rows.
-    function invaderAlpha(s, e) {
-        if (e.fade > 0) return 1 - e.fade / FADE;
-        if (!s.cfg.cloak || e.state !== 'form') return 1;
-        return G.clamp(0.55 + Math.sin(G.t * 1.3 + e.row * 0.9 + e.col * 0.25) * 1.1, 0.07, 1);
-    }
-
     function drawInvaders(s, ctx) {
         s.inv.forEach(function (e) {
             var k = KIND[e.kind];
-            ctx.globalAlpha = invaderAlpha(s, e);
+            // A flier that wrapped round fades back in.
+            ctx.globalAlpha = e.fade > 0 ? 1 - e.fade / FADE : 1;
             drawSprite(ctx, SPR[k.spr][s.frame], e.x, e.y, e.flash > 0 ? C.white : k.color);
             if (e.kind === 's' && e.hp > 1) {
                 ctx.strokeStyle = C.alert; ctx.lineWidth = 3;
@@ -818,12 +807,17 @@
         ctx.globalAlpha = 1;
     }
 
-    function drawBoss(s, ctx) {
-        var b = s.boss, open = coreOpen(b), hit = b.flash > 0;
-        ctx.fillStyle = hit ? C.white : C.line;
+    // The mothership's hull: a dome on a wide saucer.
+    function hull(ctx, x, y, color) {
+        ctx.fillStyle = color;
         ctx.strokeStyle = C.mint; ctx.lineWidth = 2;
-        ctx.beginPath(); ctx.ellipse(b.x, b.y - 6, 42, 18, 0, Math.PI, 0); ctx.fill(); ctx.stroke();
-        ctx.beginPath(); ctx.ellipse(b.x, b.y + 4, 78, 17, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+        ctx.beginPath(); ctx.ellipse(x, y - 6, 42, 18, 0, Math.PI, 0); ctx.fill(); ctx.stroke();
+        ctx.beginPath(); ctx.ellipse(x, y + 4, 78, 17, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    }
+
+    function drawBoss(s, ctx) {
+        var b = s.boss, open = coreOpen(b);
+        hull(ctx, b.x, b.y, b.flash > 0 ? C.white : C.line);
         for (var i = -3; i <= 3; i++) {
             // Running lights chase along the hull.
             ctx.fillStyle = (Math.floor(b.t * 6) + i + 30) % 4 === 0 ? C.white : C.deep;
@@ -914,6 +908,55 @@
         return (on.length ? on.join('+') + '  ' : '') + 'HOSTILES ' + count;
     }
 
+    // ------------------------------------------------------------------
+    // The ending: the mothership's last moments, then its wreck as fireworks
+    // ------------------------------------------------------------------
+
+    var WRECK_X = G.W / 2, WRECK_Y = 330, BLOW = 1.1;
+
+    // Hull plates, each with its own spin and course, laid out once.
+    function shards(e) {
+        if (!e.data.shards) {
+            e.data.shards = [];
+            for (var i = 0; i < 18; i++) {
+                var a = i / 18 * Math.PI * 2 + e.rng() * 0.3, v = 140 + e.rng() * 220;
+                e.data.shards.push({ vx: Math.cos(a) * v, vy: Math.sin(a) * v * 0.7 - 60, spin: (e.rng() - 0.5) * 12, w: 8 + e.rng() * 18 });
+            }
+        }
+        return e.data.shards;
+    }
+
+    function drawWreck(e, ctx) {
+        var t = e.t - BLOW;
+        shards(e).forEach(function (sh, i) {
+            ctx.save();
+            ctx.globalAlpha = Math.max(0, 1 - t / 3);
+            ctx.translate(WRECK_X + sh.vx * t, WRECK_Y + sh.vy * t + 90 * t * t);
+            ctx.rotate(sh.spin * t);
+            ctx.fillStyle = i % 3 ? C.mint : C.alert;
+            ctx.fillRect(-sh.w / 2, -3, sh.w, 6);
+            ctx.restore();
+        });
+        // A shock ring every couple of seconds keeps the blast alive.
+        ctx.lineWidth = 3;
+        for (var k = 0; k < 2; k++) {
+            var f = (t * 0.5 + k / 2) % 1;
+            ctx.globalAlpha = 0.7 * (1 - f);
+            ctx.strokeStyle = k ? C.alert : C.white;
+            ctx.beginPath(); ctx.ellipse(WRECK_X, WRECK_Y, 40 + f * 460, 14 + f * 160, 0, 0, Math.PI * 2); ctx.stroke();
+        }
+        ctx.globalAlpha = 1;
+    }
+
+    // First the crippled ship shudders and flashes white, then it bursts.
+    function drawEnding(e, ctx) {
+        if (e.t >= BLOW) { drawWreck(e, ctx); return; }
+        var shake = e.t * 6, x = WRECK_X + Math.sin(e.t * 60) * shake, flash = Math.floor(e.t * 14) % 2;
+        hull(ctx, x, WRECK_Y, flash ? C.white : C.line);
+        ctx.fillStyle = C.alert;
+        ctx.beginPath(); ctx.arc(x, WRECK_Y + 6, 10 + e.t * 30, 0, Math.PI * 2); ctx.fill();
+    }
+
     G.register('invaders', {
         title: 'FORMATION',
         blurb: 'Destroy the formation before it lands. It marches faster as it thins.',
@@ -923,7 +966,7 @@
             'Capsules: R rapid fire · D double barrel · S shield',
             'Mothership: aim for the core while it glows'
         ],
-        levelNames: ['First Contact', 'Arrowhead', 'Peel Off', 'Phalanx', 'Mothership', 'Mitosis', 'Crossfire', 'Cloak', 'Lancers', 'Armada'],
+        levelNames: ['First Contact', 'Crossfire', 'Mothership'],
         colors: { bg: C.bg, fg: C.white, accent: C.mint, dim: C.dim },
         lives: 3,
         // Sparse on purpose: the march played by the formation is the real
@@ -943,6 +986,12 @@
         // Pad-native: two big direction buttons and FIRE. No auto-fire on a
         // phone: each thumb has one job (steer left, hold FIRE right), and
         // holding fire back is how a player spares a bunker.
-        touch: { a: 'FIRE', hide: ['up', 'down', 'b'] }
+        touch: { a: 'FIRE', hide: ['up', 'down', 'b'] },
+        ending: {
+            title: 'MOTHERSHIP DOWN',
+            text: 'The formation is broken. Earth is quiet tonight.',
+            colors: [C.mint, C.alert, C.white, C.soft],
+            draw: drawEnding
+        }
     });
 })();
