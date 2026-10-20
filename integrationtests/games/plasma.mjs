@@ -62,37 +62,71 @@ assert.ok(!rects.some((r) => r[0] === 0 && r[2] === 960 && r[1] >= 30), 'no opaq
 assert.equal(JSON.stringify(def.touch), JSON.stringify({ a: 'SLOW', b: 'BOMB' }));
 console.log('ok   plasma local: drag focus, simultaneous controls, contact damage, readable combined cues');
 
+// The mechanics the campaign leans on: three levels and three bosses, a
+// graze every 40 earns a bomb, three orbs of a colour merge into a weapon.
+assert.deepEqual(def.levelNames.length, 3);
+const kits = [1, 2, 3].map((level) => def.init(level).lv);
+assert.deepEqual(kits.map((k) => k.spread + k.beam + k.homing), [0, 1, 3], 'each level starts better armed');
+G.key = {}; G.hit = {}; G.mouse = {};
+const grazer = def.init(1); grazer.p.inv = 0; grazer.graze = 39;
+grazer.bullets = [{ x: grazer.p.x + 15, y: grazer.p.y, vx: 0, vy: 0, r: 5, w: 0, life: 1 }];
+def.update(grazer, 1 / 60);
+assert.equal(grazer.graze, 40); assert.equal(grazer.bombs, 4, 'the 40th graze earns a bomb');
+const merger = def.init(1);
+merger.drops = [0, 1, 2].map(() => ({ x: merger.p.x, y: merger.p.y, t: 0 }));   // t 0: cyan, spread
+def.update(merger, 1 / 60);
+assert.equal(merger.lv.spread, 1, 'three cyan orbs merge into SPREAD 1');
+console.log('ok   plasma local: three levels, graze bombs, orb merges');
+
+// One level played by the campaign bot (bots/plasma.js) with ordinary input;
+// `stop` ends it early for a screenshot of a boss fight in full swing.
+const BOT = readFileSync(new URL('./bots/plasma.js', import.meta.url), 'utf8');
+const playLevel = (level, stop) => `(function (bot) {
+    var G = SnoGame, mem = {}, ticks = 0, bombs = 0, boss = '';
+    G.debug.start(${level});
+    while (ticks < 36000 && G.debug.state().screen === 'play') {
+        var s = G.debug.s(), input = bot.play(s, G, mem);
+        if (input.b) bombs++;
+        if (s.boss) boss = s.boss.n + ' phases';
+        ${stop ? "if (s.stage === 'boss' && s.boss.phase >= 1 && s.bullets.length > 30) break;" : ''}
+        G.debug.step(1, input); ticks++;
+    }
+    var end = G.debug.s();
+    return { level: ${level}, screen: G.debug.state().screen, seconds: ticks / 60, graze: end.graze, boss: boss,
+        bombs: bombs, weapons: end.lv.spread + end.lv.beam + end.lv.homing, errors: G.debug.errors.slice() };
+})(${BOT})`;
+
 if (!process.argv.includes('--local')) {
     const { page, base, close } = await startSession();
     try {
         await page.goto(`${base}/index.html`);
         await page.eval("SnoGame.launch('plasma')");
         await page.waitFor('SnoGame.debug.state() && SnoGame.debug.state().registered', 'plasma definition');
-        const bot = readFileSync(new URL('./plasma-bot.js', import.meta.url), 'utf8');
+        const shots = process.argv.find((arg) => arg.startsWith('--shots='))?.slice(8);
         for (const mode of [null, ...PHONES]) {
             if (mode) {
                 await page.emulatePhone(mode.width, mode.height);
                 await page.eval("SnoGame.quit();SnoGame.launch('plasma')");
                 await page.waitFor('SnoGame.debug.state() && SnoGame.debug.state().registered', 'phone definition');
             }
-            const result = await page.eval(bot);
-            for (const win of result.wins) assert.equal(win.screen, win.level === 3 ? 'victory' : 'clear', JSON.stringify(win));
-            assert.equal(result.idle, 'over', 'idle play must lose');
-            assert.deepEqual(result.errors, []);
-            console.log(`ok   plasma ${mode?.name || 'desktop'}: input wins 1/2/3 and idle loss`);
-            const shots = process.argv.find((arg) => arg.startsWith('--shots='))?.slice(8);
-            if (shots) {
-                mkdirSync(shots, { recursive: true });
-                for (const level of [1, 2, 3]) {
-                    await page.eval(`SnoGame.debug.start(${level})`);
-                    const snapshot = bot.replace('[1, 2, 3]', '[G.level]')
-                        .replace('bombHeld = bomb; ticks++;',
-                            'bombHeld = bomb; ticks++; if(s.stage === "boss" && s.boss.phase >= 1 && s.bullets.length > 30) break;')
-                        .replace('G.debug.start(1); G.debug.step(30000, {});', '');
-                    await page.eval(snapshot);
-                    await sleep(80);
-                    await page.screenshot(`${shots}/${mode?.name || 'desktop'}-${level}.jpg`);
-                }
+            const runs = [];
+            for (const level of [1, 2, 3]) runs.push(await page.eval(playLevel(level, false)));
+            for (const r of runs) {
+                assert.equal(r.screen, r.level === 3 ? 'victory' : 'clear', JSON.stringify(r));
+                assert.deepEqual(r.errors, []);
+            }
+            assert.deepEqual(runs.map((r) => r.boss), ['2 phases', '3 phases', '4 phases'], 'three bosses, each a phase longer');
+            assert.ok(runs.some((r) => r.graze > 0), 'grazing: ' + JSON.stringify(runs));
+            assert.ok(runs.some((r) => r.weapons > (r.level === 1 ? 0 : r.level === 2 ? 1 : 3)), 'orbs upgrade a weapon');
+            const idle = await page.eval("SnoGame.debug.start(1); SnoGame.debug.step(30000, {}).screen");
+            assert.equal(idle, 'over', 'idle play must lose');
+            console.log(`ok   plasma ${mode?.name || 'desktop'}: bot wins 1/2/3 (${runs.map((r) => r.seconds.toFixed(0) + 's').join(' ')}, grazes ${runs.map((r) => r.graze).join('/')}, bombs ${runs.map((r) => r.bombs).join('/')}), idle loses`);
+            if (!shots) continue;
+            mkdirSync(shots, { recursive: true });
+            for (const level of [1, 2, 3]) {
+                await page.eval(playLevel(level, true));
+                await sleep(80);
+                await page.screenshot(`${shots}/${mode?.name || 'desktop'}-${level}.jpg`);
             }
         }
     } finally { await close(); }
