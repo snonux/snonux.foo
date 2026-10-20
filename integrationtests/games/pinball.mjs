@@ -19,7 +19,7 @@ try {
         const results = await page.eval(`(function(){
             var G=SnoGame,results=[],originalRandom=Math.random;
             try {
-                for(var level of [1,5,10]){
+                for(var level of [1,2,3]){
                     var rng=G.rng(12345);Math.random=rng;
                     G.debug.start(level);var input=${bot},ticks=0;
                     while(G.debug.state().screen==='play'&&ticks<108000){G.debug.step(1,input);ticks++;}
@@ -29,7 +29,7 @@ try {
                 return {wins:results,idle:G.debug.state().screen,errors:G.debug.errors.slice()};
             }finally{Math.random=originalRandom;}
         })()`);
-        for (const win of results.wins) assert.equal(win.screen, win.level === 10 ? 'victory' : 'clear', `${mode?.name || 'desktop'} level ${win.level}: ${JSON.stringify(win)}`);
+        for (const win of results.wins) assert.equal(win.screen, win.level === 3 ? 'victory' : 'clear', `${mode?.name || 'desktop'} level ${win.level}: ${JSON.stringify(win)}`);
         assert.equal(results.idle, 'over', 'doing nothing must lose');
         assert.deepEqual(results.errors, []);
         if (mode) {
@@ -43,7 +43,7 @@ try {
                         if(o.max)width=Math.min(width,o.max);
                         labels.push({text:str,x:x,y:y,size:o.size,width:width});
                     };
-                    for(var level=1;level<=10;level++){
+                    for(var level=1;level<=3;level++){
                         var s=def.init(level);
                         s.hot=true;s.heat=8;s.tilt=2;s.msg='COILS WARM: FLIP AT THE BALL';s.msgT=2;
                         s.pts=s.cfg.target;

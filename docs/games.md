@@ -639,14 +639,21 @@ fireworks. The classic wakka sound, siren that rises as pellets run out.
 ### pinball — Electro Ball (pinball)
 A real table: gravity, two flippers that add momentum when they swing
 (`←` left, `→` right), `SPACE` plunger (hold to charge), pop bumpers,
-slingshots, drop targets, lanes, a spinner. Ball against line segments and
-circles with proper reflection and restitution; sub-step the ball so it never
-tunnels through a flipper. Each level is a mission on a changed table: score
-target plus a named goal (light all lanes, drop all targets, lock two balls
-for multiball …). Four balls per level; losing all is game over. `↓` nudges
-(too much tilts). Flipping again and again with no ball near the flippers
-heats the coils until the flippers rest for a moment, so flapping blindly
-does not keep a ball alive. Bells, chimes and knocker sounds; ragtime-ish major music.
+slingshots, drop targets, top lanes, saucers and a magnet. Ball against line
+segments and circles with proper reflection and restitution; sub-step the
+ball so it never tunnels through a flipper. Each level is a mission on a
+changed table: a named goal plus a points target. Levels: 1 *First Spark* —
+ring the pop bumpers; 2 *Drop Zone* — knock down both banks of drop targets,
+with top lanes (lit by flipped balls, shifted by the flippers) for points;
+3 *Overload* — drop the targets to light the locks (and earn an extra ball),
+lock two balls in the saucers to start multiball, then ring bumpers — every
+bumper is a jackpot during multiball — past a moving Rover bumper and a
+magnet. Four balls per level; losing all is game over. `↓` nudges (too much
+tilts). Flipping again and again with no ball near the flippers heats the
+coils until the flippers rest for a moment, so flapping blindly does not
+keep a ball alive. Ending: *JACKPOT!* — chase lamps running round the
+screen, searchlights sweeping and arcs crackling, under fireworks. Bells,
+chimes and knocker sounds; ragtime-ish major music.
 
 ### plasma — Plasma Storm (vertical bullet-hell shmup)
 `arrows` move in all directions, `SPACE` fire (hold; while firing the ship

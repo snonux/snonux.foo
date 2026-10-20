@@ -4,9 +4,14 @@
  * A real table in the middle of the screen: the ball falls under gravity and
  * bounces off line segments and circles, two flippers pass their swing on to
  * it, and a spring plunger serves it up the lane on the right. Every level is
- * a mission on a rebuilt table (ring the bumpers, light the lanes, drop the
- * targets, lock two balls for multiball ...) plus a points target. Four balls
- * per level; the mission's progress survives a lost ball, but not game over.
+ * a mission on a rebuilt table plus a points target. Four balls per level;
+ * the mission's progress survives a lost ball, but not game over.
+ *
+ * Three tables: First Spark (ring the pop bumpers), Drop Zone (knock down
+ * both banks of drop targets, with the top lanes for points) and Overload
+ * (targets light the locks, two locked balls start multiball, and every
+ * bumper is a jackpot while it lasts). Making the last jackpot ends the
+ * campaign with a jackpot light show.
  *
  * On a phone (coarse pointer) the pad's ◀ ▶ are one stick under one thumb, so
  * they cannot both be held. PLUNGE (A) therefore doubles as the right flipper
@@ -47,33 +52,15 @@
     var LEVELS = [
         { goal: 'bumper', need: 12, target: 1500, brief: ['Wake the table up:', 'ring the pop bumpers.'],
             bumpers: [[416, 170], [516, 170], [466, 236]] },
-        { goal: 'lane', need: 3, target: 1700, brief: ['Flip the ball up the', 'top lanes and light', 'all three.'],
-            lanes: true, bumpers: [[366, 235], [566, 235]] },
         { goal: 'target', need: 6, target: 2700, brief: ['Knock down both banks', 'of drop targets.'],
-            banks: true, bumpers: [[466, 175]] },
-        { goal: 'spin', need: 27, target: 4000, brief: ['Crank the dynamo: shoot', 'through the spinner.'],
-            spinner: [466, 150], lanes: true, bumpers: [[384, 225], [548, 225]] },
-        { goal: 'lock', need: 2, target: 5000, brief: ['Lock two balls in the', 'saucers for multiball.'],
-            saucers: [[317, 170], [615, 170]], locks: true, bumpers: [[430, 205], [502, 205]] },
-        { goal: 'rover', need: 7, target: 4500, brief: ['Chase the Rover: hit', 'the bumper that will', 'not sit still.'],
-            rover: 190, centre: [118, 3], bumpers: [[362, 265], [570, 265]] },
-        { goal: 'zap', need: 3, target: 3400, brief: ['Feed the coils: flip', 'the ball into a live', 'magnet.'],
-            magnets: [[400, 255], [532, 255]], lanes: true, bumpers: [[466, 165]] },
-        { goal: 'hot', need: 7, target: 5200, brief: ['Only the flashing', 'targets are live.', 'Hit those.'],
-            hot: true, spinner: [466, 160], bumpers: [[420, 228], [512, 228]] },
-        { goal: 'saucer', need: 5, target: 4500, brief: ['Blackout! Each saucer', 'is a fuse: every one', 'widens the light.'],
-            dark: true, saucers: [[317, 170], [615, 170], [466, 125]], bumpers: [[416, 228], [516, 228]] },
+            banks: true, lanes: true, bumpers: [[466, 175]] },
         { goal: 'wizard', need: 20, target: 15500, brief: ['Drop the targets, lock', 'two balls, then ring', 'bumpers in multiball.'],
-            banks: true, saucers: [[317, 170], [615, 170]], locks: true, rover: 135, magnets: [[466, 305]],
+            banks: true, saucers: [[317, 170], [615, 170]], rover: 135, magnets: [[466, 305]],
             bumpers: [[400, 222], [532, 222]] }
     ];
-    var LABEL = { bumper: 'BUMPERS', lane: 'LANES', target: 'TARGETS', spin: 'SPINS', lock: 'LOCKS',
-        rover: 'ROVER HITS', zap: 'ZAPS', hot: 'LIVE WIRES', saucer: 'FUSES' };
+    var LABEL = { bumper: 'BUMPERS', target: 'TARGETS' };
     var PHONE_BRIEF = [
-        ['Ring the pop', 'bumpers.'], ['Light 3 lanes', 'at the top.'], ['Drop 2 banks', 'of targets.'],
-        ['Shoot through', 'the spinner.'], ['Lock 2 balls', 'for multiball.'], ['Hit the moving', 'Rover bumper.'],
-        ['Flip into a', 'live magnet.'], ['Hit flashing', 'live targets.'], ['Hit saucers to', 'widen light.'],
-        ['Drop targets,', 'lock 2 balls,', 'hit bumpers.']
+        ['Ring the pop', 'bumpers.'], ['Drop 2 banks', 'of targets.'], ['Drop targets,', 'lock 2 balls,', 'hit bumpers.']
     ];
 
     // Bells, chimes and the knocker: an electro-mechanical table is all
@@ -108,8 +95,7 @@
         eject: function () { G.noise(0.05, { freq: 900, vol: 0.3 }); G.tone(240, 0.08, { vol: 0.1, slide: 480 }); },
         multiball: function () {
             for (var i = 0; i < 8; i++) G.tone(520 + (i % 4) * 180, 0.1, { type: 'triangle', vol: 0.18, delay: i * 0.08 });
-        },
-        thunder: function () { G.noise(0.9, { freq: 500, slide: 50, vol: 0.3 }); }
+        }
     };
 
     // ------------------------------------------------------------------
@@ -185,40 +171,19 @@
         for (var j = 0; j < 3; j++) s.lanes.push({ x: 416 + j * 50, lit: false });
     }
 
-    function addTarget(s, ax, ay, bx, by, standup) {
-        s.targets.push({ ax: ax, ay: ay, bx: bx, by: by, standup: standup, live: false, down: false, flash: 0 });
-    }
-
-    // Targets on both side walls: three drop targets, or two standups.
-    function addBanks(s, standup) {
-        (standup ? [208, 252] : [200, 228, 256]).forEach(function (y) {
-            addTarget(s, XL + 11, y, XL + 11, y + 22, standup);
-            addTarget(s, XR - 11, y, XR - 11, y + 22, standup);
+    // Three drop targets on each side wall.
+    function addBanks(s) {
+        [200, 228, 256].forEach(function (y) {
+            s.targets.push({ ax: XL + 11, ay: y, bx: XL + 11, by: y + 22, down: false, flash: 0 });
+            s.targets.push({ ax: XR - 11, ay: y, bx: XR - 11, by: y + 22, down: false, flash: 0 });
         });
-    }
-
-    function addCentre(s, y, n, standup) {
-        var x = CX - (n * 26 - 4) / 2;
-        for (var i = 0; i < n; i++) addTarget(s, x + i * 26, y, x + i * 26 + 22, y, standup);
-    }
-
-    function addSpinner(s, p) {
-        s.spinner = { x: p[0], y: p[1], hw: 20, ang: 0, vel: 0 };
-        seg(s, p[0] - 23, p[1], p[0] - 23, p[1], { r: 4, e: 0.6 });
-        seg(s, p[0] + 23, p[1], p[0] + 23, p[1], { r: 4, e: 0.6 });
     }
 
     function buildFixtures(s, cfg) {
         addBumpers(s, cfg.bumpers);
         if (cfg.rover) s.bumpers.push({ x: CX, y: cfg.rover, r: 18, vx: 0, flash: 0, rover: true });
         if (cfg.lanes) addLanes(s);
-        if (cfg.banks) addBanks(s, false);
-        if (cfg.hot) {
-            addBanks(s, true); addCentre(s, 108, 3, true);
-            [0, 3, 5].forEach(function (i) { s.targets[i].live = true; });
-        }
-        if (cfg.centre) addCentre(s, cfg.centre[0], cfg.centre[1], false);
-        if (cfg.spinner) addSpinner(s, cfg.spinner);
+        if (cfg.banks) addBanks(s);
         (cfg.saucers || []).forEach(function (p) { s.saucers.push({ x: p[0], y: p[1], ball: null, t: 0, cool: 0 }); });
         (cfg.magnets || []).forEach(function (p) { s.magnets.push({ x: p[0], y: p[1], r: 84, on: false, cool: 0 }); });
     }
@@ -238,11 +203,11 @@
     function init(level) {
         var cfg = LEVELS[level - 1], rnd = G.rng(level * 131), s = {
             cfg: cfg, level: level, time: 0, need: cfg.need, done: 0, pts: 0,
-            walls: [], slings: [], bumpers: [], targets: [], lanes: [], saucers: [], magnets: [], spinner: null,
+            walls: [], slings: [], bumpers: [], targets: [], lanes: [], saucers: [], magnets: [],
             flippers: [newFlipper(-1), newFlipper(1)], balls: [], lights: [],
             charge: 0, laneIdle: 0, autoT: 0, save: 0, saveArmed: true, tilt: 0, tilted: false, nudgeT: 0, heat: 0, hot: false,
-            multiball: false, locked: 0, lockLit: !!cfg.locks && cfg.goal !== 'wizard',
-            hotT: 10, resetT: 0, laneFlash: 0, bolt: 0, boltT: 3, msg: '', msgT: 0, clickT: 0,
+            multiball: false, locked: 0, lockLit: false,
+            resetT: 0, laneFlash: 0, msg: '', msgT: 0, clickT: 0,
             touch: coarse(), ctl: { left: false, right: false, plunge: false, hitL: false, hitR: false, nudge: false }
         };
         buildFrame(s);
@@ -288,7 +253,6 @@
 
     function progress(s, kind) {
         var w = wanted(s);
-        if (kind === 'rover' && w.kind === 'bumper') kind = 'bumper';
         if (kind !== w.kind || s.done >= s.need) return;
         s.done = Math.min(w.cap, s.done + 1);
         if (s.cfg.goal === 'wizard' && s.done === 6) openLocks(s);
@@ -317,13 +281,6 @@
         if (mustRelock(s)) return 'RE-LOCK 2 BALLS ' + s.locked + '/2';
         var v = goalView(s);
         return v.label + ' ' + v.done + '/' + v.need;
-    }
-
-    // Whether lanes or magnets are what the mission counts right now. They
-    // only count a ball the player has flipped, so that ball is marked.
-    function needsShot(s) {
-        var kind = wanted(s).kind;
-        return (kind === 'lane' || kind === 'zap') && s.done < s.need;
     }
 
     // ------------------------------------------------------------------
@@ -385,7 +342,7 @@
         var c = G.closestOnSeg(b.x, b.y, f.px, f.py, tx, ty);
         var hit = bounce(b, c.x, c.y, BALL_R + FLIP.r, 0.3, -f.av * (c.y - f.py), f.av * (c.x - f.px));
         // Only a ball struck by a rising flipper is a shot the player made;
-        // lanes and magnets count nothing else toward a mission.
+        // only such a ball lights a top lane.
         if (hit > 0 && f.av * (f.up - f.rest) > 0) b.shot = true;
     }
 
@@ -394,7 +351,7 @@
         score(s, 100);
         SND.bell(bp.rover ? 1320 : 880 + (bp.x - CX) * 1.2);
         G.burst(bp.x, bp.y, { n: 5, color: bp.rover ? COL.yellow : COL.red, speed: 170, life: 0.3 });
-        progress(s, bp.rover ? 'rover' : 'bumper');
+        progress(s, 'bumper');
     }
 
     // A pop bumper always throws the ball out at a minimum speed, however
@@ -409,32 +366,8 @@
         }
     }
 
-    // Hands the current to a dead target, so three are live at all times.
-    function relight(s, skip) {
-        var dead = s.targets.filter(function (t) { return !t.live && t !== skip; });
-        if (dead.length) G.pick(dead).live = true;
-        s.hotT = 10;
-    }
-
-    function wanderHot(s) {
-        var t = G.pick(s.targets.filter(function (o) { return o.live; }));
-        t.live = false;
-        relight(s, t);
-    }
-
-    function hitStandup(s, t) {
-        if (!t.live) { score(s, 40); SND.dud(); return; }
-        t.live = false;
-        relight(s, t);
-        score(s, 500, (t.ax + t.bx) / 2, t.ay - 12);
-        SND.zap();
-        G.burst((t.ax + t.bx) / 2, (t.ay + t.by) / 2, { n: 14, color: COL.cyan, speed: 220, life: 0.4 });
-        progress(s, 'hot');
-    }
-
     function hitTarget(s, t) {
         t.flash = 0.2;
-        if (t.standup) { hitStandup(s, t); return; }
         t.down = true;
         score(s, 250, (t.ax + t.bx) / 2, t.ay - 12);
         SND.thunk();
@@ -453,17 +386,6 @@
             var c = G.closestOnSeg(b.x, b.y, t.ax, t.ay, t.bx, t.by);
             if (bounce(b, c.x, c.y, BALL_R + 3, 0.4, 0, 0) > 40) hitTarget(s, t);
         }
-    }
-
-    // The spinner is not solid: a ball crossing its axis sets it turning at a
-    // rate that follows the ball's speed, and pays for it with a little drag.
-    function crossSpinner(s, b, py) {
-        var sp = s.spinner;
-        if (!sp || Math.abs(b.x - sp.x) > sp.hw || (py - sp.y) * (b.y - sp.y) > 0) return;
-        // A slow ball dribbling back must not brake a fast spin.
-        var v = G.clamp(b.vy * 0.1, -60, 60);
-        if (Math.abs(v) > Math.abs(sp.vel)) sp.vel = v;
-        b.vy *= 0.9;
     }
 
     // A live magnet drags the ball toward its core, harder the closer it is.
@@ -507,13 +429,13 @@
     }
 
     // The saver starts counting only once the ball is really on the table.
-    // It is long on the early tables (19 s) and still 10 s on the last, so a
+    // It is long on the first table (18 s) and still 10 s on the last, so a
     // ball that drains before the player has had a real go at it comes back.
     function leaveLane(s, b) {
         b.inLane = false;
         if (!s.saveArmed) return;
         s.saveArmed = false;
-        s.save = 20 - s.level;
+        s.save = 22 - s.level * 4;
     }
 
     // MAX_V is a hard limit: it is what the sub-step count is sized for, so
@@ -524,7 +446,6 @@
     }
 
     function stepBall(s, b, h) {
-        var py = b.y;
         b.vy += GRAV * h;
         pullMagnets(s, b, h);
         limitSpeed(b);
@@ -534,7 +455,6 @@
         hitFlipper(b, s.flippers[1]);
         hitBumpers(s, b);
         hitTargets(s, b);
-        crossSpinner(s, b, py);
         limitSpeed(b);
         // Whatever is right of the lane wall is in the lane, however it got
         // there, so the plunger will always serve it again.
@@ -655,7 +575,7 @@
     }
 
     function tickTimers(s, dt) {
-        ['save', 'msgT', 'clickT', 'nudgeT', 'laneFlash', 'bolt'].forEach(function (k) { s[k] = Math.max(0, s[k] - dt); });
+        ['save', 'msgT', 'clickT', 'nudgeT', 'laneFlash'].forEach(function (k) { s[k] = Math.max(0, s[k] - dt); });
         s.tilt = Math.max(0, s.tilt - dt * 0.4);
         s.heat = Math.max(0, s.heat - dt * HEAT.cool);
         if (s.hot && s.heat < HEAT.reset) { s.hot = false; say(s, 'FLIPPERS BACK'); }
@@ -664,9 +584,6 @@
             s.targets.forEach(function (t) { t.down = false; });
             SND.tick(700);
         }
-        // An unclaimed live wire wanders on, so no target stays safe to ignore.
-        if (s.cfg.hot && (s.hotT -= dt) <= 0) wanderHot(s);
-        if (s.cfg.dark && (s.boltT -= dt) <= 0) { s.bolt = 0.35; s.boltT = G.rnd(4, 7); SND.thunder(); }
     }
 
     function moveRover(s, dt) {
@@ -679,14 +596,12 @@
     }
 
     // A lane lights only for a ball the player has flipped: the plunge drops
-    // every ball through the lanes, and that alone must not do the mission.
+    // every ball through the lanes, and that alone must not pay the bonus.
     function rollLane(s, l, b) {
-        if (!l.lit && !b.shot && s.cfg.goal === 'lane') say(s, 'NOT FLIPPED: NO LANE');
         if (l.lit || !b.shot) { score(s, 20); SND.tick(900); return; }
         l.lit = true;
         score(s, 150, l.x, 120);
         SND.chime(660);
-        progress(s, 'lane');
         if (!s.lanes.every(function (o) { return o.lit; })) return;
         score(s, 1000, CX, 140);
         s.lanes.forEach(function (o) { o.lit = false; });
@@ -703,18 +618,6 @@
             if (idx >= 0 && b.lane !== idx) rollLane(s, s.lanes[idx], b);
             b.lane = idx;
         });
-    }
-
-    function updateSpinner(s, dt) {
-        var sp = s.spinner;
-        if (!sp || !sp.vel) return;
-        var before = Math.floor(sp.ang / Math.PI);
-        sp.ang += sp.vel * dt;
-        sp.vel *= Math.exp(-1.3 * dt);
-        if (Math.abs(sp.vel) < 1.2) sp.vel = 0;
-        var turns = Math.abs(Math.floor(sp.ang / Math.PI) - before);
-        for (var i = 0; i < turns; i++) { score(s, 30); progress(s, 'spin'); }
-        if (turns) SND.tick(1300 + Math.abs(sp.vel) * 12);
     }
 
     function freeBalls(s) {
@@ -739,7 +642,7 @@
     // The locks come back once multiball is over, so it can be earned again.
     function endMultiball(s) {
         s.multiball = false;
-        s.lockLit = !!s.cfg.locks && (s.cfg.goal !== 'wizard' || s.done >= 6);
+        s.lockLit = s.done >= 6;
         if (mustRelock(s)) say(s, 'RE-LOCK 2 BALLS');
     }
 
@@ -749,7 +652,7 @@
         score(s, 500, sc.x, sc.y - 20);
         SND.saucer();
         G.burst(sc.x, sc.y, { n: 12, color: COL.cyan, speed: 150, life: 0.4 });
-        if (!s.lockLit) { progress(s, 'saucer'); return; }
+        if (!s.lockLit) return;
         b.locked = true; s.locked++;
         progress(s, 'lock');
         if (s.locked >= 2) { startMultiball(s); return; }
@@ -791,11 +694,6 @@
         score(s, 300, mg.x, mg.y - 20);
         SND.zap();
         G.burst(mg.x, mg.y, { n: 16, color: COL.cyan, speed: 260, life: 0.45 });
-        // Magnets catch plenty of balls on their own, so the mission only
-        // counts a ball the player has flipped since its last zap.
-        if (b.shot) progress(s, 'zap');
-        else if (s.cfg.goal === 'zap' && s.done < s.need) say(s, 'NOT FLIPPED: NO ZAP');
-        b.shot = false;
     }
 
     // Magnets take turns: each is live for 2.8 of every 5 seconds.
@@ -876,7 +774,6 @@
         moveRover(s, dt);
         for (var i = 0; i < SUB; i++) substep(s, dt / SUB);
         updateLanes(s);
-        updateSpinner(s, dt);
         s.saucers.forEach(function (sc) { updateSaucer(s, sc, dt); });
         s.magnets.forEach(function (mg, k) { updateMagnet(s, mg, k, dt); });
         drainBalls(s);
@@ -979,23 +876,10 @@
         });
     }
 
-    // The spinner plate is seen edge-on, so turning shows as its height
-    // swelling and shrinking, with the two faces in different colours.
-    function drawSpinner(s, ctx) {
-        var sp = s.spinner;
-        if (!sp) return;
-        var c = Math.cos(sp.ang), h = 2 + Math.abs(c) * 10;
-        ctx.fillStyle = c > 0 ? COL.red : COL.chrome;
-        ctx.fillRect(sp.x - sp.hw, sp.y - h / 2, sp.hw * 2, h);
-        line(ctx, sp.x - sp.hw, sp.y, sp.x + sp.hw, sp.y, 1, COL.cabinet);
-    }
-
     function drawTargets(s, ctx) {
         ctx.lineCap = 'butt';
         s.targets.forEach(function (t) {
-            var color = t.standup ? '#2c7f8c' : COL.yellow;
-            if (t.live) color = Math.sin(s.time * 14) > 0 ? COL.red : COL.ink;
-            if (t.flash > 0) color = '#fff';
+            var color = t.flash > 0 ? '#fff' : COL.yellow;
             if (t.down) line(ctx, t.ax, t.ay, t.bx, t.by, 2, '#35505a');
             else line(ctx, t.ax, t.ay, t.bx, t.by, 7, color);
         });
@@ -1061,32 +945,8 @@
         ctx.fillRect(LANE_R - 6, 500 - s.charge * 150, 3, s.charge * 150);
     }
 
-    // The blackout level: only a pool of light around the ball, wider with
-    // every fuse replaced. Lightning shows the whole table for a moment.
-    function drawDarkness(s, ctx) {
-        var b = s.balls[0] || { x: LANE_X, y: 500 };
-        var r = 85 + s.done * 26, alpha = 0.95 * (1 - 0.85 * s.bolt / 0.35);
-        var g = ctx.createRadialGradient(b.x, b.y, r * 0.35, b.x, b.y, r);
-        g.addColorStop(0, 'rgba(2,8,10,0)'); g.addColorStop(1, 'rgba(2,8,10,' + alpha.toFixed(3) + ')');
-        ctx.save();
-        fieldPath(ctx); ctx.clip();
-        ctx.fillStyle = g;
-        ctx.fillRect(XL, TOP, LANE_R - XL, G.H - TOP);
-        ctx.restore();
-        // Pilot lamps mark the fuses, so the goal can be found in the dark.
-        s.saucers.forEach(function (sc, i) {
-            ctx.globalAlpha = 0.35 + 0.35 * Math.sin(s.time * 5 + i * 2);
-            disc(ctx, sc.x, sc.y, 3, COL.cyan);
-        });
-        ctx.globalAlpha = 1;
-    }
-
-    // A ball the player has flipped wears a cyan ring while lanes or magnets
-    // are the mission: it shows which ball will count, and that a zap spends
-    // the charge. On a phone every ball gets a halo, as it is only a few
-    // pixels wide there.
+    // On a phone every ball gets a halo, as it is only a few pixels wide there.
     function drawBalls(s, ctx) {
-        var mark = needsShot(s);
         s.balls.forEach(function (b) {
             var g = ctx.createRadialGradient(b.x - 2.5, b.y - 2.5, 0.5, b.x, b.y, BALL_R);
             g.addColorStop(0, '#fff'); g.addColorStop(0.4, '#9daeb2'); g.addColorStop(1, '#30383b');
@@ -1094,9 +954,6 @@
             ctx.shadowColor = '#fff'; ctx.shadowBlur = 8;
             disc(ctx, b.x, b.y, BALL_R, g);
             ctx.shadowBlur = 0;
-            if (!mark || !b.shot) return;
-            ctx.strokeStyle = COL.cyan; ctx.lineWidth = 2.5;
-            ctx.beginPath(); ctx.arc(b.x, b.y, BALL_R + 3, 0, Math.PI * 2); ctx.stroke();
         });
     }
 
@@ -1141,8 +998,8 @@
         G.text('POINTS ' + s.pts + ' / ' + s.cfg.target, x, 226, { size: 20, bold: true, color: COL.yellow, max: w });
         bar(ctx, x, 234, w, s.pts / s.cfg.target, COL.yellow);
         lamp(ctx, x, y, 'BALL SAVER', s.save > 0);
-        // The lock lamps only exist on the two tables that have locks.
-        if (s.cfg.locks) {
+        // The lock lamps only exist on the last table, which has the locks.
+        if (s.cfg.saucers) {
             lamp(ctx, x, y += 28, s.locked ? 'LOCKED ' + s.locked + ' / 2' : 'LOCKS LIT', s.lockLit);
             lamp(ctx, x, y += 28, 'MULTIBALL x2', s.multiball);
         }
@@ -1164,20 +1021,20 @@
         G.text(s.pts + '/' + s.cfg.target + ' PTS', x, 246, { size: 24, bold: true, color: COL.yellow, max: w });
         bar(ctx, x, 256, w, s.pts / s.cfg.target, COL.yellow);
         G.text(s.save > 0 ? 'BALL SAVER ON' : 'BALL SAVER OFF', x, y + 22, { size: 24, color: s.save > 0 ? COL.cyan : COL.muted });
-        if (s.cfg.locks) {
+        if (s.cfg.saucers) {
             G.text(s.locked ? 'LOCKED ' + s.locked + '/2' : (s.lockLit ? 'LOCKS LIT' : 'LOCKS UNLIT'), x, y += 54, { size: 24, color: s.lockLit ? COL.cyan : COL.muted });
             G.text(s.multiball ? 'MULTIBALL x2' : 'MULTIBALL OFF', x, y + 30, { size: 24, color: s.multiball ? COL.cyan : COL.muted });
         }
         helpLines(s).forEach(function (text, i) { G.text(text, x, 436 + i * 28, { size: 24, color: COL.muted }); });
     }
 
-    // A flickering arc between two electrodes on the backglass.
-    function drawArc(s, ctx, x, y0, y1) {
+    // A flickering arc between two electrodes, at time t.
+    function drawArc(ctx, t, x, y0, y1) {
         ctx.strokeStyle = COL.cyan; ctx.lineWidth = 2;
         ctx.shadowColor = COL.cyan; ctx.shadowBlur = 12;
         ctx.beginPath(); ctx.moveTo(x, y0);
         for (var i = 1; i < 10; i++) {
-            ctx.lineTo(x + Math.sin(s.time * 17 + i * 2.3) * 12 + Math.sin(s.time * 31 + i * 5.1) * 7, G.lerp(y0, y1, i / 10));
+            ctx.lineTo(x + Math.sin(t * 17 + i * 2.3) * 12 + Math.sin(t * 31 + i * 5.1) * 7, G.lerp(y0, y1, i / 10));
         }
         ctx.lineTo(x, y1); ctx.stroke();
         ctx.shadowBlur = 0;
@@ -1213,7 +1070,7 @@
         if (s.touch) drawPhoneStatus(s, ctx, x, w);
         else {
             G.text(backglassHint(s), mid, 229, { size: 20, bold: true, color: COL.ink, align: 'center', max: w - 16 });
-            drawArc(s, ctx, mid, 290, 470);
+            drawArc(ctx, s.time, mid, 290, 470);
         }
     }
 
@@ -1242,20 +1099,56 @@
         drawMagnets(s, ctx);
         drawLanes(s, ctx);
         drawSaucers(s, ctx);
-        drawSpinner(s, ctx);
         drawTargets(s, ctx);
         drawSlings(s, ctx);
         drawBumpers(s, ctx);
         drawWalls(s, ctx);
         drawPlunger(s, ctx);
-        if (s.cfg.dark) drawDarkness(s, ctx);
-        // Flippers and balls are drawn over the darkness: the blackout hides
-        // the table, not the player's own tools.
         drawFlippers(s, ctx);
         drawBalls(s, ctx);
         drawSigns(s, ctx);
         drawMission(s, ctx);
         drawBackglass(s, ctx);
+    }
+
+    // ------------------------------------------------------------------
+    // The ending: the jackpot light show
+    // ------------------------------------------------------------------
+
+    // Chase lamps run round the whole screen in the table's three lamp
+    // colours, searchlights sweep up from the foot of the cabinet and two
+    // arcs crackle at the sides. Everything is a pure function of e.t.
+    var SHOW = [COL.yellow, COL.red, COL.cyan];
+
+    function drawChaseFrame(ctx, t) {
+        var head = Math.floor(t * 12), n = 0;
+        function bulb(x, y) {
+            var k = (n++ + head) % 6;
+            disc(ctx, x, y, 5, k < 3 ? SHOW[(Math.floor(t * 2) + k) % 3] : '#3b3320');
+        }
+        for (var x = 20; x <= G.W - 20; x += 32) { bulb(x, 16); bulb(G.W - x, G.H - 16); }
+        for (var y = 48; y <= G.H - 48; y += 32) { bulb(G.W - 16, y); bulb(16, G.H - y); }
+    }
+
+    function drawBeams(ctx, t) {
+        ctx.globalCompositeOperation = 'lighter';
+        [[180, 0], [G.W - 180, 1.7]].forEach(function (p, i) {
+            var a = -Math.PI / 2 + Math.sin(t * 0.9 + p[1]) * 0.55, len = 620;
+            ctx.fillStyle = i ? 'rgba(32,231,242,0.13)' : 'rgba(255,212,59,0.13)';
+            ctx.beginPath();
+            ctx.moveTo(p[0], G.H);
+            ctx.lineTo(p[0] + Math.cos(a - 0.09) * len, G.H + Math.sin(a - 0.09) * len);
+            ctx.lineTo(p[0] + Math.cos(a + 0.09) * len, G.H + Math.sin(a + 0.09) * len);
+            ctx.closePath(); ctx.fill();
+        });
+        ctx.globalCompositeOperation = 'source-over';
+    }
+
+    function drawEnding(e, ctx) {
+        drawBeams(ctx, e.t);
+        drawChaseFrame(ctx, e.t);
+        drawArc(ctx, e.t, 70, 120, 420);
+        drawArc(ctx, e.t + 3, G.W - 70, 120, 420);
     }
 
     // Kept short: the engine sets this right of the score, and a longer
@@ -1274,7 +1167,7 @@
             '↓ / NUDGE nudge the table — three in quick succession and it tilts',
             'Phone: tap a side to flip; PLUNGE is the right flipper too'
         ],
-        levelNames: ['First Spark', 'Lane Change', 'Drop Zone', 'Dynamo', 'Lock & Load', 'Rover', 'Magneto', 'Hot Wire', 'Blackout', 'Overload'],
+        levelNames: ['First Spark', 'Drop Zone', 'Overload'],
         colors: { bg: COL.cabinet, fg: COL.ink, accent: COL.yellow, dim: COL.muted },
         lives: 4,
         // A ragtime-flavoured stride: oom-pah bass on root, octave and fifth,
@@ -1289,6 +1182,12 @@
             arp: '..2...3...2...1.',
             drums: { k: 'x.......x.......', s: '....x.......x...', h: 'x.x.x.x.x.xxx.x.' },
             leadWave: 'square', bassWave: 'triangle', arpWave: 'triangle', leadOct: 1
+        },
+        ending: {
+            title: 'JACKPOT!',
+            text: 'The Overload is tamed. Every lamp on the table is yours.',
+            colors: SHOW.concat(COL.ink),
+            draw: drawEnding
         },
         init: init, update: update, draw: draw, hud: hud,
         // ◀ ▶ alone make the widest buttons and leave the most canvas; A and B

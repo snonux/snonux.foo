@@ -27,7 +27,7 @@ function fixture(touch = true) {
 }
 
 const phone = fixture(), desktop = fixture(false);
-for (let level = 1; level <= 10; level++) {
+for (let level = 1; level <= 3; level++) {
     const a = phone.def.init(level), b = desktop.def.init(level);
     for (const key of ['walls', 'bumpers', 'targets', 'lanes', 'saucers', 'magnets', 'flippers', 'balls', 'cfg']) {
         assert.equal(JSON.stringify(a[key]), JSON.stringify(b[key]), `level ${level}: phone must preserve ${key}`);
