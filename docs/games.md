@@ -593,12 +593,20 @@ walking bass.
 
 ### nukem — Nukem Time (run'n'gun platformer)
 Side-scrolling tile levels (use `G.tileMove`). `← →` run, `↑` jump, `SPACE`
-shoot, `X` throws a grenade (limited). Find the keycard, reach the exit door. Enemies: walking
-grunts, turrets, flying drones. Exploding barrels chain-react. Health, ammo
-power-ups (spread, rapid). Levels: ten scrolling stages built from a seeded
-generator with hand-shaped chunks (gaps never wider than the jump), moving
-platforms, acid pools, lifts, more enemy types, and a boss at level 10.
-Player has a health bar inside each life. Loud square-wave rock riff.
+shoot, `X` throws a grenade (limited). Find the keycard, reach the exit door
+before the warhead's clock runs out; whoever camps in one spot gets shelled.
+Enemies: walking grunts, turrets, flying drones. Exploding barrels
+chain-react. Health, ammo power-ups (spread, rapid), crates that hide
+supplies. The stages are built from a seeded generator with hand-shaped
+chunks (gaps never wider than the jump), so each level is the same on every
+visit. Levels: 1 *Rooftops* — grunts, turrets, barrels, crates and gaps;
+2 *Acid Works* — drones, acid pools, moving platforms and troopers that shoot
+back; 3 *The Overlord* — lifts, hopping mutants and laser gates on the way to
+a sealed arena where the Overlord mech carries the keycard (100 hits, three
+attack phases; entering the arena tops up health). Player has a health bar
+inside each life. Ending: *OVERLORD DOWN* — the wreck smoking on the left,
+the hero holding up the keycard, a skyline whose windows light up under
+fireworks. Loud square-wave rock riff.
 
 ### ocean — Deep Channel (submarine cave scroller)
 The trench scrolls right to left. The sub has buoyancy and inertia: `↑ ↓`

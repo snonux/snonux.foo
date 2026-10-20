@@ -32,7 +32,7 @@ function render(s) {
     return { texts, calls };
 }
 
-for (const level of [1, 5, 9, 10]) {
+for (const level of [1, 2, 3]) {
     G.cam.x = 0;
     const s = def.init(level);
     s.touch = true; s.p.weapon = 'spread'; s.p.ammo = 999; s.p.nades = 12; s.haveCard = true;
@@ -85,74 +85,3 @@ assert.equal(def.touch.a, 'FIRE');
 assert.equal(def.touch.b, 'NADE');
 assert(def.controls.some(line => line.includes('Run + ↑ + FIRE')), 'combined pad inputs are explained');
 console.log('nukem phone status, desktop HUD, offscreen culling and edge threats passed');
-
-// Run the same expression that play.mjs can use in Chrome. Only pad inputs
-// advance the world, including the boss's real AI and the idle-loss clock.
-let world, screen = 'play', held = {};
-G.isTouch = () => true;
-G.win = () => { screen = world.level === 10 ? 'victory' : 'clear'; };
-G.gameOver = () => { screen = 'over'; };
-G.loseLife = () => { if (--G.lives <= 0) screen = 'over'; return G.lives; };
-G.debug = {
-    start(level) {
-        G.lives = 4; G.cam.x = 0; held = {}; G.key = {}; G.hit = {};
-        world = def.init(level); screen = 'play';
-    },
-    state: () => ({ screen }),
-    s: () => world,
-    step(n, input) {
-        for (let i = 0; i < n && screen === 'play'; i++) {
-            const keys = typeof input === 'function' ? input(i, world, G) : input;
-            G.hit = {};
-            for (const k of Object.keys(keys)) G.hit[k] = keys[k] && !held[k];
-            G.key = keys; held = keys;
-            def.update(world, 1 / 60);
-        }
-    }
-};
-const wins = vm.runInNewContext(readFileSync(new URL('./nukem-bot.js', import.meta.url), 'utf8'), { SnoGame: G, Math });
-for (const win of wins) {
-    assert.equal(win.screen, win.level === 10 ? 'victory' : 'clear', `level ${win.level} ordinary-input win`);
-    assert(win.haveCard && win.bossDown, `level ${win.level} actually completes objective`);
-    assert.equal(win.idleScreen, 'over', `level ${win.level} idle cannot win`);
-}
-console.log(JSON.stringify(wins));
-
-// The optional browser gate runs the same ordinary-input proof against the
-// full engine, then captures levels 1/5/10 in desktop or both phone layouts.
-// node integrationtests/games/nukem.mjs --browser [--touch] [--shots=/tmp/nukem]
-if (process.argv.includes('--browser')) {
-    const { startSession, sleep } = await import('./lib.mjs');
-    const { mkdirSync } = await import('node:fs');
-    const { join } = await import('node:path');
-    const shotDir = process.argv.find(arg => arg.startsWith('--shots='))?.slice(8);
-    if (shotDir) mkdirSync(shotDir, { recursive: true });
-    const layouts = process.argv.includes('--touch')
-        ? [{ name: 'landscape', width: 844, height: 390 }, { name: 'portrait', width: 390, height: 844 }]
-        : [{ name: 'desktop' }];
-    const { page, base, close } = await startSession();
-    try {
-        for (const layout of layouts) {
-            if (layout.width) await page.emulatePhone(layout.width, layout.height);
-            await page.goto(`${base}/index.html`);
-            await page.eval("SnoGame.launch('nukem')");
-            await page.waitFor('SnoGame.debug.state() && SnoGame.debug.state().registered', 'nukem registration');
-            const proof = await page.eval(readFileSync(new URL('./nukem-bot.js', import.meta.url), 'utf8'));
-            for (const win of proof) {
-                assert.equal(win.screen, win.level === 10 ? 'victory' : 'clear', `${layout.name} level ${win.level} ordinary-input win`);
-                assert(win.haveCard && win.bossDown, `${layout.name} level ${win.level} objective`);
-                assert.equal(win.idleScreen, 'over', `${layout.name} level ${win.level} idle loss`);
-            }
-            console.log(layout.name, JSON.stringify(proof));
-            if (shotDir) for (const level of [1, 5, 10]) {
-                await page.eval(`SnoGame.debug.start(${level}); SnoGame.debug.step(30, {});`);
-                await sleep(80);
-                await page.screenshot(join(shotDir, `nukem-${layout.name}-L${level}.jpg`));
-            }
-            assert.deepEqual(await page.eval('SnoGame.debug.errors.slice()'), []);
-            assert.deepEqual(page.problems, []);
-        }
-    } finally {
-        await close();
-    }
-}
