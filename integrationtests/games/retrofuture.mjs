@@ -54,11 +54,43 @@ G.debug = { start: reset, state: () => ({ screen }), s: () => s, errors: [], ste
         G.mouse = { x: mouse.x ?? G.mouse.x, y: mouse.y ?? G.mouse.y, hit: !!mouse.down && !previous };
         previous = !!(ctl.a || mouse.down); G.t += 1 / 60; def.update(s, 1 / 60); }
 } };
-const bot = readFileSync(new URL('./retrofuture-bot.js', import.meta.url), 'utf8');
-for (const touch of [false, true]) { phone = touch; const result = vm.runInNewContext(bot, { SnoGame: G });
+// A MIRV splits into three; losing the last city costs a life.
+phone = false; reset(2);
+s.foes = [{ id: 99, kind: 'mirv', x: 300, y: 200, tx: 260, speed: 60, hp: 1, seen: 0, hurt: 0, zip: 0, vx: 0, vy: 60, splitY: 202, trail: [{ x: 300, y: 200 }] }];
+G.key = {}; G.hit = {}; G.mouse = { x: 480, y: 270 }; def.update(s, 1 / 30);
+assert.equal(s.foes.length, 3, 'a MIRV splits into three warheads');
+reset(1); s.sites.forEach((c) => { if (!c.base) c.alive = false; }); def.update(s, 1 / 60);
+assert.equal(G.lives, 2, 'the last city lost costs a life');
+// The campaign bot (bots/retrofuture.js) plays every level with the mouse.
+const BOT = readFileSync(new URL('./bots/retrofuture.js', import.meta.url), 'utf8');
+const bot = `(function (bot) {
+    var G = SnoGame, wins = [];
+    for (var level = 1; level <= 3; level++) {
+        var mem = {}, ticks = 0, boss = false, splits = 0, dark = false;
+        G.debug.start(level);
+        while (ticks++ < 40000 && G.debug.state().screen === 'play') {
+            var s = G.debug.s(), mirvs = s.foes.filter(function (f) { return f.kind === 'mirv'; }).length;
+            boss = boss || !!s.boss; dark = dark || !!(s.cfg.night && s.cfg.night[s.wave]);
+            G.debug.step(1, bot.play(s, G, mem));
+            s = G.debug.s();
+            splits += Math.max(0, mirvs - s.foes.filter(function (f) { return f.kind === 'mirv'; }).length);
+        }
+        var cities = G.debug.s().sites.filter(function (c) { return !c.base && c.alive; }).length;
+        wins.push({ level: level, screen: G.debug.state().screen, ticks: ticks, boss: boss, splits: splits, dark: dark, cities: cities });
+    }
+    G.debug.start(1); G.debug.step(50000, {});
+    return { wins: wins, idle: G.debug.state().screen, errors: G.debug.errors.slice() };
+})(${BOT})`;
+const checkRun = (result) => {
     for (const win of result.wins) assert.equal(win.screen, win.level === 3 ? 'victory' : 'clear', JSON.stringify(win));
-    assert.equal(result.idle, 'over'); }
-console.log('ok retrofuture local: unchanged rules, tap/FIRE aim, battery failures, readable status, less drawing, wins 1/2/3 and idle loss');
+    assert.deepEqual(result.wins.map((w) => w.boss), [false, false, true], 'the mothership is the final assault');
+    assert.deepEqual(result.wins.map((w) => w.dark), [false, false, true], 'the blackout is a wave of the finale');
+    assert.ok(result.wins[1].splits > 0 && result.wins[2].splits > 0, 'MIRVs split in levels 2 and 3');
+    assert.ok(result.wins.every((w) => w.cities > 0), 'cities survive');
+    assert.equal(result.idle, 'over');
+};
+for (const touch of [false, true]) { phone = touch; checkRun(JSON.parse(JSON.stringify(vm.runInNewContext(bot, { SnoGame: G, Math })))); }
+console.log('ok retrofuture local: unchanged rules, tap/FIRE aim, battery failures, MIRV split, city loss, readable status, less drawing, wins 1/2/3 and idle loss');
 if (!process.argv.includes('--local')) {
     const { page, base, close } = await startSession();
     try { for (const mode of [null, ...PHONES]) {
@@ -66,8 +98,7 @@ if (!process.argv.includes('--local')) {
         await page.goto(`${base}/index.html`); await page.eval("SnoGame.launch('retrofuture')");
         await page.waitFor('SnoGame.debug.state() && SnoGame.debug.state().registered', 'registration');
         const result = await page.eval(bot);
-        for (const win of result.wins) assert.equal(win.screen, win.level === 3 ? 'victory' : 'clear', JSON.stringify(win));
-        assert.equal(result.idle, 'over'); assert.deepEqual(result.errors, []);
+        checkRun(result); assert.deepEqual(result.errors, []);
         console.log(`ok retrofuture ${mode?.name || 'desktop'}: input wins and idle loss`);
     } } finally { await close(); }
 }
