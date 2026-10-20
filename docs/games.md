@@ -661,10 +661,17 @@ Six domed cities and three missile batteries with limited ammunition. Mouse
 aims (keyboard: arrows move the cursor), click or `SPACE` fires from the
 nearest battery with ammo; the counter-missile explodes at the cursor in an
 expanding blast that chains. Enemy ICBMs streak down, some split (MIRV),
-smart bombs dodge blasts, saucers cross and bomb. Survive every wave of the
-level with at least one city. Levels: faster and more missiles, MIRVs,
-smart bombs, saucers, night levels with only trails visible; bonus city for
-points. Googie styling, theremin-like sine slides, optimistic major music.
+smart bombs dodge blasts, saucers cross and bomb. Ammunition refills each
+wave; blasts chain. Survive every wave of the level with at least one city;
+3000 points earn a bonus city. Levels: 1 *First Light* — three waves of plain
+warheads to learn leading a target; 2 *Split Atoms* — salvos, MIRVs that
+split, a few smart bombs and saucers; 3 *Doomsday* — the final assault adds
+heavy warheads (two blasts, flatten the neighbours) and cruise missiles from
+the sides, the second wave is a blackout with only trails visible, and the
+third brings the shielded mothership. The ending ("CITIES SAVED"): six domes
+rise in the foreground under sweeping searchlights, Googie starbursts and
+fireworks in the theme's colours. Googie styling, theremin-like sine slides,
+optimistic major music.
 
 ### spaceage — Orbital Dock (thrust lander)
 `← →` rotate, `↑` or `SPACE` thrust. Gravity, inertia, limited fuel. Land on

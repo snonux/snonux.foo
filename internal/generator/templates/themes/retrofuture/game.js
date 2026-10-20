@@ -9,10 +9,12 @@
  * wave, batteries can be knocked out, and the level is lost when the last
  * city falls. Points earn bonus cities.
  *
- * The ten levels add, in turn: salvos, MIRVs that split, saucers that bomb,
- * night (only trails show, blasts light up what is near them), smart bombs
- * that dodge blasts, heavy warheads that need two blasts and flatten the
- * neighbours, low cruise missiles from the sides, and a mothership.
+ * Three levels: plain warheads first; then salvos, MIRVs that split, smart
+ * bombs that dodge blasts and saucers that bomb; then the final assault with
+ * heavy warheads that need two blasts and flatten the neighbours, low cruise
+ * missiles from the sides, a blackout wave (only trails show, blasts light
+ * up what is near them) and a mothership. Saving the cities opens the
+ * ending: the skyline rises under searchlights and atomic starbursts.
  */
 (function () {
     'use strict';
@@ -38,18 +40,12 @@
 
     // n: warheads per wave; speed: px/s; gap: seconds between launches (or
     // between salvos); salvo: launches per group; mirv/smart/heavy/cruise:
-    // share of launches of that kind; saucers: per wave.
+    // share of launches of that kind; saucers and night: per wave; boss: the
+    // last wave brings the mothership.
     var LEVELS = [
-        { n: [7, 9, 11], speed: 42, gap: 1.7 },
-        { n: [9, 12, 15], speed: 54, gap: 3.6, salvo: 3 },
-        { n: [9, 10, 12], speed: 56, gap: 1.6, mirv: 0.35 },
-        { n: [9, 11, 12], speed: 60, gap: 1.5, mirv: 0.2, saucers: [1, 2, 2] },
-        { n: [10, 12, 13], speed: 60, gap: 1.5, mirv: 0.25, saucers: [1, 1, 2], night: true },
-        { n: [10, 12, 14], speed: 64, gap: 1.4, mirv: 0.2, smart: 0.22, saucers: [0, 1, 1] },
-        { n: [10, 12, 13, 14], speed: 66, gap: 1.4, mirv: 0.2, smart: 0.12, heavy: 0.18, saucers: [1, 1, 1, 2] },
-        { n: [11, 12, 13, 15], speed: 70, gap: 1.3, mirv: 0.22, smart: 0.15, heavy: 0.1, saucers: [1, 1, 1, 1], night: true },
-        { n: [11, 13, 14, 16], speed: 74, gap: 1.3, mirv: 0.18, smart: 0.12, heavy: 0.1, cruise: 0.22, saucers: [1, 1, 2, 2] },
-        { n: [12, 14, 15, 8], speed: 76, gap: 1.25, mirv: 0.2, smart: 0.14, heavy: 0.1, cruise: 0.14, saucers: [1, 1, 2, 0], night: true, boss: true }
+        { n: [8, 10, 12], speed: 44, gap: 1.6 },
+        { n: [10, 12, 14], speed: 54, gap: 2.6, salvo: 2, mirv: 0.3, smart: 0.1, saucers: [0, 1, 2] },
+        { n: [10, 10, 8], speed: 62, gap: 1.35, mirv: 0.2, smart: 0.12, heavy: 0.12, cruise: 0.14, saucers: [1, 1, 0], night: [false, true, false], boss: true }
     ];
 
     // ------------------------------------------------------------------
@@ -147,6 +143,9 @@
         s.queue = buildWave(s);
         return s;
     }
+
+    // The blackout is one wave of the finale: only trails show.
+    function night(s) { return !!(s.cfg.night && s.cfg.night[s.wave]); }
 
     function cities(s, alive) {
         return s.sites.filter(function (c) { return !c.base && c.alive === alive; });
@@ -329,7 +328,7 @@
         f.x += f.vx * dt; f.y += f.vy * dt;
         if (f.hurt > 0) f.hurt -= dt;
         // The trail is a capped list of points, so curving paths draw right
-        // and the night levels can show just its last stretch.
+        // and the blackout can show just its last stretch.
         var last = f.trail[f.trail.length - 1];
         if (G.dist(last.x, last.y, f.x, f.y) < 14) return;
         f.trail.push({ x: f.x, y: f.y });
@@ -609,10 +608,10 @@
     }
 
     function drawSky(s, ctx) {
-        var night = !!s.cfg.night, g = ctx.createLinearGradient(0, G.HUD, 0, GROUND);
-        g.addColorStop(0, night ? '#020007' : BG);
-        g.addColorStop(0.7, night ? '#06010f' : '#24093f');
-        g.addColorStop(1, night ? '#12041f' : '#6a2360');
+        var dark = night(s), g = ctx.createLinearGradient(0, G.HUD, 0, GROUND);
+        g.addColorStop(0, dark ? '#020007' : BG);
+        g.addColorStop(0.7, dark ? '#06010f' : '#24093f');
+        g.addColorStop(1, dark ? '#12041f' : '#6a2360');
         ctx.fillStyle = g;
         ctx.fillRect(0, 0, G.W, GROUND);
         s.stars.forEach(function (st, i) {
@@ -621,14 +620,14 @@
             ctx.fillStyle = st.big ? TEAL : CREAM;
             ctx.fillRect(st.x, st.y, st.big ? 3 : 2, st.big ? 3 : 2);
         });
-        drawPlanet(ctx, night);
+        drawPlanet(ctx, dark);
     }
 
     // A perspective grid below the horizon, in the theme's own style.
     function drawGround(s, ctx) {
-        ctx.fillStyle = s.cfg.night ? '#07020f' : '#160633';
+        ctx.fillStyle = night(s) ? '#07020f' : '#160633';
         ctx.fillRect(0, GROUND, G.W, G.H - GROUND);
-        ctx.strokeStyle = TEAL; ctx.lineWidth = 1; ctx.globalAlpha = s.cfg.night ? 0.12 : 0.28;
+        ctx.strokeStyle = TEAL; ctx.lineWidth = 1; ctx.globalAlpha = night(s) ? 0.12 : 0.28;
         ctx.beginPath();
         for (var i = -14; i <= 14; i++) { ctx.moveTo(G.W / 2 + i * 38, GROUND); ctx.lineTo(G.W / 2 + i * 92, G.H); }
         for (var y = GROUND + 8; y < G.H; y += 12) { ctx.moveTo(0, y); ctx.lineTo(G.W, y); }
@@ -734,7 +733,7 @@
 
     function drawSites(s, ctx) {
         s.sites.forEach(function (c) {
-            if (c.base) drawBattery(ctx, c, s.touch); else drawCity(ctx, c, !!s.cfg.night);
+            if (c.base) drawBattery(ctx, c, s.touch); else drawCity(ctx, c, night(s));
         });
     }
 
@@ -744,7 +743,7 @@
 
     // At night anything is only seen in the glow of a nearby blast.
     function lit(s, x, y) {
-        if (!s.cfg.night) return true;
+        if (!night(s)) return true;
         return s.blasts.some(function (b) { return G.dist(x, y, b.x, b.y) < b.r + 90; });
     }
 
@@ -790,9 +789,9 @@
     }
 
     function drawFoes(s, ctx) {
-        var night = !!s.cfg.night;
+        var dark = night(s);
         s.foes.forEach(function (f) {
-            drawTrail(ctx, f, night);
+            drawTrail(ctx, f, dark);
             if (lit(s, f.x, f.y)) drawHead(ctx, f);
         });
     }
@@ -891,7 +890,7 @@
             return;
         }
         if (s.waveT <= 0.05 || s.waveT > 2.4) return;
-        var note = s.boss ? 'MOTHERSHIP INBOUND' : (s.cfg.night ? 'BLACKOUT: WATCH THE TRAILS' : 'DEFEND THE DOMES');
+        var note = s.boss ? 'MOTHERSHIP INBOUND' : (night(s) ? 'BLACKOUT: WATCH THE TRAILS' : 'DEFEND THE DOMES');
         ctx.globalAlpha = Math.min(1, (2.4 - s.waveT) * 2);
         G.text('WAVE ' + (s.wave + 1) + ' OF ' + waves, G.W / 2, 190, { size: 30, bold: true, color: ORANGE, align: 'center', glow: ORANGE });
         G.text(note, G.W / 2, 226, { size: 20, color: CREAM, align: 'center' });
@@ -911,6 +910,68 @@
         drawCursor(s, ctx);
     }
 
+    // ------------------------------------------------------------------
+    // The ending: the skyline the player saved
+    // ------------------------------------------------------------------
+
+    // Six domes rise one after another, as a rebuilt city does, in a fresh
+    // foreground strip that covers the batteries' tally (and stays under the
+    // engine's small print); searchlights sweep the sky and atomic
+    // starbursts twinkle in the corners, clear of the engine's text.
+    var END_K = 1.2;
+    var BURSTS = [[70, 80], [890, 90], [250, 60], [710, 70], [130, 240], [830, 250], [60, 350], [900, 360]];
+
+    function drawSkyline(ctx, t) {
+        var span = G.W / END_K;
+        ctx.fillStyle = '#160633';
+        ctx.fillRect(0, GROUND, G.W, G.H - GROUND);
+        ctx.fillStyle = PINK;
+        ctx.fillRect(0, GROUND - 1, G.W, 2);
+        ctx.save();
+        ctx.translate(0, G.H - GROUND * END_K);
+        ctx.scale(END_K, END_K);
+        for (var i = 0; i < 6; i++) {
+            drawCity(ctx, { x: span * (i + 0.5) / 6, i: i, alive: true, rise: G.clamp(1 - (t - 0.3 * i) / 0.8, 0, 1) }, false);
+        }
+        ctx.restore();
+    }
+
+    function drawSearchlights(ctx, t) {
+        ctx.fillStyle = CREAM;
+        ctx.globalAlpha = 0.09;
+        for (var i = 0; i < 3; i++) {
+            var x = G.W * (0.2 + 0.3 * i), y = GROUND - 40, a = -Math.PI / 2 + Math.sin(t * 0.7 + i * 2) * 0.6;
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+            ctx.lineTo(x + Math.cos(a - 0.07) * 700, y + Math.sin(a - 0.07) * 700);
+            ctx.lineTo(x + Math.cos(a + 0.07) * 700, y + Math.sin(a + 0.07) * 700);
+            ctx.fill();
+        }
+        ctx.globalAlpha = 1;
+    }
+
+    // A Googie starburst: four spokes that turn and breathe.
+    function drawStarbursts(ctx, t) {
+        ctx.lineWidth = 2;
+        BURSTS.forEach(function (p, i) {
+            var r = 8 + 6 * Math.abs(Math.sin(t * 2 + i)), a = t * 0.8 + i;
+            ctx.strokeStyle = BLAST_HUES[(i + Math.floor(t * 2)) % 4];
+            ctx.beginPath();
+            for (var k = 0; k < 4; k++) {
+                var c = Math.cos(a + k * Math.PI / 4) * r, sn = Math.sin(a + k * Math.PI / 4) * r;
+                ctx.moveTo(p[0] - c, p[1] - sn); ctx.lineTo(p[0] + c, p[1] + sn);
+            }
+            ctx.stroke();
+        });
+    }
+
+    var ENDING = {
+        title: 'CITIES SAVED',
+        text: 'The domes shine on into the atomic age.',
+        colors: [TEAL, PINK, ORANGE, CREAM],
+        draw: function (e, ctx) { drawSearchlights(ctx, e.t); drawStarbursts(ctx, e.t); drawSkyline(ctx, e.t); }
+    };
+
     function hud(s) {
         if (s.touch) return 'W' + (s.wave + 1) + '/' + s.cfg.n.length + ' AMMO ' + ammoLeft(s) + (s.spare ? ' +' + s.spare + ' CITY' : '');
         return 'WAVE ' + (s.wave + 1) + '/' + s.cfg.n.length + '  AMMO ' + ammoLeft(s) + (s.spare ? '  +' + s.spare + ' CITY' : '');
@@ -925,7 +986,7 @@
             'Lead the warheads · Blasts chain together',
             'Ammo refills each wave · 3000 points restore a city'
         ],
-        levelNames: ['First Light', 'Rush Hour', 'Split Atoms', 'Saucer Season', 'Blackout', 'Smart Money', 'Heavy Water', 'Midnight Oil', 'Low Riders', 'Doomsday'],
+        levelNames: ['First Light', 'Split Atoms', 'Doomsday'],
         colors: { bg: BG, fg: CREAM, accent: TEAL, dim: '#a595c4' },
         lives: 3,
         // A bright, bouncy major tune with a sine lead for the theremin feel.
@@ -939,7 +1000,7 @@
             arp: '0.1.2.3.2.1.', drums: { k: 'x...x...x...x...', s: '....x.......x..x', h: '..x...x...x...x.' },
             leadWave: 'sine', bassWave: 'triangle', arpWave: 'triangle', leadOct: 2
         },
-        init: init, update: update, draw: draw, hud: hud, cursor: 'crosshair',
+        init: init, update: update, draw: draw, hud: hud, cursor: 'crosshair', ending: ENDING,
         // A tap on the canvas aims and fires at once, which is all a phone
         // needs; the stick plus FIRE stays for those whose finger would hide
         // the target. Nothing is on B.

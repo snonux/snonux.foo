@@ -1,6 +1,6 @@
 (function () {
     var G = SnoGame, wins = [];
-    for (var level of [1, 5, 10]) {
+    for (var level of [1, 2, 3]) {
         G.debug.start(level);
         var ticks = 0, wait = 0;
         while (ticks++ < 40000 && G.debug.state().screen === 'play') {
@@ -25,6 +25,6 @@
         }
         wins.push({ level: level, screen: G.debug.state().screen, ticks: ticks });
     }
-    G.debug.start(10); G.debug.step(50000, {});
+    G.debug.start(1); G.debug.step(50000, {});
     return { wins: wins, idle: G.debug.state().screen, errors: G.debug.errors.slice() };
 })()
