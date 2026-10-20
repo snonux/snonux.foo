@@ -3,7 +3,7 @@
 // the tool for developing a game: script a bot, read the state, take a shot.
 //
 //   node integrationtests/games/play.mjs breakout
-//   node integrationtests/games/play.mjs breakout --level=5 --shot=/tmp/l5.jpg
+//   node integrationtests/games/play.mjs breakout --level=3 --shot=/tmp/l3.jpg
 //   node integrationtests/games/play.mjs breakout --level=1 --eval=/tmp/bot.js
 //   node integrationtests/games/play.mjs breakout --serve      # play it yourself
 //   node integrationtests/games/play.mjs breakout --touch --shot=/tmp/phone.jpg
@@ -44,7 +44,7 @@ function parseArgs(argv) {
         else opts.theme = a;
     }
     if (!opts.theme) throw new Error('usage: play.mjs <theme> [--level=N] [--eval=file.js] [--shot=file.jpg] [--touch[=portrait]] [--serve]');
-    if (!(opts.level >= 1 && opts.level <= 10)) throw new Error('--level must be 1..10');
+    if (!(opts.level >= 1 && opts.level <= 3)) throw new Error('--level must be 1..3');
     return opts;
 }
 

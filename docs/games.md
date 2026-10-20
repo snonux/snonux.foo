@@ -10,10 +10,12 @@ beside the splash and header buttons opens a menu of every theme's game (see
 - `internal/generator/templates/shared/arcade.js` — the menu of all games
 - `internal/generator/templates/themes/<theme>/game.js` — one game per theme
 - `internal/generator/templates/themes/<theme>/game-thumb.jpg` — its picture in the menu
-- `integrationtests/games/` — the Chrome test tools (`e2e.mjs`, `play.mjs`)
+- `integrationtests/games/` — the Chrome test tools (`e2e.mjs`, `campaign.mjs`, `play.mjs`)
+- `integrationtests/games/bots/<theme>.js` — the bot that plays a game's campaign
 
 The engine owns the overlay, the loop, input, audio, effects, menus, the
-ten-level flow and the save cookie. A game only describes its own world.
+three-level flow, the ending scene and the save cookie. A game only
+describes its own world.
 
 ## Writing a game
 
@@ -33,7 +35,7 @@ A game is one self-contained file that registers itself under its theme name.
         title: 'MY GAME',
         blurb: 'One line that says what to do.',
         controls: ['← → move', 'SPACE jump'],          // 1-4 short lines
-        levelNames: ['…', /* exactly ten */],
+        levelNames: ['…', '…', '…'],                     // exactly three
         colors: { bg: '#000', fg: '#fff', accent: '#0ff', dim: '#888' },
         lives: 3,
         music: { /* see Music */ },
@@ -41,20 +43,24 @@ A game is one self-contained file that registers itself under its theme name.
         hud: function (s) { return 'FUEL 80'; },       // optional, right side of the HUD
         cursor: 'none',                                // optional CSS cursor during a level
                                                        // (menus always show the pointer)
-        touch: { a: 'JUMP', hide: ['up', 'down', 'b'] } // optional touch pad setup (see Touch)
+        touch: { a: 'JUMP', hide: ['up', 'down', 'b'] }, // optional touch pad setup (see Touch)
+        ending: { title: 'CASE CLOSED', colors: ['#f33', '#fff'] } // optional (see The ending)
     });
 })();
 ```
 
 ### Rules
 
-1. **Ten levels that differ.** `init(level)` gets 1..10. Later levels must add
-   something (new enemy, hazard, layout, mechanic), not only raise a speed.
-   Build layouts from `G.rng(seed)` so a level is the same on every visit.
+1. **Three levels that differ.** `init(level)` gets 1..3: an introduction, a
+   development and a finale. Each must add something (new enemy, hazard,
+   layout, mechanic), not only raise a speed; the game's signature late
+   mechanic or boss belongs in level 3. Build layouts from `G.rng(seed)` so a
+   level is the same on every visit.
 2. **Winnable and losable through play.** Every level needs a reachable goal
    that calls `G.win(bonus)`, and a way to fail that calls `G.die()` or
-   `G.loseLife()`. Level 1 should take a new player about a minute; level 10
-   should be hard but fair. Aim for 1-3 minutes per level.
+   `G.loseLife()`. Level 1 should take a new player about a minute; level 3
+   should be a satisfying finale a casual player can still finish. Aim for
+   1-3 minutes per level: the point of three levels is that people finish.
 3. **Action first.** The player must be doing something every second.
 4. **Sound.** Give every meaningful event a sound (`G.sfx` presets or your own
    `G.tone` / `G.noise`), and compose a `music` track that suits the theme.
@@ -77,13 +83,55 @@ A game is one self-contained file that registers itself under its theme name.
 11. **Playable on a phone.** Every game must be winnable with the touch pad
     and taps alone; see [Touch](#touch).
 
+### The ending
+
+Clearing level 3 does not show a plain banner: the engine opens the ending
+scene. The game's `update` stops, its last frame stays behind (dimmed), and
+fireworks go up over the title, the score and two buttons, **PLAY AGAIN**
+(a new run from level 1) and **LEVELS** (the title screen). `← →` pick,
+`ENTER` confirms, a tap on a button picks and confirms; for its first 1.2
+seconds the scene ignores input so a held fire button cannot skip it. `Esc`
+or `✕` quits as anywhere else. Pause, mute and the hidden-tab pause work as
+on every screen, and quitting or relaunching leaves nothing of it behind.
+
+A game gives the scene its own character with `def.ending`; every field is
+optional and a game that declares nothing gets the fireworks in its colours.
+
+```js
+ending: {
+    title: 'CASE CLOSED',        // the big line (default 'YOU WIN')
+    text: 'The city sleeps.',    // a line under it
+    colors: ['#f33', '#fff'],    // the firework palette (default: accent, fg, gold, pink)
+    fireworks: true,             // false switches the engine's fireworks off
+    draw: function (e, ctx, G) { // the theme's own scene, behind the fireworks
+        // e.t: seconds since the scene opened; e.score, e.level;
+        // e.data: a scratch object kept for the scene's lifetime;
+        // e.rng: a seeded 0..1 generator
+    }
+}
+```
+
+`draw` is called every frame on top of the dimmed last frame of level 3 and
+under the fireworks and the text, so keep it to the middle band (y 210-370
+is covered by text less than the rest) or to large shapes. It runs only
+after the real third-level goal; the same rules as `draw` apply (no sounds,
+no state outside `e.data`, a few hundred canvas calls at most).
+
+### Saves
+
+The save is one cookie per game: `unlocked.hiscore.lastLevel.won`. A save
+from the old ten-level campaigns is migrated, not thrown away: levels above 3
+are capped at 3 (so a player who had got past level 3 finds all three open)
+and the high score and the completed star stay. Anything malformed falls
+back to a fresh save.
+
 ### The API
 
 State and flow:
 
 | | |
 |---|---|
-| `G.W`, `G.H`, `G.HUD`, `G.STEP` | 960, 540, 30, 1/60 |
+| `G.W`, `G.H`, `G.HUD`, `G.STEP`, `G.LEVELS` | 960, 540, 30, 1/60, 3 |
 | `G.level`, `G.lives`, `G.score`, `G.t` | current level, lives left, run score, seconds played since the level's last `init` (it restarts after `G.die()`) |
 | `G.win(bonus)` | level cleared; `bonus` is added to the score |
 | `G.die()` | lose a life and restart the level from `init` (after a one-second freeze) |
@@ -295,13 +343,23 @@ A new or changed game needs two things for it:
 
 ## Testing
 
+Requirements: node 22 or newer and Chrome or Chromium (found at the usual
+paths, or set `CHROME=/path/to/chrome`). Nothing is npm-installed. A missing
+browser is a failed test run, never a pass.
+
 ```sh
 # Develop: launch your game, start a level, run a snippet, take a screenshot.
 node integrationtests/games/play.mjs mytheme --level=3 --shot=/tmp/l3.jpg
 node integrationtests/games/play.mjs mytheme --eval=/tmp/bot.js
 node integrationtests/games/play.mjs mytheme --serve     # play it yourself
 
-# The gate: must pass before the game is done, on desktop and on a phone.
+# Playability: the theme's bot plays the whole campaign by input only.
+node integrationtests/games/campaign.mjs mytheme --shots=/tmp/shots
+node integrationtests/games/campaign.mjs --touch mytheme            # phone, landscape
+node integrationtests/games/campaign.mjs --touch=portrait mytheme
+node integrationtests/games/campaign.mjs --levels=3 --seed=4 mytheme # one level, another seed
+
+# Smoke tests of the engine flow, on desktop and on a phone.
 node integrationtests/games/e2e.mjs mytheme --shots=/tmp/shots
 node integrationtests/games/e2e.mjs --touch mytheme --shots=/tmp/shots
 
@@ -309,35 +367,77 @@ node integrationtests/games/e2e.mjs --touch mytheme --shots=/tmp/shots
 node integrationtests/games/play.mjs mytheme --touch --shot=/tmp/phone.jpg
 ```
 
-`GAMES_GPU=1 node integrationtests/games/cpu.mjs [theme…]` measures what a
-game costs: frame rate, JS time per frame and Chrome's CPU use on levels 1
-and 10. A game should hold 60 fps at well under one core. Its cost is mostly
-the canvas calls the browser has to rasterise, not its JS: keep a frame to a
-few hundred calls, draw static scenery (walls, mazes, backdrops) once into an
-offscreen canvas and blit it, batch same-coloured shapes into one path, and
-avoid `shadowBlur` on anything drawn many times.
+Without theme names `campaign.mjs` and `e2e.mjs` run every game;
+`campaign.mjs` then fails for any theme that has no bot (`--allow-missing`
+skips those instead). `mage gamesE2E`, `mage gamesTouchE2E` and
+`mage gamesCampaign` run them for all games.
 
-`play.mjs --eval` evaluates one expression in the page. The test hooks:
+### Smoke tests and playability tests
 
-| | |
-|---|---|
-| `SnoGame.debug.start(level)` | jump straight into play |
-| `SnoGame.debug.step(n, input)` | run `n` ticks synchronously; `input` is `{left, right, up, down, a, b, codes: {KeyW: true}, mouse: {x, y, down, rdown}}` or a function `(i, s, G) => input`. A button held at the end of one call and the start of the next stays held (one `G.hit` edge, not one per call); `debug.start` forgets what was held |
-| `SnoGame.debug.state()` | `{screen, level, lives, score, …}`; `screen` is `play`, `clear`, `over`, `victory`, … |
-| `SnoGame.debug.s()` | the game's own state object |
-| `SnoGame.debug.errors` | exceptions thrown by `init` / `update` / `draw` |
+The two kinds prove different things, and a game needs both.
 
-Because `step` runs faster than real time, a scripted bot can play a whole
-level in milliseconds. Before a game is done, show with such a bot (reading
-`s` to steer) that **level 1, level 5 and level 10 can each be won through
-real play**, and that doing nothing loses. Look at screenshots of at least
-levels 1, 5 and 10: check nothing overlaps the HUD and the picture is readable.
+**`e2e.mjs` is a smoke test of the engine flow.** It plays each level with a
+random bot for 15 seconds to shake out exceptions and, where that bot does
+not win (it usually does not), forces the win with `debug.win()` to check the
+clear, unlock, ending and save flow. A pass says nothing about whether a
+level *can* be won.
 
-`e2e.mjs` checks the rest in real Chrome: all four launchers, `Esc`, real key
+**`campaign.mjs` is the playability test.** Each theme has a bot in
+`integrationtests/games/bots/<theme>.js`, one expression:
+
+```js
+({
+    // Called every tick of play; returns that tick's input, as debug.step takes it.
+    play: function (s, G, mem) { return { right: s.ball.x > s.paddle.x, a: true }; },
+    // Optional negative control (default: do nothing): must lose level 1.
+    fail: function (s, G, mem) { return { a: true }; },
+    budget: 300   // optional: game seconds a level may take (default 360)
+})
+```
+
+`s` (the game's state) and `G` (the engine) are read-only views: the bot may
+read anything to steer, but a write throws, and a bot that calls `G.win`,
+`G.die`, `G.loseLife`, `G.gameOver`, `G.addScore`, `G.addLife` or any
+`SnoGame.debug` hook fails the run. No forced wins, no invulnerability, no
+teleports, no edits to the world: only the buttons, the mouse and taps a
+player has. `mem` is the bot's own scratch object, fresh for each level.
+
+The run, per theme: fresh cookies and a seeded `Math.random` (`--seed`), the
+game launched, level 1 started from the title by a real `Enter` (a real tap
+with `--touch`), each level played to its natural end, a real `Enter`/tap on
+LEVEL CLEAR to go on, so levels 1 → 2 → 3 → ending run without any
+`debug.start`. A game over is retried from its own screen (`--retries`,
+default 2). The ending must appear, animate and hold; LEVELS on it must lead
+to the title with the campaign saved, and the save must survive a reload.
+Then the negative control plays level 1 with `fail` and must reach a natural
+game over with lives lost. Each level prints its result, game seconds, lives
+lost and retries (`--json=file` writes them); a level over its budget, a
+stalled or throwing bot, an engine error or a page error fails the theme
+with a screenshot, and the exit status is nonzero.
+
+The bot drives the logical buttons through `debug.step`, which is what the
+keyboard and the touch pad feed; `e2e.mjs` and `e2e.mjs --touch` prove that
+real key presses and real touches reach those buttons, and `campaign.mjs
+--touch` does every menu step with real taps on an emulated phone (the game
+then also runs its `G.isTouch()` variant).
+
+Before a game is done: the campaign passes on desktop and on a phone in both
+orientations, `e2e.mjs` passes both ways, and you have looked at
+screenshots of all three levels and the ending (`--shots`): nothing overlaps
+the HUD and the goal is readable.
+
+### What e2e.mjs checks
+
+`e2e.mjs` checks in real Chrome: all four launchers, `Esc`, real key
 presses, a canvas that draws and keeps changing with no input, pause, music,
 sound effects made by the game itself (the engine's own jingles do not
-count), a random bot on all ten levels without exceptions, the unlock cookie,
-the level select and the cookie's survival across a reload.
+count), a random bot on all three levels without exceptions, the unlock
+cookie, the ending (it opens after level 3 only, animates, stops the game and
+leads to the title), the level select and the cookie's survival across a
+reload. Its engine checks cover save parsing and the migration of old
+ten-level saves, `debug.start(4)` not starting a fourth level, Enter on level
+2's clear opening level 3, the ending's input delay, PLAY AGAIN and LEVELS,
+a theme's `def.ending`, and cleanup after quit and relaunch.
 
 `e2e.mjs --touch` turns Chrome into a phone (844x390 landscape and 390x844
 portrait, touch screen, coarse pointer) and uses real touch events: the game
@@ -351,10 +451,37 @@ game's `def.touch`, and tries the `def.touch` options themselves on a stand-in
 game. It does not judge whether the game is *fun* on a phone: play a level
 with `--touch` screenshots in front of you, and on a real phone if you can.
 
+`GAMES_GPU=1 node integrationtests/games/cpu.mjs [theme…]` measures what a
+game costs: frame rate, JS time per frame and Chrome's CPU use on levels 1
+and 3. A game should hold 60 fps at well under one core. Its cost is mostly
+the canvas calls the browser has to rasterise, not its JS: keep a frame to a
+few hundred calls, draw static scenery (walls, mazes, backdrops) once into an
+offscreen canvas and blit it, batch same-coloured shapes into one path, and
+avoid `shadowBlur` on anything drawn many times.
+
+`play.mjs --eval` evaluates one expression in the page. The test hooks:
+
+| | |
+|---|---|
+| `SnoGame.debug.start(level)` | jump straight into play (1..3; a higher level starts level 3) |
+| `SnoGame.debug.step(n, input)` | run `n` ticks synchronously; `input` is `{left, right, up, down, a, b, codes: {KeyW: true}, mouse: {x, y, down, rdown}}` or a function `(i, s, G) => input`. A button held at the end of one call and the start of the next stays held (one `G.hit` edge, not one per call); `debug.start` forgets what was held |
+| `SnoGame.debug.state()` | `{screen, level, lives, score, …}`; `screen` is `play`, `clear`, `over`, `victory`, … |
+| `SnoGame.debug.s()` | the game's own state object |
+| `SnoGame.debug.ending()` | while the ending is on screen: `{t, choice, shells, sparks, fireworks, title}`, else `null` |
+| `SnoGame.debug.errors` | exceptions thrown by `init` / `update` / `draw` |
+| `SnoGame.debug.win()`, `.lose()` | force a win or a game over: engine-flow smoke tests only, never proof of playability |
+
+Because `step` runs faster than real time, a scripted bot can play a whole
+level in milliseconds; `campaign.mjs` uses exactly this, which is why a
+campaign bot is the way to show a level can be won.
+
 ## The games
 
 Each spec is the contract for that theme's game. Details may be tuned for
-fun, but the core mechanic, the goal and the ten-level arc must stay.
+fun, but the core mechanic and the goal must stay. Each game has three
+levels (introduction, development, finale); where a spec below still
+describes a longer arc, its section is rewritten when that game is
+converted.
 
 ### aurora — Polar Rush (downhill ski slalom)
 Top-down downhill run under the northern lights; the slope scrolls up as the

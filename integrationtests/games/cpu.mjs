@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// CPU survey of the theme games: plays levels 1 and 10 of each game in real
+// CPU survey of the theme games: plays levels 1 and 3 of each game in real
 // time for a few seconds (random held keys stand in for a player) and prints
 // the frame rate reached, the JS time spent in update() and draw() per
 // frame, and the CPU used by all of Chrome's processes (100 = one core).
@@ -43,7 +43,7 @@ try {
     await page.eval(WRAP);
     console.log('theme level fps updMs/frame drawMs/frame maxDraw chromeCPU% screen');
     for (const t of THEMES) {
-        for (const level of [1, 10]) {
+        for (const level of [1, 3]) {
             await page.eval(`SnoGame.quit(); SnoGame.launch('${t}')`);
             await page.waitFor(`SnoGame.debug.state() && SnoGame.debug.state().registered`, 'register');
             await page.eval(`SnoGame.debug.start(${level})`);

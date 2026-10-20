@@ -14,10 +14,16 @@
 // the header button, the fx-row button and the 'a' key; that Esc quits; that
 // real key presses reach the game and not the blog; that the canvas draws and
 // keeps animating with no input; that P pauses (and silences) the game; that
-// music plays and the game makes sound effects of its own; that all ten
+// music plays and the game makes sound effects of its own; that all three
 // levels survive a random-input bot without errors; that winning unlocks the
-// next level in the cookie, that the level select follows it, and that the
-// cookie survives a reload.
+// next level in the cookie, that clearing level 3 opens the animated ending
+// scene (and nothing beyond it), that the level select follows the cookie,
+// and that the cookie survives a reload.
+//
+// These are smoke tests of the engine flow: where the random bot does not
+// win a level, the win is forced with debug.win(). That proves nothing about
+// whether a level can be won. campaign.mjs is the playability test: it plays
+// each game's three levels through with that theme's own bot, by input only.
 //
 // With --touch it runs the phone checks of touch.mjs instead: an emulated
 // phone in both orientations, driven by real touch events.
@@ -28,7 +34,7 @@ import { sleep, startSession, themesWithGames } from './lib.mjs';
 import { testArcadeMenu } from './arcade.mjs';
 import { testFinePointerPhone, testNoFullscreen, testPadConfigs, testRotation, testThemeTouch } from './touch.mjs';
 
-const LEVELS = 10;
+const LEVELS = 3;
 const BOT_TICKS = 900; // 15 seconds of game time per level
 
 function parseArgs(argv) {
@@ -153,7 +159,8 @@ async function runLevel(page, theme, level, shots) {
         check(!errs.length, `level ${level}: ${errs[0]}`);
     }
     check(['play', 'over', 'clear', 'victory', 'dead', 'intro'].includes(st.screen), `level ${level}: unexpected screen ${st.screen}`);
-    if (shots && [1, 5, 10].includes(level)) await page.screenshot(join(shots, `${theme}-L${level}.jpg`));
+    if (shots) await page.screenshot(join(shots, `${theme}-L${level}.jpg`));
+    // Engine-flow smoke only: a forced win (see the header comment).
     if (st.screen !== 'clear' && st.screen !== 'victory') {
         await page.eval(`SnoGame.debug.start(${level}); SnoGame.debug.win()`);
         st = await page.eval(STATE);
@@ -162,6 +169,30 @@ async function runLevel(page, theme, level, shots) {
     const save = (await cookieSave(page, theme)) || '';
     const want = Math.min(LEVELS, level + 1);
     check(Number(save.split('.')[0]) >= want, `level ${level}: cookie "${save}" did not unlock level ${want}`);
+}
+
+// Clearing the last level opens the ending: it animates on its own while the
+// game stands still, and LEVELS on it leads back to the title screen.
+async function checkEnding(page, theme, shots) {
+    let st = await page.eval(`SnoGame.debug.step(150, {})`);
+    check(st.screen === 'victory', `the ending closed by itself (screen ${st.screen})`);
+    const e = await page.eval('SnoGame.debug.ending()');
+    check(e && e.t > 2, 'no ending scene after the last level');
+    check(!e.fireworks || e.sparks + e.shells > 0, 'the ending launched no fireworks');
+    const t0 = st.t;
+    const a = await page.eval(CANVAS_STATS);
+    await sleep(500);
+    const b = await page.eval(CANVAS_STATS);
+    check(a.hash !== b.hash, 'the ending scene does not animate');
+    check((await page.eval(STATE)).t === t0, 'the game kept playing behind the ending');
+    if (shots) await page.screenshot(join(shots, `${theme}-ending.jpg`));
+    const errs = await page.eval('SnoGame.debug.errors.slice()');
+    check(!errs.length, `ending: ${errs[0]}`);
+    await page.press('ArrowRight');
+    await page.press('Enter');
+    await page.waitFor(`${STATE}.screen==='title'`, 'LEVELS on the ending to open the title screen');
+    st = await page.eval(STATE);
+    check(st.won === 1 && st.unlocked === LEVELS, `after the ending: won ${st.won}, unlocked ${st.unlocked}`);
 }
 
 async function checkGameOver(page) {
@@ -215,8 +246,9 @@ async function testTheme(page, base, theme, shots) {
     // (hurt, win, game over) are counted apart and do not satisfy this.
     const sfxBefore = (await page.eval('SnoGame.debug.audio()')).sfx;
     for (let level = 1; level <= LEVELS; level++) await runLevel(page, theme, level, shots);
+    await checkEnding(page, theme, shots);
     const audio = await page.eval('SnoGame.debug.audio()');
-    check(audio.sfx > sfxBefore, 'the game played no sound effects of its own during ten levels of bot play');
+    check(audio.sfx > sfxBefore, 'the game played no sound effects of its own during three levels of bot play');
     await quitWithEsc(page, 'splash launch');
     await checkPersistenceAndLaunchers(page, base, theme);
     check(!page.problems.length, `page errors: ${page.problems.slice(0, 3).join(' | ')}`);
@@ -225,7 +257,11 @@ async function testTheme(page, base, theme, shots) {
 // Engine-level negative tests: bad saves must never be trusted.
 async function testSaveParsing(page, base) {
     await page.goto(`${base}/index.html`);
-    const cases = [['', [1, 0, 1, 0]], ['garbage', [1, 0, 1, 0]], ['99.-5.42.7', [1, 0, 1, 0]], ['4.1200.9.1', [4, 1200, 4, 1]], ['10.50.10.1', [10, 50, 10, 1]]];
+    // Saves from the ten-level campaigns migrate: levels cap at 3, the high
+    // score and the completed star stay. Anything else malformed is fresh.
+    const cases = [['', [1, 0, 1, 0]], ['garbage', [1, 0, 1, 0]], ['99.-5.42.7', [1, 0, 1, 0]],
+        ['2.300.2.0', [2, 300, 2, 0]], ['3.900.1.0', [3, 900, 1, 0]], ['4.1200.9.1', [3, 1200, 3, 1]],
+        ['10.50.10.1', [3, 50, 3, 1]], ['11.50.11.1', [1, 50, 1, 1]], ['2.5.3.0', [2, 5, 2, 0]], ['1.x.1.2', [1, 0, 1, 0]]];
     for (const [raw, want] of cases) {
         const s = await page.eval(`SnoGame.debug.parseSave(${JSON.stringify(raw)})`);
         const got = [s.unlocked, s.hi, s.last, s.won];
@@ -262,6 +298,60 @@ async function testStepMemory(page, base) {
     await page.eval('SnoGame.quit()');
 }
 
+// A stand-in game with a custom ending whose draw hook counts its calls and
+// whose update counts ticks, so the test can see what runs during the scene.
+const ENDING_GAME = `SnoGame.register('breakout', {
+  levelNames: ['A', 'B', 'C'],
+  ending: { title: 'TEST END', text: 'custom', colors: ['#f00'],
+    draw: function (e) { e.data.n = (e.data.n || 0) + 1; window.__endDraws = e.data.n; } },
+  init: function (level) { return { level: level, ticks: 0 }; },
+  update: function (s) { s.ticks++; },
+  draw: function () {} })`;
+
+// The three-level contract: no level 4 by any route, level 2 clear leads to
+// level 3 by Enter, and clearing level 3 opens a persistent ending that
+// stops the game, ignores input for a moment, offers PLAY AGAIN and LEVELS,
+// and is gone after quit and relaunch.
+async function testThreeLevels(page, base) {
+    await page.goto(`${base}/index.html`);
+    await page.eval(`${ENDING_GAME}; SnoGame.launch('breakout')`);
+    check(await page.eval('SnoGame.LEVELS') === 3, 'SnoGame.LEVELS must be 3');
+    await page.eval('SnoGame.debug.start(4)');
+    check((await page.eval(STATE)).level === 3, 'debug.start(4) must not start a fourth level');
+    await page.eval('SnoGame.debug.start(2); SnoGame.debug.win()');
+    let st = await page.eval(STATE);
+    check(st.screen === 'clear' && st.unlocked === 3, `level 2 win: screen ${st.screen}, unlocked ${st.unlocked}`);
+    await page.waitFor(`${STATE}.age > 0.6`, 'the clear screen to accept input');
+    await page.press('Enter');
+    await page.waitFor(`${STATE}.level===3 && (${STATE}.screen==='intro' || ${STATE}.screen==='play')`, 'Enter on level 2 clear to open level 3');
+    await page.eval('SnoGame.debug.start(3); SnoGame.debug.win()');
+    st = await page.eval(STATE);
+    check(st.screen === 'victory' && st.won === 1, `level 3 win: screen ${st.screen}, won ${st.won}`);
+    const ticks = await page.eval('SnoGame.debug.s().ticks');
+    await page.press('Enter');
+    check((await page.eval(STATE)).screen === 'victory', 'the ending must ignore Enter in its first moment');
+    await page.eval('SnoGame.debug.step(120, {a: true})');
+    const e = await page.eval('SnoGame.debug.ending()');
+    check(e.title === 'TEST END' && e.choice === 0, `ending config not used: ${JSON.stringify(e)}`);
+    check(await page.eval('SnoGame.debug.s().ticks') === ticks, 'update() ran during the ending');
+    await sleep(200);
+    check((await page.eval('window.__endDraws || 0')) > 0, "the theme's ending draw hook never ran");
+    await page.press('ArrowRight');
+    check((await page.eval('SnoGame.debug.ending()')).choice === 1, '→ must select LEVELS');
+    await page.press('ArrowLeft');
+    await page.press('Enter');
+    await page.waitFor(`${STATE}.screen==='intro' && ${STATE}.level===1`, 'PLAY AGAIN to start level 1');
+    check((await page.eval(STATE)).score === 0 && !(await page.eval('SnoGame.debug.ending()')), 'PLAY AGAIN must start a fresh run');
+    await page.eval('SnoGame.debug.start(3); SnoGame.debug.win(); SnoGame.quit(); SnoGame.launch("breakout")');
+    st = await page.eval(STATE);
+    check(st.screen === 'title' && st.unlocked === 3 && st.won === 1 && st.sel === 3, `relaunch after the ending: ${JSON.stringify(st)}`);
+    check(!(await page.eval('SnoGame.debug.ending()')), 'the ending survived quit and relaunch');
+    await page.press('ArrowRight');
+    check((await page.eval(STATE)).sel === 3, 'the level select must stop at level 3');
+    await page.eval('SnoGame.quit()');
+    check(!(await page.eval('SnoGame.debug.errors.length')), 'the stand-in game raised errors');
+}
+
 // While a game is open the page's own animation frames are parked (the
 // theme backdrop would otherwise render behind the overlay and eat the
 // game's frame rate) and handed back when it closes. A frame cancelled in
@@ -295,6 +385,8 @@ async function testEngine(page, base, opts) {
     console.log('ok   save parsing and unknown-theme guard');
     await testStepMemory(page, base);
     console.log('ok   debug.step keeps held buttons across calls');
+    await testThreeLevels(page, base);
+    console.log('ok   three levels, no level 4, and the ending scene');
     await testBackdropHeld(page, base);
     console.log('ok   page animation frames are parked while a game is open');
     await testArcadeMenu(page, base, opts.shots, opts.touch);

@@ -95,8 +95,8 @@ Each run can use a different visual theme. Use `--list-themes` to see all availa
 
 ## Games
 
-Every theme comes with its own small arcade game — ten levels, sound and
-music, progress saved in a cookie. Start it from the **Play** button on the
+Every theme comes with its own small arcade game — three levels and a
+celebratory ending, sound and music, progress saved in a cookie. Start it from the **Play** button on the
 splash screen, the button in the header, the `game` button in the fx row, or
 with the `a` key; `Esc` quits. **All games**, next to the splash and header
 buttons, opens a menu with a picture and a short description of every theme's
@@ -107,8 +107,10 @@ on-screen pad beside (or below) the playfield, and `✕` quits.
 The shared engine is `internal/generator/templates/shared/games.js`; each
 game lives in `internal/generator/templates/themes/<name>/game.js`. See
 [docs/games.md](docs/games.md) for the engine API and how to write and test a
-game. `mage gamesE2E` plays all of them in headless Chrome, `mage
-gamesTouchE2E` does the same on an emulated phone with real touch events, and
+game. `mage gamesE2E` smoke-tests all of them in headless Chrome, `mage
+gamesTouchE2E` does the same on an emulated phone with real touch events,
+`mage gamesCampaign` has each game's bot play its whole campaign by input
+only (desktop and phone), and
 `GAMES_GPU=1 node integrationtests/games/cpu.mjs` measures what each game
 costs in frame rate and CPU.
 
