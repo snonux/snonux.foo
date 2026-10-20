@@ -59,6 +59,7 @@
     var dom = null;         // overlay nodes: { root, canvas, ctx }
     var scale = 1;          // backing-store pixels per logical pixel
     var raf = 0, lastTime = 0, acc = 0;
+    var clockHeld = false;  // debug.hold(): frames still draw, only debug.step() ticks
     var ambientWasPlaying = false;
     var errors = [];
 
@@ -1671,6 +1672,7 @@
         raf = engineRaf(loop);
         acc += Math.min(0.1, (now - lastTime) / 1000);
         lastTime = now;
+        if (clockHeld) acc = 0;
         while (acc >= STEP) { tick(); acc -= STEP; }
         frame();
     }
@@ -1850,6 +1852,7 @@
     G.quit = function () {
         if (!G.active) return;
         G.active = false;
+        clockHeld = false;
         cancelRaf(raf);
         releaseBackdrop();
         if (cur && cur.def) writeSave();
@@ -2052,6 +2055,11 @@
             var e = cur && cur.screen === 'victory' ? cur.ending : null;
             return e ? { t: e.t, choice: e.choice, shells: e.shells.length, sparks: e.sparks.length, fireworks: e.fireworks, title: e.title } : null;
         },
+        // hold(true) stops real time from ticking the game (frames are still
+        // drawn), so a bot driving it with step() is the only thing that
+        // moves it, however long the test pauses between calls. Quit
+        // releases it.
+        hold: function (on) { clockHeld = !!on; },
         win: function () { G.win(0); },
         lose: function () { while (cur && cur.screen === 'play') G.loseLife(); }
     };

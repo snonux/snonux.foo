@@ -222,6 +222,8 @@ async function checkEnding(page, ctx) {
     check(st.screen === 'victory', `the ending did not hold (screen ${st.screen})`);
     const e = await page.eval('SnoGame.debug.ending()');
     check(e && (!e.fireworks || e.sparks + e.shells > 0), 'the ending shows no fireworks');
+    // The scene must animate in real time too, so let the clock run.
+    await page.eval('SnoGame.debug.hold(false)');
     const h1 = await page.eval(CANVAS_HASH);
     await sleep(400);
     check(h1 !== (await page.eval(CANVAS_HASH)), 'the ending does not animate');
@@ -245,6 +247,9 @@ async function openGame(page, ctx) {
     await page.eval(`__camp.load(${JSON.stringify(ctx.botSrc)})`);
     await page.eval(`SnoGame.launch(${JSON.stringify(ctx.theme)})`);
     await page.waitFor(`${STATE} && ${STATE}.screen==='title'`, 'the title screen');
+    // Real time must not move the game between two of our round trips:
+    // those ticks would be unsteered and make a run depend on timing.
+    await page.eval('SnoGame.debug.hold(true)');
 }
 
 // The whole campaign from the title, through normal transitions only.
@@ -277,7 +282,7 @@ async function playCampaign(page, ctx) {
 // Negative control: the bot's poor strategy (idle by default) must lose
 // level 1 by the game's own rules within the budget.
 async function negativeControl(page, ctx) {
-    await page.eval('SnoGame.debug.start(1); __camp.fresh("fail")');
+    await page.eval('SnoGame.debug.hold(true); SnoGame.debug.start(1); __camp.fresh("fail")');
     const rec = await playLevel(page, 1, ctx.budget);
     rec.negative = true;
     ctx.log(rec);

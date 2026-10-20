@@ -467,6 +467,7 @@ avoid `shadowBlur` on anything drawn many times.
 | `SnoGame.debug.step(n, input)` | run `n` ticks synchronously; `input` is `{left, right, up, down, a, b, codes: {KeyW: true}, mouse: {x, y, down, rdown}}` or a function `(i, s, G) => input`. A button held at the end of one call and the start of the next stays held (one `G.hit` edge, not one per call); `debug.start` forgets what was held |
 | `SnoGame.debug.state()` | `{screen, level, lives, score, …}`; `screen` is `play`, `clear`, `over`, `victory`, … |
 | `SnoGame.debug.s()` | the game's own state object |
+| `SnoGame.debug.hold(on)` | `true` stops real time from ticking the game (frames still draw), so only `step` moves it; quit releases it |
 | `SnoGame.debug.ending()` | while the ending is on screen: `{t, choice, shells, sparks, fireworks, title}`, else `null` |
 | `SnoGame.debug.errors` | exceptions thrown by `init` / `update` / `draw` |
 | `SnoGame.debug.win()`, `.lose()` | force a win or a game over: engine-flow smoke tests only, never proof of playability |
