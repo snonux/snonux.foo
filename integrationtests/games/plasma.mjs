@@ -24,7 +24,7 @@ const ctx = new Proxy({}, { get: (_, name) => name === 'createRadialGradient' ? 
     if (name === 'fillRect') rects.push(args);
 }, set: () => true });
 
-for (let level = 1; level <= 10; level++) {
+for (let level = 1; level <= 3; level++) {
     phone = false; const desktop = def.init(level);
     phone = true; const mobile = def.init(level);
     for (const key of ['waves', 'lv', 'orbs', 'p', 'bombs', 'k', 'stars']) {
@@ -48,13 +48,13 @@ assert.equal(lives, 4, 'bombing empty sky must not cause phantom damage');
 G.key = {}; G.hit = {}; const contact = def.init(1); contact.p.inv = 0;
 contact.bullets = [{ x: contact.p.x, y: contact.p.y, vx: 0, vy: 0, r: 5, w: 0, life: 1 }];
 const before = lives; def.update(contact, 1 / 60); assert.equal(lives, before - 1);
-const stars = def.init(10); stars.touch = false; rects = []; def.draw(stars, ctx);
+const stars = def.init(3); stars.touch = false; rects = []; def.draw(stars, ctx);
 const desktopFills = rects.length; stars.touch = true; rects = []; def.draw(stars, ctx);
 assert.equal(desktopFills - rects.length, 70, 'batch all phone stars into one path');
-const s = def.init(10); s.boss = { x: 480, y: 96, r: 44, n: 4, phase: 0, per: 675, hp: 675, age: 0 };
+const s = def.init(3); s.boss = { x: 480, y: 96, r: 44, n: 4, phase: 0, per: 550, hp: 550, age: 0 };
 s.lanes = [{ x: 100, y: 96, t: .5 }, { x: 900, y: 96, t: 1.1 }];
 labels = []; rects = []; def.draw(s, ctx);
-for (const label of ['SPREAD 2', 'BEAM 1', 'HOMING 1', 'THE EYE']) {
+for (const label of ['SPREAD 1', 'BEAM 1', 'HOMING 1', 'THE EYE']) {
     assert.ok(labels.some((l) => l.text === label && l.size >= 26 && l.glow), `${label} readable`);
 }
 assert.equal(labels.filter((l) => l.text === '!').length, 1, 'warn only for the charging lane');
@@ -76,19 +76,19 @@ if (!process.argv.includes('--local')) {
                 await page.waitFor('SnoGame.debug.state() && SnoGame.debug.state().registered', 'phone definition');
             }
             const result = await page.eval(bot);
-            for (const win of result.wins) assert.equal(win.screen, win.level === 10 ? 'victory' : 'clear', JSON.stringify(win));
+            for (const win of result.wins) assert.equal(win.screen, win.level === 3 ? 'victory' : 'clear', JSON.stringify(win));
             assert.equal(result.idle, 'over', 'idle play must lose');
             assert.deepEqual(result.errors, []);
-            console.log(`ok   plasma ${mode?.name || 'desktop'}: input wins 1/5/10 and idle loss`);
+            console.log(`ok   plasma ${mode?.name || 'desktop'}: input wins 1/2/3 and idle loss`);
             const shots = process.argv.find((arg) => arg.startsWith('--shots='))?.slice(8);
             if (shots) {
                 mkdirSync(shots, { recursive: true });
-                for (const level of [1, 5, 10]) {
+                for (const level of [1, 2, 3]) {
                     await page.eval(`SnoGame.debug.start(${level})`);
-                    const snapshot = bot.replace('[1, 5, 10]', '[G.level]')
+                    const snapshot = bot.replace('[1, 2, 3]', '[G.level]')
                         .replace('bombHeld = bomb; ticks++;',
                             'bombHeld = bomb; ticks++; if(s.stage === "boss" && s.boss.phase >= 1 && s.bullets.length > 30) break;')
-                        .replace('G.debug.start(10); G.debug.step(30000, {});', '');
+                        .replace('G.debug.start(1); G.debug.step(30000, {});', '');
                     await page.eval(snapshot);
                     await sleep(80);
                     await page.screenshot(`${shots}/${mode?.name || 'desktop'}-${level}.jpg`);

@@ -629,8 +629,17 @@ moves slower and its small hitbox is shown, for threading bullets), `X` bomb
 (clears bullets, limited). Enemies arrive in scripted waves
 with bullet patterns (aimed, radial, spiral). Collect plasma orbs: three of a
 colour merge into a weapon upgrade (spread / beam / homing). Each level ends
-with a boss with a health bar and phases. Levels: denser patterns, new enemy
-types, tougher bosses. Small hitbox, generous graze. Fast driving minor music.
+with a boss with a health bar and phases, each boss one phase longer than the
+last. Small hitbox, generous graze (every 40 grazes earn a bomb). Levels:
+1 *First Sparks* — drones, spinners and weavers, then EMBER (aimed fans,
+rings); 2 *Cyclone Front* — lancers, dashing darts, turrets and mines, a
+spread gun to start with, then CYCLONE (crosses, warning-lit lances with
+rain, spirals with fans); 3 *Eye of the Storm* — wardens with lane beams and
+prisms with curving fans join everything, every wreck fires a parting shot,
+the ship starts with spread, beam and homing, and THE EYE fights four phases
+ending in a summoned swarm. The ending: THE EYE blooms into plasma petals and
+rings of sparks under cyan, magenta and yellow fireworks ("STORM BROKEN").
+Fast driving minor music.
 
 ### retro — Carrier Lost (gravity-flip runner)
 Amber monochrome. A data packet runs automatically along a phone line

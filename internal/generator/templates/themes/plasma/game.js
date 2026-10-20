@@ -2,7 +2,9 @@
  * Plasma Storm — the plasma theme's game: a vertical bullet-hell shooter.
  *
  * Enemies arrive in scripted waves and fill the sky with aimed, radial and
- * spiral bullet patterns; every level ends with a boss that fights in phases.
+ * spiral bullet patterns; each of the three levels ends with a boss that
+ * fights in phases, and THE EYE at the end of level 3 blooms into the
+ * finale's plasma fireworks.
  * Holding fire slows the ship and shows its tiny hitbox, so the player can
  * thread through the gaps. Passing close to a bullet ("graze") scores and
  * slowly earns bombs. Killed enemies drop plasma orbs that cycle through three
@@ -32,42 +34,38 @@
     var MAX_BULLETS = 700, MAX_BOMBS = 5, MAX_WEAPON = 3;
     var LANE_W = 26, LANE_WARN = 1.0, LANE_LIVE = 0.55;
     var CROWD = 12;                        // more enemies than this hold the next wave back
+    var FINALE = 3;                        // the last level: the storm's eye
     var WEAPONS = ['spread', 'beam', 'homing'];
     var WCOL = { spread: CY, beam: MG, homing: YL };
 
     // One string per level; each word is a wave, each letter a squad that
-    // arrives with it. Every level introduces the letter it leads with, and
-    // later levels put more squads into a wave.
+    // arrives with it. Level 1 teaches drones, spinners and weavers; level 2
+    // brings lancers, darts, turrets and mines; level 3 adds wardens and
+    // prisms to everything, with more squads to a wave.
     var WAVES = [
-        'd d d dd d dd',
-        's d ds d ss dd sd dss sdd',
-        'w d ws sd wd ww sdw wsd wws',
-        'l d ls w ld lw sdw ws ll',
-        't dw tw ls ts tl dwl tt lsd tws',
-        'a dw as wl al at aws aad ts ald awt',
-        'm ad mdw st mtl ml mad mws mma tlm msw',
-        'g dw gwa ma gad gl gt gsm gma gtd mwl gla',
-        'p ad pd gw pw pm pl pt pga ptd gma psl',
-        'pd gt am lw ps dg ma pp wtd gla pm gs sa ptl'
+        'd d s ds w dw sd sdw',
+        'l a ld t as lw m dm ta ml lsa tmw',
+        'g p gd pw ga pm gl pt gsa pdm gtl pmw'
     ];
     var LETTER = { d: 'drone', s: 'spinner', w: 'weaver', l: 'lancer', t: 'turret', a: 'dart', m: 'mine', g: 'warden', p: 'prism' };
 
     // A boss fights through its phases in order; each phase runs one or more
     // of the PATTERNS below at the same time and owns an equal share of hp.
-    // The hp is tuned so that every boss outlasts the one before it; the last
-    // step is a small one, because THE EYE's four phases are already the
-    // hardest patterns in the game.
+    // Each boss has one phase more than the last and teaches what the next
+    // one combines: EMBER fans and rings, CYCLONE crosses, lances and
+    // spirals, THE EYE all of it with curving rings and a summoned swarm.
     var BOSSES = [
-        { name: 'EMBER', hp: 420, phases: [['fan'], ['rings']] },
-        { name: 'CORONA', hp: 900, phases: [['rings'], ['fan', 'rain']] },
-        { name: 'GALE', hp: 1000, phases: [['spiral'], ['fan', 'rings']] },
-        { name: 'LANCER PRIME', hp: 1000, phases: [['fan', 'rain'], ['spiral'], ['rings', 'fan']] },
-        { name: 'CYCLONE', hp: 1300, phases: [['cross'], ['lances', 'rain'], ['spiral', 'fan']] },
-        { name: 'HORNET QUEEN', hp: 1600, phases: [['summon', 'fan'], ['cross'], ['rings', 'rain']] },
-        { name: 'DETONATOR', hp: 1850, phases: [['curve'], ['lances', 'rings'], ['cross', 'fan']] },
-        { name: 'ION WARDEN', hp: 2000, phases: [['lances', 'fan'], ['spiral', 'rain'], ['curve', 'lances']] },
-        { name: 'PRISM HEART', hp: 2500, phases: [['curve', 'fan'], ['cross', 'rain'], ['lances', 'spiral'], ['curve', 'rings']] },
-        { name: 'THE EYE', hp: 2700, phases: [['lances', 'curve'], ['cross', 'rain'], ['spiral', 'fan'], ['summon', 'rings', 'lances']] }
+        { name: 'EMBER', hp: 320, phases: [['fan'], ['rings']] },
+        { name: 'CYCLONE', hp: 1200, phases: [['cross'], ['lances', 'rain'], ['spiral', 'fan']] },
+        { name: 'THE EYE', hp: 2200, phases: [['lances', 'curve'], ['cross', 'rain'], ['spiral', 'fan'], ['summon', 'rings', 'lances']] }
+    ];
+
+    // The weapons a level starts with: weapon levels do not carry over
+    // (each level starts from init), so later levels hand out a kit.
+    var KITS = [
+        { spread: 0, beam: 0, homing: 0 },
+        { spread: 1, beam: 0, homing: 0 },
+        { spread: 1, beam: 1, homing: 1 }
     ];
 
     // ------------------------------------------------------------------
@@ -139,7 +137,7 @@
 
     // Drones low on the screen hold fire: a point-blank aimed shot is not fair.
     function fireDrone(e, s) {
-        if (e.y < 380) fan(s, e, s.level >= 5 ? 3 : 1, 0.26, 170, MG);
+        if (e.y < 380) fan(s, e, s.level >= 2 ? 3 : 1, 0.26, 170, MG);
     }
 
     // Slides to its post, holds it for def.stay seconds, then retreats upward.
@@ -157,7 +155,7 @@
     }
 
     function fireSpinner(e, s) {
-        ring(s, e.x, e.y, 10 + s.level, 115, e.age, CY);
+        ring(s, e.x, e.y, 10 + s.level * 2, 115, e.age, CY);
         G.tone(520, 0.08, { type: 'triangle', slide: 260, vol: 0.06 });
     }
 
@@ -253,7 +251,7 @@
     function addEnemy(s, type, x, y, o) {
         var d = TYPES[type], e = {
             type: type, squad: s.squad, x: x, y: y, x0: x, ty: y, ph: 0, dir: 1, delay: 0, age: 0, flash: 0, lock: 0,
-            hp: Math.ceil(d.hp * (1 + (s.level - 1) * 0.08)),
+            hp: Math.ceil(d.hp * (1 + (s.level - 1) * 0.2)),
             cool: d.rate * (d.first || 0.4 + s.rnd() * 0.6)
         };
         for (var k in o) e[k] = o[k];
@@ -268,7 +266,7 @@
             for (var i = 0; i < 4 + n; i++) addEnemy(s, 'drone', x, -30 - i * 40, { ph: ph - i * 0.75 });
         },
         s: function (s) {
-            for (var i = 0; i < (s.level >= 6 ? 2 : 1); i++) addEnemy(s, 'spinner', 120 + s.rnd() * 720, -30, { ty: 90 + s.rnd() * 100 });
+            for (var i = 0; i < (s.level >= FINALE ? 2 : 1); i++) addEnemy(s, 'spinner', 120 + s.rnd() * 720, -30, { ty: 90 + s.rnd() * 100 });
         },
         w: function (s, n) {
             var dir = s.rnd() < 0.5 ? 1 : -1, ty = 70 + s.rnd() * 110;
@@ -279,7 +277,7 @@
             addEnemy(s, 'lancer', 580 + s.rnd() * 220, -30, { ty: 80 });
         },
         t: function (s) {
-            for (var i = 0; i < (s.level >= 9 ? 2 : 1); i++) addEnemy(s, 'turret', 200 + s.rnd() * 560, -30);
+            for (var i = 0; i < (s.level >= FINALE ? 2 : 1); i++) addEnemy(s, 'turret', 200 + s.rnd() * 560, -30);
         },
         a: function (s, n) {
             for (var i = 0; i < 3 + n; i++) addEnemy(s, 'dart', 80 + s.rnd() * 800, -20, { ty: 50 + s.rnd() * 40, delay: i * 0.4 });
@@ -314,10 +312,10 @@
         // only) hands out enough orbs to merge; the rest drop by chance.
         var last = d.swarm && !s.enemies.some(function (o) { return o !== e && !o.gone && o.squad === e.squad; });
         if (last || s.rnd() < d.drop) dropOrb(s, e.x, e.y);
-        // The storm's eye: on the last level every wreck fires one parting
+        // The storm's eye: on the finale every wreck fires one parting
         // shot, unless it died too close for that to be dodgeable. The shot
         // is slower than a drone's: a swarm dying at once fires a whole volley.
-        if (s.level === 10 && s.stage !== 'outro' && e.y < s.p.y - 200) fan(s, e, 1, 0, 150, MG, { r: 4 });
+        if (s.level === FINALE && s.stage !== 'outro' && e.y < s.p.y - 200) fan(s, e, 1, 0, 150, MG, { r: 4 });
     }
 
     function damage(s, e, dmg) {
@@ -363,25 +361,25 @@
     var PATTERNS = {
         fan: function (s, b, dt) {
             if (!every(b, 'fan', 0.9 / s.k, dt)) return;
-            // Nine is the widest fan that still leaves room beside a spiral.
-            fan(s, b, Math.min(9, 5 + 2 * Math.floor(s.level / 3)), 0.17, 185, MG);
+            // 5, 7, 9 wide: nine is the widest that leaves room beside a spiral.
+            fan(s, b, 3 + 2 * s.level, 0.17, 185, MG);
             G.tone(700, 0.1, { type: 'sawtooth', slide: 250, vol: 0.06 });
         },
         rings: function (s, b, dt) {
             if (!every(b, 'rings', 1.1 / s.k, dt)) return;
-            var n = 14 + s.level * 3;
+            var n = 14 + s.level * 4;
             b.flip = !b.flip;
             ring(s, b.x, b.y, n, 125, b.flip ? 0 : Math.PI / n, CY);
             G.tone(420, 0.12, { type: 'triangle', slide: 210, vol: 0.07 });
         },
         spiral: function (s, b, dt) {
-            // Five arms at most: a sixth closes the gaps a casual player can
-            // still steer through at the last levels' bullet speed.
-            if (every(b, 'spiral', 0.09, dt)) ring(s, b.x, b.y, Math.min(5, 3 + Math.floor(s.level / 3)), 150, b.age * 1.9, YL);
+            // Five arms at most (level 3): a sixth closes the gaps a casual
+            // player can still steer through at the finale's bullet speed.
+            if (every(b, 'spiral', 0.09, dt)) ring(s, b.x, b.y, 2 + s.level, 150, b.age * 1.9, YL);
         },
         cross: function (s, b, dt) {
             if (!every(b, 'cross', 0.13, dt)) return;
-            var arms = 2 + Math.floor(s.level / 5);
+            var arms = 1 + s.level;
             ring(s, b.x, b.y, arms, 150, b.age * 2.1, YL);
             ring(s, b.x, b.y, arms, 130, -b.age * 2.1, YL);
         },
@@ -392,7 +390,7 @@
         curve: function (s, b, dt) {
             if (!every(b, 'curve', 1.5 / s.k, dt)) return;
             b.flip = !b.flip;
-            ring(s, b.x, b.y, 10 + s.level, 135, b.age, CY, { w: b.flip ? 0.55 : -0.55 });
+            ring(s, b.x, b.y, 10 + s.level * 3, 135, b.age, CY, { w: b.flip ? 0.55 : -0.55 });
             G.tone(560, 0.14, { type: 'sine', slide: 1120, vol: 0.07 });
         },
         lances: function (s, b, dt) {
@@ -468,7 +466,7 @@
     // ------------------------------------------------------------------
 
     function spawnWave(s, word) {
-        var n = Math.floor(s.level / 3);
+        var n = s.level - 1;          // extra ships per swarm squad
         for (var i = 0; i < word.length; i++) { s.squad++; SPAWN[word.charAt(i)](s, n); }
     }
 
@@ -487,7 +485,7 @@
         // every enemy leaves the screen by itself sooner or later.
         if (s.waveT > 0 || s.enemies.length > CROWD) return;
         spawnWave(s, s.waves[s.wave++]);
-        s.waveT = Math.max(3.3, 6.2 - s.level * 0.36);
+        s.waveT = 6.2 - s.level * 0.8;
     }
 
     function outro(s, dt) {
@@ -642,9 +640,9 @@
         G.tone(1568, 0.25, { type: 'triangle', vol: 0.14, delay: 0.1 });
     }
 
-    // A merge on a weapon already at its top level is paid in points. It used
-    // to be a bomb, but late levels shower orbs on a maxed ship: eight to ten
-    // extra bombs made level 10 easier than level 9.
+    // A merge on a weapon already at its top level is paid in points, not in
+    // a bomb: the finale showers orbs on a maxed ship, and a bomb for each
+    // would make it easier than the level before.
     function payMerge(s) {
         G.addScore(2000 * s.level);
         G.popup(s.p.x, s.p.y - 26, '+' + 2000 * s.level, FG);
@@ -787,30 +785,20 @@
         return stars;
     }
 
-    // Weapon levels do not carry over between levels (each level starts from
-    // init), so later levels hand out a starting kit instead.
-    function kit(level) {
-        return {
-            spread: level >= 9 ? 2 : (level >= 2 ? 1 : 0),
-            homing: level >= 5 ? 1 : 0,
-            beam: level >= 7 ? 1 : 0
-        };
-    }
-
     // A phone: its main pointer is a finger, and the engine shows the pad.
     function coarse() {
         return G.isTouch();
     }
 
-    // Fire rates and bullet speeds rise 4.5% per level (k), a slope gentle
-    // enough that level 10 is still readable at an average player's reactions.
+    // Fire rates and bullet speeds rise 10% per level (k), a slope gentle
+    // enough that the finale is still readable at an average player's reactions.
     function init(level) {
-        var rnd = G.rng(level * 7919 + 13), touch = coarse(), k = 1 + (level - 1) * 0.045;
+        var rnd = G.rng(level * 7919 + 13), touch = coarse(), k = 1 + (level - 1) * 0.1;
         return {
             level: level, rnd: rnd, touch: touch, drag: null,
             k: k, bk: k * (touch ? TOUCH_BULLETS : 1),           // k scales fire rates, bk bullet speed
             p: { x: G.W / 2, y: G.H - 70, inv: 1.5, cool: 0, missile: 0, lean: 0, focus: false },
-            lv: kit(level), orbs: { spread: 0, beam: 0, homing: 0 },
+            lv: Object.assign({}, KITS[level - 1]), orbs: { spread: 0, beam: 0, homing: 0 },
             bombs: 3, bombT: 0, graze: 0, struck: false, beamOn: false,
             shots: [], bullets: [], enemies: [], drops: [], lanes: [],
             waves: WAVES[level - 1].split(' '), wave: 0, squad: 0,
@@ -895,7 +883,7 @@
     }
 
     function drawBoss(s, ctx) {
-        var b = s.boss, sides = 3 + s.level % 6;
+        var b = s.boss, sides = 2 + s.level * 2;   // a square, a hexagon, an octagon
         if (!b || (b.dead && Math.sin(G.t * 50) > 0)) return;
         ctx.globalAlpha = b.hold > 0 ? 0.55 + 0.3 * Math.sin(b.age * 22) : 1;
         ctx.lineWidth = 4;
@@ -1098,6 +1086,47 @@
 
     function hud(s) { return 'GRAZE ' + s.graze + '  BOMB ' + s.bombs; }
 
+    // The ending: THE EYE blooms. Twelve plasma petals open around its core
+    // and a ring of sparks leaves it every 0.7 s, cycling the three colours.
+    // Everything follows from e.t, so the scene needs no state of its own.
+    var BLOOM_X = G.W / 2, BLOOM_Y = 270, PETALS = 12, RING_GAP = 0.7, RING_DOTS = 24;
+
+    function drawPetals(ctx, t) {
+        var open = Math.min(1, t / 1.6), len = 40 + 110 * open;
+        for (var i = 0; i < PETALS; i++) {
+            var a = i * TAU / PETALS + t * 0.25, col = [CY, MG, YL][i % 3];
+            ctx.globalAlpha = 0.28 + 0.14 * Math.sin(t * 3 + i);
+            ctx.fillStyle = col;
+            ctx.beginPath();
+            ctx.ellipse(BLOOM_X + Math.cos(a) * len * 0.55, BLOOM_Y + Math.sin(a) * len * 0.55, len * 0.5, 9 + 7 * open, a, 0, TAU);
+            ctx.fill();
+        }
+        ctx.globalAlpha = 1;
+        blob(ctx, BLOOM_X, BLOOM_Y, 60 + 12 * Math.sin(t * 4), '255,238,0', 0.8);
+    }
+
+    function drawRings(ctx, t) {
+        for (var k = Math.max(0, Math.floor((t - 2.4) / RING_GAP)); k * RING_GAP <= t; k++) {
+            var age = t - k * RING_GAP, r = age * 230;
+            ctx.globalAlpha = Math.max(0, 1 - age / 2.4);
+            ctx.fillStyle = [CY, MG, YL][k % 3];
+            ctx.beginPath();
+            for (var i = 0; i < RING_DOTS; i++) {
+                var a = i * TAU / RING_DOTS + k * 0.4;
+                ctx.rect(BLOOM_X + Math.cos(a) * r - 3, BLOOM_Y + Math.sin(a) * r * 0.8 - 3, 6, 6);
+            }
+            ctx.fill();
+        }
+        ctx.globalAlpha = 1;
+    }
+
+    var ENDING = {
+        title: 'STORM BROKEN',
+        text: 'The Eye blooms into plasma fireworks.',
+        colors: [CY, MG, YL, FG],
+        draw: function (e, ctx) { drawRings(ctx, e.t); drawPetals(ctx, e.t); }
+    };
+
     G.register('plasma', {
         title: 'PLASMA STORM',
         blurb: 'Thread the bullet storm, merge plasma orbs into weapons, break the boss.',
@@ -1107,7 +1136,7 @@
             'Phone: it fires by itself · drag on the screen (or the pad) to steer · SLOW for fine moves',
             'Orbs change colour: three alike upgrade cyan SPREAD · magenta BEAM · yellow HOMING'
         ],
-        levelNames: ['First Sparks', 'Ring Lightning', 'Crosswind', 'Lancers', 'Spiral Front', 'Dart Swarm', 'Minefield', 'Ion Gates', 'Prism Bloom', 'Eye of the Storm'],
+        levelNames: ['First Sparks', 'Cyclone Front', 'Eye of the Storm'],
         colors: { bg: BG, fg: FG, accent: CY, dim: '#9a8fc0' },
         // Four lives: the late bosses cost an average player two or three.
         lives: 4,
@@ -1124,7 +1153,7 @@
             drums: { k: 'x...x...x...x.x.', s: '....x.......x...', h: 'x.xxx.xxx.xxx.xx' },
             leadWave: 'sawtooth', bassWave: 'sawtooth', arpWave: 'square', leadOct: 1
         },
-        init: init, update: update, draw: draw, hud: hud,
+        init: init, update: update, draw: draw, hud: hud, ending: ENDING,
         // The full 8-way pad. A is SLOW, not fire: on a phone the ship fires
         // by itself, so A only does the other half of what SPACE does.
         touch: { a: 'SLOW', b: 'BOMB' }
