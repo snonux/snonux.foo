@@ -32,7 +32,7 @@ function fixture(touch) {
 }
 
 const phone = fixture(true), desktop = fixture(false);
-for (const level of [1, 5, 10]) {
+for (const level of [1, 2, 3]) {
     phone.G.level = desktop.G.level = level;
     const a = phone.def.init(level), b = desktop.def.init(level);
     assert.equal(JSON.stringify(a.segs), JSON.stringify(b.segs), 'phone preserves track and hazards');
@@ -44,7 +44,7 @@ for (const level of [1, 5, 10]) {
         for (const key of ['pos', 'x', 'vx', 'speed', 'nitro', 'slip', 'time', 'cp', 'wind']) assert.equal(a[key], b[key], `level ${level}: preserves ${key}`);
     }
 }
-let s = phone.def.init(10);
+let s = phone.def.init(3);
 s.gateMsg = 'CHECKPOINT +20s'; s.gateT = 1; s.msg = s.gateMsg; s.msgT = 1;
 s.hazardMsg = 'HEAD-ON!'; s.hazardT = 1;
 s.slip = 1; s.gust = 1; s.nearT = 1;
@@ -57,7 +57,7 @@ for (const message of ['CHECKPOINT +20s', 'OIL! · HEAD-ON!', 'CROSSWIND  > > >'
 const warnings = phone.text.filter((t) => ['CHECKPOINT +20s', 'OIL! · HEAD-ON!', 'CROSSWIND  > > >'].includes(t.value));
 assert.equal(new Set(warnings.map((t) => t.y)).size, 3);
 assert.ok(warnings.every((t) => t.y < 270), 'warnings remain above approaching road traffic');
-s = phone.def.init(10); phone.G.level = 10; phone.G.key = { up: true };
+s = phone.def.init(3); phone.G.level = 3; phone.G.key = { up: true };
 const oncoming = s.cars.find((car) => car.dir < 0);
 oncoming.z = s.pos + 1050 - 1; oncoming.off = s.x; oncoming.speed = 0;
 phone.def.update(s, 1 / 60);
@@ -82,7 +82,7 @@ assert.equal(s.pos, 0, 'idle cannot make progress');
 assert.ok(phone.deaths() > 0, 'idle runs still fail the clock');
 const racer = fixture(true);
 let race, screen;
-racer.G.win = () => { screen = racer.G.level === 10 ? 'victory' : 'clear'; }; racer.G.die = () => { screen = 'over'; };
+racer.G.win = () => { screen = racer.G.level === 3 ? 'victory' : 'clear'; }; racer.G.die = () => { screen = 'over'; };
 racer.G.debug = {
     errors: [], s: () => race, state: () => ({ screen }),
     start(level) { racer.G.level = level; race = racer.def.init(level); screen = 'play'; },
@@ -94,6 +94,6 @@ racer.G.debug = {
     },
 };
 const result = vm.runInNewContext(readFileSync(new URL('./synthwave-bot.js', import.meta.url), 'utf8'), { SnoGame: racer.G });
-assert.ok(result.wins.every((r) => r.screen === (r.level === 10 ? 'victory' : 'clear')), 'ordinary controls win levels 1, 5 and 10');
+assert.ok(result.wins.every((r) => r.screen === (r.level === 3 ? 'victory' : 'clear')), 'ordinary controls win levels 1, 2 and 3');
 assert.equal(result.idle, 'over');
-console.log('ok synthwave: matching physics and hazards, legible combined warnings, input wins 1/5/10, idle failure');
+console.log('ok synthwave: matching physics and hazards, legible combined warnings, input wins 1/2/3, idle failure');

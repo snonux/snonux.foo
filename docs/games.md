@@ -673,10 +673,16 @@ alerts; tense sparse music, alarm when spotted.
 Classic segment-projected road toward a striped sun. `← →` steer, `↑`
 accelerate, `↓` brake, `SPACE` nitro. Curves push the car outward; leaving the
 road slows you; hitting traffic or roadside objects costs speed. Reach the
-finish before the timer hits zero. Levels: ten stages with their own curve and
-hill profile, more traffic, tighter time, night/sunset palettes, oncoming
-lanes late on. Engine pitch follows speed. Driving synthwave music with a
-gated-snare beat.
+finish before the timer hits zero; every checkpoint adds time and nitro, and
+squeezing past traffic refills the tank. One life: the clock running out ends
+the race. Levels: 1 *Sunset Strip* — gentle S-bends along the coast with light
+traffic; 2 *Midnight Storm* — hills through a rainy night city, trucks, oil
+slicks and a road that pushes harder in the bends; 3 *Outrun the Sun* — the
+finale: hairpins and crests with oncoming lanes, roadworks, crosswind gusts,
+oil and trucks. Each level's clock is set from what a casual driver holds
+there. The ending: the car crosses the line as a striped sun sinks into a
+neon grid between palm silhouettes, under neon fireworks. Engine pitch
+follows speed. Driving synthwave music with a gated-snare beat.
 
 ### terminal — kill -9 (ASCII twin-stick arena shooter)
 Everything is drawn as monospace glyphs in terminal green. `WASD` moves the

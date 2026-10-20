@@ -34,22 +34,8 @@
     var PALS = {
         sunset: { skyTop: '#2a0845', skyBot: '#ff6b2b', sun: ['#ffe45c', '#ff2d78'], ground: ['#1a0a3a', '#220d4a'], grid: '#ff2d78',
             road: ['#1b1030', '#21143a'], rumble: ['#ff2d78', '#35e0ff'], haze: '255,107,43', ridge: '#3b0f5e', edge: '#bf3fff', leaf: '#ff2d78', stars: 0.35 },
-        dusk: { skyTop: '#0d0221', skyBot: '#bf3fff', sun: ['#ff9a3c', '#ff2d78'], ground: ['#12062e', '#190a3c'], grid: '#bf3fff',
-            road: ['#160b2a', '#1c0f34'], rumble: ['#bf3fff', '#ff6b2b'], haze: '191,63,255', ridge: '#220a48', edge: '#ff2d78', leaf: '#35e0ff', stars: 0.7 },
-        night: { skyTop: '#030014', skyBot: '#3a1078', sun: ['#ff5fa2', '#7a2bff'], ground: ['#07031a', '#0c0526'], grid: '#35e0ff',
-            road: ['#0d0a1e', '#121028'], rumble: ['#35e0ff', '#ff2d78'], haze: '58,16,120', ridge: '#0a0524', edge: '#35e0ff', leaf: '#bf3fff', stars: 1 },
-        canyon: { skyTop: '#3a0a2a', skyBot: '#ff8a3c', sun: ['#fff07a', '#ff6b2b'], ground: ['#2a0a1e', '#361026'], grid: '#ff6b2b',
-            road: ['#1f0d1c', '#281224'], rumble: ['#ff6b2b', '#ffd24a'], haze: '255,138,60', ridge: '#5a1530', edge: '#ff6b2b', leaf: '#ffd24a', stars: 0.2 },
         storm: { skyTop: '#05060f', skyBot: '#2b2f55', sun: ['#c8d0ff', '#5a4fb0'], ground: ['#080a18', '#0c1022'], grid: '#5f7bff',
             road: ['#0c0e1c', '#111426'], rumble: ['#5f7bff', '#ff2d78'], haze: '43,47,85', ridge: '#0a0c1c', edge: '#5f7bff', leaf: '#5f7bff', stars: 0 },
-        dawn: { skyTop: '#1a0b4a', skyBot: '#ffb347', sun: ['#fff3a0', '#ff2d78'], ground: ['#200a40', '#2b0e52'], grid: '#ffd24a',
-            road: ['#1c1034', '#24153f'], rumble: ['#ffd24a', '#ff2d78'], haze: '255,179,71', ridge: '#4a1466', edge: '#ffd24a', leaf: '#ff2d78', stars: 0.4 },
-        miami: { skyTop: '#1b0b5a', skyBot: '#ff5fa2', sun: ['#fff3a0', '#ff5fa2'], ground: ['#0a1a3a', '#0d2248'], grid: '#35e0ff',
-            road: ['#14122e', '#1a1838'], rumble: ['#35e0ff', '#ff5fa2'], haze: '255,95,162', ridge: '#2a1070', edge: '#35e0ff', leaf: '#7dff9a', stars: 0.3 },
-        highway: { skyTop: '#000814', skyBot: '#0b3a66', sun: ['#eaf6ff', '#35e0ff'], ground: ['#03101c', '#051826'], grid: '#7dff9a',
-            road: ['#0a1018', '#0e1620'], rumble: ['#7dff9a', '#35e0ff'], haze: '11,58,102', ridge: '#04122a', edge: '#7dff9a', leaf: '#35e0ff', stars: 1 },
-        works: { skyTop: '#1a0520', skyBot: '#d9482b', sun: ['#ffd24a', '#ff6b2b'], ground: ['#160818', '#1e0c20'], grid: '#ffd24a',
-            road: ['#18101c', '#1f1524'], rumble: ['#ffd24a', '#12041f'], haze: '217,72,43', ridge: '#2a0a2a', edge: '#ffd24a', leaf: '#ff6b2b', stars: 0.5 },
         finale: { skyTop: '#12000a', skyBot: '#ff2d2d', sun: ['#ffffff', '#ff2d2d'], ground: ['#1a0410', '#240616'], grid: '#ff2d55',
             road: ['#170a14', '#1e0e1a'], rumble: ['#ffffff', '#ff2d55'], haze: '255,45,45', ridge: '#3a0618', edge: '#ffd24a', leaf: '#ffd24a', stars: 0.15 }
     };
@@ -60,20 +46,18 @@
     // pace is the share of top speed the clock expects on average. It is set
     // per level from what a casual driver holds there (late on the wheel,
     // wide in the bends, a few bumps and verge trips per run), not as a rising
-    // series: the hairpins of level 6 and the storm, oil and oncoming cars of
-    // levels 9 and 10 cost far more speed than the open roads before them.
-    // Every level has a palette of its own, so no two stages look alike.
+    // series: the rain, oil and trucks of the storm and the hairpins,
+    // roadworks and oncoming cars of the finale cost more speed than the
+    // open coast road of the first leg.
     var LEVELS = [
-        { pal: 'sunset', len: 2800, cps: 3, curve: 2, hold: 1, straight: 0.4, hill: 0, traffic: 9, side: ['palm', 'pylon'], gap: 6, sideOff: 1.5, spread: 0.8, pace: 0.58 },
-        { pal: 'miami', len: 3000, cps: 3, curve: 3, hold: 0.5, alt: true, straight: 0.1, hill: 0, traffic: 11, side: ['palm'], gap: 3, sideOff: 1.25, spread: 0.25, pace: 0.62 },
-        { pal: 'dusk', len: 3200, cps: 3, curve: 2.5, hold: 1, straight: 0.3, hill: 30, traffic: 12, side: ['pyramid', 'palm'], gap: 6, sideOff: 1.4, spread: 1.2, pace: 0.68 },
-        { pal: 'night', city: true, len: 3400, cps: 3, curve: 2.5, hold: 1, straight: 0.5, hill: 0, traffic: 24, trucks: 0.3, side: ['tower', 'lamp'], gap: 4, sideOff: 1.3, spread: 0.5, pace: 0.705 },
-        { pal: 'dawn', len: 3600, cps: 3, curve: 3.2, hold: 1, straight: 0.3, hill: 12, traffic: 14, oil: 14, side: ['palm', 'rock'], gap: 5, sideOff: 1.4, spread: 1, pace: 0.71 },
-        { pal: 'canyon', len: 3600, cps: 4, curve: 5.5, hold: 1.4, straight: 0.25, hill: 30, traffic: 10, side: ['rock'], gap: 2, sideOff: 1.2, spread: 0.3, pace: 0.52 },
-        { pal: 'highway', len: 3800, cps: 4, curve: 3, hold: 1, straight: 0.35, hill: 15, traffic: 16, oncoming: 3, side: ['lamp', 'pylon'], gap: 5, sideOff: 1.3, spread: 0.6, pace: 0.7 },
-        { pal: 'works', city: true, len: 4000, cps: 4, curve: 3.5, hold: 1, straight: 0.4, hill: 15, traffic: 16, trucks: 0.35, works: 6, side: ['tower', 'pylon'], gap: 5, sideOff: 1.3, spread: 0.6, pace: 0.7 },
-        { pal: 'storm', len: 4200, cps: 4, curve: 4, hold: 1, straight: 0.3, hill: 25, traffic: 14, oncoming: 3, oil: 7, storm: true, wind: true, side: ['lamp', 'palm'], gap: 5, sideOff: 1.35, spread: 0.8, pace: 0.68 },
-        { pal: 'finale', len: 4800, cps: 4, curve: 5, hold: 1.1, straight: 0.3, hill: 35, traffic: 18, trucks: 0.25, oncoming: 4, oil: 8, works: 3, wind: true, side: ['rock', 'palm', 'pylon'], gap: 4, sideOff: 1.3, spread: 0.7, pace: 0.635 }
+        // Introduction: gentle S-bends along the coast, light traffic.
+        { pal: 'sunset', len: 2600, cps: 3, curve: 2.2, hold: 1, alt: true, straight: 0.3, hill: 0, traffic: 9, side: ['palm', 'pyramid', 'pylon'], gap: 5, sideOff: 1.4, spread: 0.7, pace: 0.58 },
+        // Development: hills through a city at night in the rain, with oil
+        // slicks, trucks and a slippery road that pushes harder in bends.
+        { pal: 'storm', city: true, len: 3200, cps: 3, curve: 3, hold: 1, straight: 0.35, hill: 22, traffic: 14, trucks: 0.3, oil: 8, storm: true, side: ['lamp', 'tower'], gap: 4, sideOff: 1.3, spread: 0.5, pace: 0.64 },
+        // Finale: hairpins and crests with everything at once — oncoming
+        // lanes, roadworks, crosswind gusts, oil and trucks.
+        { pal: 'finale', len: 4200, cps: 4, curve: 5, hold: 1.1, straight: 0.3, hill: 35, traffic: 18, trucks: 0.25, oncoming: 4, oil: 8, works: 3, wind: true, side: ['rock', 'palm', 'pylon'], gap: 4, sideOff: 1.3, spread: 0.7, pace: 0.62 }
     ];
 
     // w/h: drawn size in world units. col: width that collides. hit: what
@@ -1294,6 +1278,60 @@
         drawClock(s, ctx);
     }
 
+    // ------------------------------------------------------------------
+    // The ending: the car rolls over the line as the sun finally sets
+    // ------------------------------------------------------------------
+
+    // A big striped sun sinks into a neon grid floor between two rows of
+    // palm silhouettes; the engine's neon fireworks go up over it. About a
+    // hundred canvas calls a frame.
+    function drawEndingSun(e, ctx) {
+        var cx = W / 2, R = 120, cy = 300 + Math.min(e.t, 8) * 6, k, g;
+        ctx.save();
+        ctx.beginPath(); ctx.rect(0, 0, W, 372); ctx.clip();
+        g = ctx.createLinearGradient(0, cy - R, 0, cy + R);
+        g.addColorStop(0, '#ffe45c'); g.addColorStop(1, '#ff2d78');
+        ctx.globalAlpha = 0.7; ctx.fillStyle = g;
+        ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#0d0221';
+        for (k = 0; k < 6; k++) ctx.fillRect(cx - R, cy + (k + (e.t * 0.4) % 1) * R / 6, R * 2, 2 + k * 2);
+        ctx.restore();
+    }
+
+    function drawEndingGrid(e, ctx) {
+        var top = 372, k, y, x;
+        ctx.globalAlpha = 0.9; ctx.fillStyle = '#12041f'; ctx.fillRect(0, top, W, H - top);
+        ctx.strokeStyle = '#ff2d78'; ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(0, top); ctx.lineTo(W, top);
+        for (k = 0; k < 7; k++) {
+            y = top + Math.pow((k + (e.t * 1.2) % 1) / 7, 2) * (H - top);
+            ctx.moveTo(0, y); ctx.lineTo(W, y);
+        }
+        for (k = -8; k <= 8; k++) { x = W / 2 + k * 60; ctx.moveTo(x, top); ctx.lineTo(W / 2 + k * 240, H); }
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+    }
+
+    function drawEndingPalms(e, ctx) {
+        var k, side, x, h, sway;
+        ctx.fillStyle = '#0d0221'; ctx.strokeStyle = '#0d0221'; ctx.lineWidth = 6;
+        for (side = -1; side <= 1; side += 2) {
+            for (k = 0; k < 3; k++) {
+                x = W / 2 + side * (300 + k * 110); h = 150 + k * 40;
+                sway = Math.sin(e.t * 1.5 + k) * 6;
+                ctx.beginPath(); ctx.moveTo(x, 372); ctx.quadraticCurveTo(x + side * 10, 372 - h / 2, x + sway, 372 - h); ctx.stroke();
+                ctx.beginPath(); ctx.ellipse(x + sway, 372 - h, 46, 12, side * 0.3, 0, Math.PI * 2); ctx.fill();
+            }
+        }
+    }
+
+    function drawEnding(e, ctx) {
+        drawEndingSun(e, ctx);
+        drawEndingPalms(e, ctx);
+        drawEndingGrid(e, ctx);
+    }
+
     function hud(s) {
         return 'CHECKPOINT ' + s.cp + '/' + s.L.cps;
     }
@@ -1306,8 +1344,7 @@
             'SPACE / NITRO: nitro — near misses and checkpoints refill the tank',
             'Leaving the road, hitting traffic or roadside objects costs speed'
         ],
-        levelNames: ['Sunset Strip', 'Palm Slalom', 'Rolling Hills', 'Neon City', 'Oil Coast',
-            'Canyon Hairpins', 'Two-Way Highway', 'Roadworks', 'Midnight Storm', 'Outrun the Sun'],
+        levelNames: ['Sunset Strip', 'Midnight Storm', 'Outrun the Sun'],
         colors: { bg: '#0d0221', fg: '#ffffff', accent: '#ff2d78', dim: '#bf3fff' },
         // One life: when the clock runs out the race is over, as in the arcade.
         lives: 1,
@@ -1324,6 +1361,12 @@
         init: init, update: update, draw: draw, hud: hud,
         // Everything is on the pad: steer, accelerate and brake on the
         // directions, nitro on A. B does nothing in this game.
-        touch: { a: 'NITRO', hide: ['b'] }
+        touch: { a: 'NITRO', hide: ['b'] },
+        ending: {
+            title: 'YOU OUTRAN THE SUN',
+            text: 'Over the line as the last light sinks into the grid.',
+            colors: ['#ff2d78', '#35e0ff', '#ffd24a', '#bf3fff'],
+            draw: drawEnding
+        }
     });
 })();
