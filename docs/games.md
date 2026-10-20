@@ -545,12 +545,18 @@ dorian pads and arps.
 ### dos — DIGGER.EXE (CGA tunnel digger)
 Grid-based digging in the CGA palette (black, cyan, magenta, white) with the
 DOS font. `arrows` dig through dirt, `SPACE` fires a shot down the tunnel
-(slow recharge). Collect every emerald to clear the level. Enemies come out of
-a corner nest and chase through tunnels; later ones dig too. Gold bags fall
-when undermined (they wobble first): they crush enemies and the player, and
-burst into gold if they fall far. Levels: ten maps, more and faster enemies,
-more bags, digging enemies from level 5, a bonus cherry that turns the tables
-for a few seconds. PC-speaker style square-wave sounds and music.
+(slow recharge). Collect every emerald to clear the level; every emerald can
+be dug out (rocks never touch, and an emerald a bag lands on is ground to
+dust). Enemies come out of a corner nest and chase through tunnels. Gold bags
+fall when undermined (they wobble first): they crush enemies and the player,
+and burst into gold if they fall far. A bonus cherry turns the tables for a
+few seconds. Levels: 1 *AUTOEXEC.BAT*, one nobbin at a time and a few bags to
+learn digging and dropping; 2 *CHERRY.COM*, rocks, two nobbins and the
+cherry; 3 *FORMAT C:*, the finale: two nests, hobbins that dig their own
+tunnels, the TSR ghost that drifts through soil, and tunnels that silt up
+behind you. The ending is a victory session at the DOS prompt (`FORMAT C:
+/EMERALDS` … `Format complete.`) under CGA fireworks and a marquee border.
+PC-speaker style square-wave sounds and music.
 
 ### invaders — Formation (fixed shooter)
 A marching formation that speeds up as it thins, bunkers that erode where

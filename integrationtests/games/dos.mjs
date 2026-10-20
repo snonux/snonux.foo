@@ -23,7 +23,7 @@ function game(touch, level, seed = 93) {
         register: (name, d) => { def = d; },
         get lives() { return lives; },
         loseLife: () => { if (--lives === 0) screen = 'over'; return lives; },
-        addScore: (n) => score += n, win: (n) => { score += n; screen = level === 10 ? 'victory' : 'clear'; },
+        addScore: (n) => score += n, win: (n) => { score += n; screen = level === 3 ? 'victory' : 'clear'; },
         tone() {}, burst() {}, popup() {}, shake() {}, flash() {}, text() {}
     };
     const math = Object.create(Math); math.random = random;
@@ -39,7 +39,26 @@ function game(touch, level, seed = 93) {
 // BFS to a reachable emerald. Read state, but change it only through pad keys.
 function steer(s, tick) {
     const p = s.pl, dirs = [['left', -1, 0], ['right', 1, 0], ['up', 0, -1], ['down', 0, 1]];
-    const start = p.r * 20 + p.c, seen = new Set([start]), q = [[p.c, p.r, null]];
+    // Plan from the cell the digger is heading for, where its next hop starts.
+    const oc = p.c + p.dc, or = p.r + p.dr;
+    const start = or * 20 + oc, seen = new Set([start]), q = [[oc, or, null]];
+    // A cell right under a bag is only entered from the side, and never
+    // while the bag wobbles: from above or below it lands on the digger.
+    const underBag = (c, r, side) => s.bags.some(b => b.c === c && b.r === r - 1 && (!side || b.state !== 'rest'));
+    // An emerald in the cell ahead is already ours: keep going, rather than
+    // turn back mid-hop toward the next one.
+    const ahead = dirs.find(d => d[1] === p.dc && d[2] === p.dr);
+    if (ahead && s.gem[start]) return { [ahead[0]]: true, a: tick % 2 === 0 };
+    // Too close to a monster to follow the plan: step to the free cell
+    // furthest from all of them.
+    const gap = (c, r) => Math.min(99, ...s.enemies.map(e => Math.abs(e.c + e.dc * e.p - c) + Math.abs(e.r + e.dr * e.p - r)));
+    const x = Math.round(p.c + p.dc * p.p), y = Math.round(p.r + p.dr * p.p);
+    if (s.power <= 0 && gap(p.c + p.dc * p.p, p.r + p.dr * p.p) < 2.2) {
+        const free = dirs.filter(([, dx, dy]) => x + dx >= 0 && x + dx < 20 && y + dy >= 0 && y + dy < 10 &&
+            !s.rock[(y + dy) * 20 + x + dx] && !s.bags.some(b => b.c === x + dx && b.r <= y + dy && b.r >= y + dy - 1));
+        free.sort((m, n) => gap(x + n[1], y + n[2]) - gap(x + m[1], y + m[2]));
+        if (free.length) return { [free[0][0]]: true, a: tick % 2 === 0 };
+    }
     let target = null;
     // Face and shoot a monster in an open straight tunnel before it arrives.
     if (s.charge >= 1 && !s.shot && s.power <= 0) {
@@ -62,7 +81,7 @@ function steer(s, tick) {
         for (const [name, dx, dy] of dirs) {
             const nc = c + dx, nr = r + dy, index = nr * 20 + nc;
             if (nc < 0 || nc >= 20 || nr < 0 || nr >= 10 || seen.has(index) || s.rock[index]) continue;
-            if (s.bags.some(b => b.c === nc && b.r === nr && b.state !== 'fall')) continue;
+            if (s.bags.some(b => b.c === nc && b.r === nr && b.state !== 'fall') || underBag(nc, nr, dx !== 0)) continue;
             seen.add(index); q.push([nc, nr, first || name]);
         }
     }
@@ -71,7 +90,7 @@ function steer(s, tick) {
     return input;
 }
 
-for (const level of [1, 5, 10]) {
+for (const level of [1, 2, 3]) {
     const d = game(false, level), p = game(true, level);
     for (const key of ['cfg', 'dirt', 'rock', 'gem', 'bags', 'pl']) {
         assert.deepEqual(JSON.parse(JSON.stringify(p.s[key])), JSON.parse(JSON.stringify(d.s[key])), `unchanged ${key}`);
@@ -79,7 +98,7 @@ for (const level of [1, 5, 10]) {
     for (const g of [d, p]) {
         let ticks = 0;
         for (; ticks < 24000 && g.state().screen === 'play'; ticks++) g.step(steer(g.s, ticks));
-        assert.equal(g.state().screen, level === 10 ? 'victory' : 'clear', `level ${level}: ${JSON.stringify(g.state())}, ${g.s.left} gems`);
+        assert.equal(g.state().screen, level === 3 ? 'victory' : 'clear', `level ${level}: ${JSON.stringify(g.state())}, ${g.s.left} gems`);
         console.log(`ok   dos ${g.s.touch ? 'phone' : 'desktop'} level ${level}: ${ticks} ticks, ${g.state().lives} lives`);
     }
     const idle = game(true, level);
@@ -104,7 +123,7 @@ function render(g) {
     g.def.draw(g.s, ctx);
     return { calls, texts, rects, scales };
 }
-for (const level of [1, 5, 10]) {
+for (const level of [1, 2, 3]) {
     const d = game(false, level), p = game(true, level);
     const dr = render(d), pr = render(p);
     assert.ok(pr.calls < dr.calls, 'quieter phone dirt reduces canvas calls');
@@ -125,10 +144,10 @@ if (process.argv.includes('--browser')) {
             await page.goto(`${base}/index.html`);
             await page.eval("SnoGame.launch('dos')");
             await page.waitFor('SnoGame.debug.state() && SnoGame.debug.state().registered', 'dos registration');
-            for (const level of [1, 5, 10]) {
+            for (const level of [1, 2, 3]) {
                 const result = await page.eval(`(function () {
                     const steer = ${steer.toString()}, originalRandom = Math.random;
-                    let seed = ${level === 10 ? 5 : 93}, ticks = 0;
+                    let seed = ${level === 3 ? 5 : 93}, ticks = 0;
                     try {
                         Math.random = () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; };
                         SnoGame.debug.start(${level});
@@ -136,14 +155,14 @@ if (process.argv.includes('--browser')) {
                         return {state: SnoGame.debug.state(), ticks};
                     } finally { Math.random = originalRandom; }
                 })()`);
-                assert.equal(result.state.screen, level === 10 ? 'victory' : 'clear', `${name} level ${level}: ${JSON.stringify(result)}`);
+                assert.equal(result.state.screen, level === 3 ? 'victory' : 'clear', `${name} level ${level}: ${JSON.stringify(result)}`);
                 console.log(`ok   dos ${name} level ${level}: ${result.ticks} ticks, ${result.state.lives} lives`);
                 await page.eval(`SnoGame.debug.start(${level}); SnoGame.debug.step(180, (i,s) => (${steer.toString()})(s,i));`);
                 await page.screenshot(`/tmp/dos-${name}-${level}.jpg`);
             }
             // Rendering fixture only: expose simultaneous warnings without
             // changing the states used by the ordinary-input win checks above.
-            await page.eval("SnoGame.debug.start(10); Object.assign(SnoGame.debug.s(), {msg: 'BAG.SYS unstable', power: 1.2, charge: .4});");
+            await page.eval("SnoGame.debug.start(3); Object.assign(SnoGame.debug.s(), {msg: 'BAG.SYS unstable', power: 1.2, charge: .4});");
             await new Promise(r => setTimeout(r, 80));
             await page.screenshot(`/tmp/dos-${name}-warnings.jpg`);
             const idle = await page.eval('(function(){SnoGame.debug.start(1);SnoGame.debug.step(24000,{});return SnoGame.debug.state();})()');
