@@ -68,6 +68,35 @@ assert(danger.labels.some(l => l.text === danger.s.msg && l.opts.size === 30 && 
 assert.equal(danger.s.p.r, 8); assert.equal(danger.s.agents[0].r, 11);
 console.log('matrix touch targeting, misses, combined warnings, collision footprints and rain budget pass');
 
+// The campaign's mechanics, each on its own: time crawls while the player
+// stands still and runs while they move; an empty-handed player gets a dead
+// drop; running into an agent's back deletes it; the glass office has
+// glass; sentinels only arrive with the lobby's later waves.
+{
+    const still = game(false, 1);
+    for (let i = 0; i < 60; i++) still.step();
+    assert(still.s.ts < 0.2, `standing still crawls: ${still.s.ts}`);
+    still.G.key = { up: true };
+    for (let i = 0; i < 30; i++) still.step();
+    assert(still.s.ts > 0.9, `moving runs time: ${still.s.ts}`);
+
+    const empty = game(false, 1);
+    empty.s.ammo.pistol = 0;
+    for (let i = 0; i < 240; i++) empty.step();
+    assert.equal(empty.s.pickups.length, 1, 'dead drop for an empty-handed player');
+
+    const sneak = game(false, 1), p = sneak.s.p, agent = sneak.s.agents[0];
+    Object.assign(agent, { x: p.x + 24, y: p.y, face: 0, post: { x: p.x + 200, y: p.y }, out: true });
+    sneak.G.key = { right: true };
+    for (let i = 0; i < 20 && !agent.dead; i++) sneak.step();
+    assert(agent.dead, 'a run into an agent from behind is a takedown');
+
+    assert(game(false, 2).s.grid.includes(2), 'the glass office has glass');
+    const drones = (level) => game(false, level).s.lv.waves.map(w => w.filter(e => e[0] === 'z').length).join();
+    assert.deepEqual([drones(1), drones(2), drones(3)], ['0,0,0', '0,0,0', '0,1,1']);
+    console.log('matrix bullet time, dead drop, takedown, glass and lobby sentinels pass');
+}
+
 export function steer(i, s, G) {
     const p = s.p, foes = s.agents.concat(s.drones), ammo = s.ammo.pistol + s.ammo.shotgun;
     function visible(e) {
