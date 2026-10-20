@@ -117,6 +117,36 @@ try {
     }
     assert.equal(mobile.fourWay, true, 'grid steering must select one direction per thumb gesture');
     assert.equal(mobile.unusedHidden, true, 'the unused B button must stay hidden');
+    // The campaign's mechanics, each on its own: riders and round quotas per
+    // level, the boost draining and refilling, fading trails that lock, and
+    // the finale's collapse taking a rider on the outer ring with it.
+    const rules = await page.eval(`(function(){
+        var G=SnoGame,def=window.__neonDef,saved={win:G.win,loseLife:G.loseLife,addScore:G.addScore,a:G.key.a},won=0;
+        function run(level){var s=def.init(level);s.phase='run';return s;}
+        try{
+            G.win=function(){won++;};G.loseLife=function(){return 1;};G.addScore=function(){};
+            var cfg=[1,2,3].map(function(l){var c=def.init(l).cfg;
+                return [c.riders.join('+'),c.need,c.decay||0,c.shrink?c.shrink.every:0,c.layout||''].join(' ');});
+            var s=run(1);G.key.a=true;
+            for(var i=0;i<30;i++)def.update(s,1/60);
+            var drained=s.me.boosting&&s.me.charge<0.8;
+            G.key.a=false;var low=s.me.charge;
+            for(i=0;i<30;i++)def.update(s,1/60);
+            var refilled=!s.me.boosting&&s.me.charge>low;
+            s=run(2);s.roundT=11.99;def.update(s,1/60);
+            var locked=s.locked&&s.note.text==='TRAILS LOCKED';
+            s=run(3);var expert=s.cycles[1];expert.y=0;expert.dir=0;s.shrinkT=0.001;
+            def.update(s,1/60);
+            return {cfg:cfg,drained:drained,refilled:refilled,locked:locked,
+                collapse:s.ring===1&&!expert.alive&&s.wins===1&&won===0&&s.phase==='end'};
+        }finally{G.win=saved.win;G.loseLife=saved.loseLife;G.addScore=saved.addScore;G.key.a=saved.a;}
+    })()`);
+    assert.deepEqual(rules.cfg, ['rookie+scout 2 0 0 ', 'hunter+scout+rookie 2 80 0 bars', 'expert 3 0 6 pillars']);
+    assert.equal(rules.drained, true, 'holding BOOST must boost and drain the charge');
+    assert.equal(rules.refilled, true, 'the charge must come back after the boost');
+    assert.equal(rules.locked, true, 'fading trails must lock after a while');
+    assert.equal(rules.collapse, true, 'a collapsing ring must derez the expert riding on it and win the round');
+    console.log('ok   neon riders, round quotas, boost, trail lock and the collapsing duel');
     assert.deepEqual(page.problems, [], 'no browser errors');
     console.log('ok   neon arena: caching, scaling, animation, mobile labels/HUD and unchanged level rules');
 } finally {
