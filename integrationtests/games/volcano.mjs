@@ -18,7 +18,7 @@ function game(touch, level) {
         aabb: (a, b) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y,
         circRect: (x, y, r, rx, ry, w, h) => Math.hypot(x - Math.max(rx, Math.min(rx + w, x)), y - Math.max(ry, Math.min(ry + h, y))) < r,
         get lives() { return lives; }, die: () => { if (--lives === 0) screen = 'over'; else s = def.init(level); },
-        win: () => screen = level === 10 ? 'victory' : 'clear', addScore: n => score += n,
+        win: () => screen = level === 3 ? 'victory' : 'clear', addScore: n => score += n,
         sfx() {}, tone() {}, noise() {}, burst: (x, y) => effects.push({x, y}), popup() {}, shake() {}, flash() {}, text() {} };
     runInNewContext(source, { window: { SnoGame: G } }); s = def.init(level);
     G.debug = {state: () => ({screen, lives, score}), s: () => s, step: (n, input) => {
@@ -31,13 +31,13 @@ function game(touch, level) {
     }};
     return {G, def, effects, get s() {return s;}, run: () => runInNewContext(bot, {SnoGame: G})};
 }
-for (const level of [1, 5, 10]) {
+for (const level of [1, 2, 3]) {
     const desktop = game(false, level), phone = game(true, level);
     const comparable = s => JSON.stringify({...s, touch: undefined});
     assert.equal(comparable(desktop.s), comparable(phone.s), 'phone uses the same shaft and physics');
     for (const g of [desktop, phone]) {
         const result = g.run();
-        assert.equal(result.state.screen, level === 10 ? 'victory' : 'clear', `normal controls win level ${level}`);
+        assert.equal(result.state.screen, level === 3 ? 'victory' : 'clear', `normal controls win level ${level}`);
         console.log(`ok volcano ${g.s.touch ? 'phone' : 'desktop'} level ${level}: ${result.ticks} ticks, ${result.state.lives} lives`);
     }
     const idle = game(true, level); idle.G.debug.step(12000, {});
@@ -46,10 +46,10 @@ for (const level of [1, 5, 10]) {
 // Isolate failure hazards without turning the play bot into a state editor.
 const miss = game(true, 1); miss.s.p.y = 360; miss.G.debug.step(1, {});
 assert.equal(miss.G.debug.state().lives, 3, 'falling into rising lava costs a life');
-const fall = game(true, 10), column = fall.s.falls[0];
+const fall = game(true, 3), column = fall.s.falls[0];
 fall.s.time = column.period - column.ph; fall.s.p.x = column.x - 10; fall.s.p.y = column.y0 + 20;
 fall.G.debug.step(1, {}); assert.equal(fall.G.debug.state().lives, 3, 'active lava column kills');
-const crumble = game(true, 5), cracked = crumble.s.ledges.find(l => l.kind === 'crumble');
+const crumble = game(true, 2), cracked = crumble.s.ledges.find(l => l.kind === 'crumble');
 crumble.s.p.x = cracked.x + 10; crumble.s.p.y = cracked.y - 30; crumble.s.p.on = cracked;
 crumble.G.debug.step(1, {}); assert.equal(cracked.state, 'shake');
 crumble.G.debug.step(74, {}); assert.equal(cracked.state, 'gone', 'cracked ledge collapses');
@@ -82,13 +82,13 @@ if (process.argv.includes('--browser')) {
             if (layout.width) await page.emulatePhone(layout.width, layout.height);
             await page.goto(`${base}/index.html`); await page.eval("SnoGame.launch('volcano')");
             await page.waitFor('SnoGame.debug.state().registered', 'volcano registration');
-            for (const level of [1, 5, 10]) {
+            for (const level of [1, 2, 3]) {
                 await page.eval(`(function(){Math.random = ${rng.toString()}(9); SnoGame.debug.start(${level}); return ${bot.replace('ticks < 36000', 'ticks < 240')};})()`);
                 await sleep(80); await page.screenshot(`${shots}/${layout.name}-level${level}.jpg`);
                 // Engine particles consume randomness too; this seeded run exercises
                 // their normal behavior without depending on real-frame timing.
                 const result = await page.eval(`(function(){Math.random = ${rng.toString()}(9); SnoGame.debug.start(${level}); return ${bot};})()`);
-                assert.equal(result.state.screen, level === 10 ? 'victory' : 'clear', `${layout.name} level ${level} ordinary-input win`);
+                assert.equal(result.state.screen, level === 3 ? 'victory' : 'clear', `${layout.name} level ${level} ordinary-input win`);
                 assert.deepEqual(await page.eval('SnoGame.debug.errors.slice()'), []);
                 console.log(JSON.stringify({layout: layout.name, level, ...result}));
             }

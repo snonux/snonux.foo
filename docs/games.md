@@ -738,9 +738,14 @@ tune.
 
 ### volcano — Magma Rising (vertical climber)
 The lava rises without pause. `← →` run, `SPACE` jump, wall-jump off the
-shaft walls. Climb ledges (solid, crumbling, moving), ride steam geysers,
+shaft walls. Climb ledges (solid, crumbling, drifting), ride steam geysers,
 dodge falling lava bombs and fire bats. Reach the crater rim (a height goal,
-shown as a meter). Touching lava is instant death. Levels: taller shafts,
-faster lava, more crumbling ledges, earthquakes that shake ledges loose,
-lava-fall columns that switch on and off, level 10 is an eruption with
-everything. Camera follows upward. Rumbling noise bed, urgent phrygian music.
+shown as a meter). Touching lava is instant death; bombs and bats only
+knock the climber about. Every ledge is reachable from the one below it.
+Levels: 1 *First Ascent* — slow lava, cracked ledges and one wall-kick gap;
+2 *Steam and Bats* — a taller shaft with drifting slabs, steam vents, lava
+bombs and fire bats; 3 *Eruption* — the finale: quakes that shake ledges
+loose, lava-fall columns to time, lava surges, on top of everything before.
+The ending: out of the crater as the mountain blows, two cones throwing
+lava up as fireworks while the climber waves from the ridge. Camera follows
+upward. Rumbling noise bed, urgent phrygian music.
