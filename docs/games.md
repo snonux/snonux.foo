@@ -489,11 +489,20 @@ skier descends. `← →` carve (turning bleeds speed, with inertia), `↓` tuck
 speed, `SPACE` jump (also off ramps, for airtime and points). Pass between
 slalom gate flags (a miss costs time), dodge pines, rocks and ice crevasses
 (crash = lose a life, short stun). Reach the finish line before the clock runs
-out. Levels: longer and denser courses; side wind gusts from level 3; a yeti
-that chases when you are slow from level 4; moguls and ice patches (no grip)
-from level 6; an avalanche wall closing from behind from level 8; level 10 is a
-storm run with everything. Draw aurora ribbons in the sky strip and snow
-spray particles. Music: airy lydian arpeggios.
+out; a missed gate costs three seconds. Levels:
+
+1. **Pine Forest** — pines, rocks and ramps (big air clears even a tree):
+   learn the line, the tuck and the jump.
+2. **Blue Crevasse** — a longer, tighter course with crevasses and chasms to
+   jump (half with a ramp), side wind gusts, and a yeti that chases when you
+   are slow.
+3. **Polar Storm** — the finale: storm fog and snow, moguls and ice patches
+   (no grip), a tree-lined chute in the middle third, the yeti, and an
+   avalanche wall closing in from behind.
+
+Aurora ribbons in the sky strip, snow spray particles. The ending: the aurora
+fills the whole sky and coloured snow glints down through the fireworks
+(**POLAR CHAMPION**). Music: airy lydian arpeggios.
 
 ### biomech — Spine Crawler (centipede-style shooter)
 A segmented biomechanical worm winds down through a field of bone nodes; it
