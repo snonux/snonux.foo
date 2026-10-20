@@ -219,6 +219,10 @@ async function playWithRetries(page, ctx, level) {
 // The scene after level 3: it must be there, hold, animate and lead on.
 async function checkEnding(page, ctx) {
     const st = await page.eval(`SnoGame.debug.step(150, {})`);
+    await sleep(100); // let real frames run the theme's ending draw hook
+    // A crash in the ending's draw is the thing to report, not its symptoms.
+    const errs = await page.eval('SnoGame.debug.errors.slice(0, 1)');
+    check(!errs.length, `the ending crashed: ${String(errs[0]).split('\n')[0]}`);
     check(st.screen === 'victory', `the ending did not hold (screen ${st.screen})`);
     const e = await page.eval('SnoGame.debug.ending()');
     check(e && (!e.fireworks || e.sparks + e.shells > 0), 'the ending shows no fireworks');

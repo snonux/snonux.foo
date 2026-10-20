@@ -230,3 +230,65 @@ func checkOutputContains(t *testing.T, dir string, wantIn map[string][]string) {
 		}
 	}
 }
+
+// levelNamesList captures the body of a game's levelNames array literal, and
+// quotedName each single- or double-quoted entry inside it.
+var (
+	levelNamesList = regexp.MustCompile(`(?s)levelNames:\s*\[(.*?)\]`)
+	quotedName     = regexp.MustCompile(`'(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*"`)
+	engineLevels   = regexp.MustCompile(`\bLEVELS = (\d+)\b`)
+)
+
+// countLevelNames returns how many names a game's levelNames lists, or -1
+// when the script declares no levelNames array.
+func countLevelNames(script string) int {
+	m := levelNamesList.FindStringSubmatch(script)
+	if m == nil {
+		return -1
+	}
+	return len(quotedName.FindAllString(m[1], -1))
+}
+
+// TestThemeGames_haveThreeLevels pins the three-level campaign: the engine
+// plays exactly three levels, so every game must name exactly three. A game
+// with more names would show levels nobody can reach, one with fewer would
+// leave a level nameless on the HUD.
+func TestThemeGames_haveThreeLevels(t *testing.T) {
+	t.Parallel()
+
+	engine, err := templates.SharedGamesJS()
+	if err != nil {
+		t.Fatalf("read games.js: %v", err)
+	}
+	if m := engineLevels.FindStringSubmatch(string(engine)); m == nil || m[1] != "3" {
+		t.Fatalf("games.js must declare LEVELS = 3, found %v", m)
+	}
+	for _, theme := range ListThemes() {
+		script := themeGameScript(t, theme)
+		if script == nil {
+			continue // reported by TestThemeGames_registerUnderOwnName
+		}
+		if n := countLevelNames(string(script)); n != 3 {
+			t.Errorf("theme %q: want 3 levelNames, found %d", theme, n)
+		}
+	}
+}
+
+func TestCountLevelNames(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		script string
+		want   int
+	}{
+		{`levelNames: ['A', 'B', 'C'],`, 3},
+		{"levelNames: [\n 'It\\'s', \"Two\",\n 'Three' ]", 3},
+		{`levelNames: [],`, 0},
+		{`title: 'x'`, -1},
+	}
+	for _, tc := range cases {
+		if got := countLevelNames(tc.script); got != tc.want {
+			t.Errorf("countLevelNames(%q) = %d, want %d", tc.script, got, tc.want)
+		}
+	}
+}
