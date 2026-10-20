@@ -723,11 +723,18 @@ Side-scrolling tile platformer (use `G.tileMove`). `← →` run with
 acceleration, `SPACE` or `↑` jump (variable height, coyote time, jump
 buffering). Stomp crabs, avoid urchins (not stompable) and swooping gulls,
 bounce on springy palm leaves, ride rafts across water, collect pineapples
-(100 = extra life), touch checkpoint flags, reach the tiki totem. Falling in
-water or touching an enemy from the side costs a life. Levels: ten stages
-from a seeded chunk generator across beach, jungle, cave and ridge settings,
-with gaps always clearable; moving and falling platforms, coconut-throwing
-monkeys, rising tide on a late level. Bright major-pentatonic calypso tune.
+(100 = extra life), touch checkpoint flags (each adds time to the tide
+clock), reach the tiki totem. Falling in water or touching an enemy from the
+side costs a life. Each level is built from a seeded chunk generator whose
+chunks are clearable on their own, so gaps are always clearable. Levels:
+1 *Shell Beach* — crabs, gaps, islets, urchins, a spring and a raft across a
+lagoon; 2 *Glow Cave* — under a cave roof with falling stalactites, moving
+planks over wide water, crumbling slabs and a coconut-throwing monkey;
+3 *Totem Storm* — the finale: tide surges that flood the low beaches, gulls,
+fast red crabs, a lift up a cliff and the totem at the end. The ending: an
+island festival at the totem, torches, lanterns and dancing silhouettes
+between palms, under tropical fireworks. Bright major-pentatonic calypso
+tune.
 
 ### volcano — Magma Rising (vertical climber)
 The lava rises without pause. `← →` run, `SPACE` jump, wall-jump off the
