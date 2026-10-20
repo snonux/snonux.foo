@@ -19,7 +19,7 @@ try {
         var pic=document.createElement('canvas');pic.width=960;pic.height=540;
         var ctx=pic.getContext('2d'),sameRules=true,lessRain=true,lines=[],visibleRing=false;
         try{
-            for(var level=1;level<=10;level++){
+            for(var level=1;level<=3;level++){
                 G.isTouch=function(){return false;};var desktop=def.init(level);
                 G.isTouch=function(){return true;};var phone=def.init(level);
                 sameRules=sameRules&&desktop.cfg===phone.cfg&&desktop.wind===phone.wind;
@@ -60,7 +60,7 @@ try {
         if (mode) await page.emulatePhone(mode.width, mode.height);
         const result = await page.eval(`(function(){
             var G=SnoGame,results=[];
-            for(var level of [1,5,10]){
+            for(var level of [1,2,3]){
                 G.debug.start(level);var ticks=0,nextShot=24;
                 while(ticks<24000&&G.debug.state().screen==='play'){
                     var s=G.debug.s(),input={};
@@ -77,10 +77,10 @@ try {
             G.debug.start(1);G.debug.step(24000,{});
             return {wins:results,idle:G.debug.state().screen,errors:G.debug.errors.slice()};
         })()`);
-        for (const win of result.wins) assert.equal(win.screen, win.level === 10 ? 'victory' : 'clear', `${mode?.name || 'desktop'} level ${win.level} must clear through aim/fire/reload input`);
+        for (const win of result.wins) assert.equal(win.screen, win.level === 3 ? 'victory' : 'clear', `${mode?.name || 'desktop'} level ${win.level} must clear through aim/fire/reload input`);
         assert.equal(result.idle, 'over', 'idle play must lose');
         assert.deepEqual(result.errors, [], 'no game exceptions');
-        console.log(`ok   noir ${mode?.name || 'desktop'}: ordinary-input wins at 1/5/10 and idle loss`);
+        console.log(`ok   noir ${mode?.name || 'desktop'}: ordinary-input wins at 1/2/3 and idle loss`);
     }
     const safety = await page.eval(`(function(){
         var G=SnoGame;
@@ -107,7 +107,7 @@ try {
         shot=target(1,'civ');var lives=G.lives;
         G.debug.step(1,{mouse:{x:shot.tg.hx,y:shot.tg.hy,down:true}});
         var innocent=G.lives===lives-1;
-        shot=target(5,'hostage');lives=G.lives;
+        shot=target(2,'hostage');lives=G.lives;
         G.debug.step(1,{mouse:{x:shot.tg.x-8,y:shot.tg.y+42,down:true}});
         return {assisted:assisted,innocent:innocent,hostage:G.lives===lives-1};
     })()`);

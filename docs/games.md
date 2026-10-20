@@ -580,10 +580,16 @@ A rainy alley front: windows, doors, a parked car. Gangsters pop out and take
 aim (a visible draw timer); shoot them before they fire. Civilians and the
 informant also appear — shooting one costs a life. Mouse moves the crosshair
 (keyboard: arrows move it, `SPACE` shoots), `X` or right click reloads the
-six-shot revolver. Hit the level's quota to clear it. Levels: faster draws,
-more simultaneous targets, runners crossing the street, hostage shields,
-drive-by cars, level 10 is the boss behind cover. Mostly black and white with
-one red accent, rain particles, slow blues music with a walking bass.
+six-shot revolver (an empty click reloads too, slower). Twelve busts in a row
+earn a life. Levels: 1 *First Watch* — windows and doors, gangsters and
+civilians, 34 busts; 2 *Drive-By* — runners and paperboys crossing the street, the
+informant, cover pop-ups, hostage shields and drive-by cars, 40 busts; 3 *The
+Kingpin* — a storm with power cuts and two-hit heavies while the Kingpin
+leans out of his barricade on three sides until 22 hits bring him down.
+Ending: *CASE CLOSED* — rain over the alley, the case file stamped CLOSED in
+red and the Kingpin's hat in a rippling puddle under red fireworks. Mostly
+black and white with one red accent, rain particles, slow blues music with a
+walking bass.
 
 ### nukem — Nukem Time (run'n'gun platformer)
 Side-scrolling tile levels (use `G.tileMove`). `← →` run, `↑` jump, `SPACE`
