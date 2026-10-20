@@ -506,6 +506,25 @@ and faster worms, several worms at once, regenerating nodes, and at level 10 a
 Queen that spawns worms and must be shot in the head. Wet, fleshy noise-based
 sounds; phrygian music.
 
+### breakout — Brick Breaker (paddle and ball)
+The reference game. `← →` or the mouse move the paddle (on a phone ◀ ▶ or a
+finger on the board), `SPACE` / **SERVE** or a click serves. Where the ball
+lands on the paddle sets the angle it leaves at, and each return speeds it up
+a little (capped). Bricks take one to three hits, steel never breaks, and
+about one brick in four drops a capsule: wide paddle, multiball, laser (fire
+with `SPACE`), slow ball, extra life. Clear every breakable brick to win;
+every ball lost costs a life. Levels:
+
+1. **Warm-up** — four open rows, mostly one hit.
+2. **Invader** — a space-invader sprite with two-hit rows on top, faster ball,
+   narrower paddle.
+3. **The Fortress** — a three-hit core inside steel walls whose floor has
+   three gates: aim through a gate (or up a side gutter) to get in, and the
+   ball then rattles around the core.
+
+The ending: a last wall drops into place row by row, a ball streaks into it
+and it shatters outwards into the fireworks (**THE WALL IS DOWN**).
+
 ### brutalist — Wrecking Ball (pendulum demolition)
 Side view. Drive a crane along the ground (`← →`); its ball hangs on a chain
 and swings as a real pendulum (drive to build momentum, `↑ ↓` reel the chain

@@ -20,15 +20,37 @@ function game(touch) {
     return { def, G, ctx, text, arcs };
 }
 
+// The finale's core sits inside steel: its floor must keep gates the ball
+// fits through, and its sides must leave the gutters to the top open.
+function fortressIsReachable(s) {
+    const steel = s.bricks.filter((b) => b.hp === 9), core = s.bricks.filter((b) => b.hp !== 9);
+    const floorY = Math.max(...steel.map((b) => b.y));
+    const floor = steel.filter((b) => b.y === floorY).map((b) => b.x).sort((a, b) => a - b);
+    const gaps = floor.slice(1).filter((x, i) => x - floor[i] - 60 >= 30);
+    assert.ok(gaps.length >= 3, 'fortress floor has three gates');
+    assert.ok(core.every((b) => b.y < floorY), 'the core is inside the fortress');
+    assert.ok(Math.min(...s.bricks.map((b) => b.x)) >= 20, 'left gutter is open');
+    assert.ok(core.some((b) => b.hp === 3), 'the core has three-hit bricks');
+}
+
+// The ending wall builds, shatters and fades without throwing.
+function endingDraws(def, ctx) {
+    assert.equal(typeof def.ending.draw, 'function');
+    for (const t of [0, 1, 1.8, 2.5, 5.9, 8]) def.ending.draw({ t, data: {} }, ctx, null);
+}
+
 for (const touch of [false, true]) {
     const { def, G, ctx, text, arcs } = game(touch);
-    for (const level of [1, 5, 10]) {
+    assert.deepEqual([...def.levelNames], ['Warm-up', 'Invader', 'The Fortress']);
+    for (const level of [1, 2, 3]) {
         const s = def.init(level);
         assert.equal(s.touch, touch);
-        assert.equal(s.speed, 310 + level * 10, 'phone keeps ball speed');
-        assert.equal(s.paddle.w, 136 - level * 3, 'phone keeps paddle physics');
+        assert.equal(s.speed, [320, 340, 360][level - 1], 'phone keeps ball speed');
+        assert.equal(s.paddle.w, [136, 128, 122][level - 1], 'phone keeps paddle physics');
         assert.equal(s.balls[0].y, 492, 'phone keeps serve collision radius');
     }
+    fortressIsReachable(def.init(3));
+    endingDraws(def, { fillRect() {}, beginPath() {}, fill() {}, arc() {} });
     const s = def.init(1);
     s.caps.push({ x: s.paddle.x, y: 420, kind: 'wide' });
     def.draw(s, ctx);
