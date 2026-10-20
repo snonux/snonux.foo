@@ -21,13 +21,13 @@ const G = { W: 960, H: 540, HUD: 30, t: 0, level: 1, lives: 3, cam: {}, key: {},
     aabb: (a, b) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y,
     loseLife: () => { if (--G.lives === 0) screen = 'over'; return G.lives; },
     addLife: (max) => { G.lives = Math.min(max, G.lives + 1); },
-    win: () => { screen = G.level === 10 ? 'victory' : 'clear'; },
+    win: () => { screen = G.level === 3 ? 'victory' : 'clear'; },
     text: (text, x, y, options) => labels.push({ text, x, y, ...options }) };
 for (const name of ['tone', 'noise', 'burst', 'popup', 'shake', 'flash', 'addScore']) G[name] = () => {};
 vm.runInNewContext(readFileSync(new URL('../../internal/generator/templates/themes/retro/game.js', import.meta.url), 'utf8'), { window: { SnoGame: G } });
 const ctx = new Proxy({}, { get: (_, name) => (...args) => calls.push({ name, args }), set: () => true });
 const rules = (s) => JSON.stringify({ ...s, touch: undefined });
-for (let level = 1; level <= 10; level++) {
+for (let level = 1; level <= 3; level++) {
     phone = false; const desktop = def.init(level);
     phone = true; const mobile = def.init(level);
     assert.equal(rules(desktop), rules(mobile), `level ${level} retains all rules/layouts`);
@@ -46,7 +46,7 @@ reset(); G.hit = { a: true }; def.update(s, 1 / 60); assert.equal(s.g, -1, 'pad 
 reset(); s.zones = [{ type: 'jam', x0: 0, x1: 1000 }]; G.hit = { a: true }; def.update(s, 1 / 60);
 assert.equal(s.g, 1, 'jam still blocks a flip'); assert.equal(G.lives, 3, 'denied flip is not a phantom hit');
 phone = false; reset(); G.mouse.hit = true; def.update(s, 1 / 60); assert.equal(s.g, 1, 'desktop click stays inert');
-phone = true; reset(10); s.x = 1000; s.haz = [{ type: 'burst', x: 1350, w: 180, lane: 1, d0: 1200, d1: 1530 }];
+phone = true; reset(3); s.x = 1000; s.haz = [{ type: 'burst', x: 1350, w: 180, lane: 1, d0: 1200, d1: 1530 }];
 s.zones = ['jam', 'turbo', 'fog'].map((type) => ({ type, x0: 0, x1: 2000 }));
 for (const t of [0, .1]) {
     G.t = t; labels = []; calls = []; def.draw(s, ctx);
@@ -73,7 +73,7 @@ const bot = readFileSync(new URL('./retro-bot.js', import.meta.url), 'utf8');
 for (const touch of [false, true]) {
     phone = touch;
     const result = vm.runInNewContext(bot, { SnoGame: G });
-    for (const win of result.wins) assert.equal(win.screen, win.level === 10 ? 'victory' : 'clear', JSON.stringify(win));
+    for (const win of result.wins) assert.equal(win.screen, win.level === 3 ? 'victory' : 'clear', JSON.stringify(win));
     assert.equal(result.idle, 'over', 'idle must lose');
 }
 console.log('ok   retro local: same layouts, tap/pad/midair/jam paths, persistent combined cues, less phone drawing, FLIP wins and idle loss');
@@ -85,9 +85,9 @@ if (!process.argv.includes('--local')) {
             await page.goto(`${base}/index.html`); await page.eval("SnoGame.launch('retro')");
             await page.waitFor('SnoGame.debug.state() && SnoGame.debug.state().registered', 'retro registration');
             const result = await page.eval(bot);
-            for (const win of result.wins) assert.equal(win.screen, win.level === 10 ? 'victory' : 'clear', JSON.stringify(win));
+            for (const win of result.wins) assert.equal(win.screen, win.level === 3 ? 'victory' : 'clear', JSON.stringify(win));
             assert.equal(result.idle, 'over'); assert.deepEqual(result.errors, []);
-            console.log(`ok   retro ${mode?.name || 'desktop'}: FLIP-input wins 1/5/10 and idle loss`);
+            console.log(`ok   retro ${mode?.name || 'desktop'}: FLIP-input wins 1/2/3 and idle loss`);
         }
     } finally { await close(); }
 }

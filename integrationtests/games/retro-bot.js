@@ -12,7 +12,7 @@
         // the previous opposite-lane obstacle behind. Only normal FLIP input.
         return { a: s.x >= at - s.v * 0.12 };
     }
-    for (var level of [1, 5, 10]) {
+    for (var level of [1, 2, 3]) {
         G.debug.start(level);
         var ticks = 0;
         while (ticks++ < 14000 && G.debug.state().screen === 'play') {

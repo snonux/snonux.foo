@@ -645,9 +645,15 @@ Fast driving minor music.
 Amber monochrome. A data packet runs automatically along a phone line
 corridor; `SPACE` flips gravity between floor and ceiling. Spikes, gaps,
 sliding blocks and noise bursts kill. Reach the end of the line (a distance
-goal, with a progress bar); a checkpoint halfway. Levels: faster scroll,
-tighter patterns, moving blocks, zones where flipping is jammed for a moment,
-double-speed stretches, level 10 mixes all. Deterministic layouts. Modem
+goal, with a progress bar); a relay halfway is the checkpoint and hands back
+a life, and the flip windows narrow after it. Deterministic layouts with a
+guaranteed reaction window per flip. Levels: 1 *Dial Tone* — spikes, breaks
+and sliding blocks at an easy pace; 2 *Line Noise* — faster, with noise
+bursts that flicker a warning first, swinging blocks and zigzags; 3 *No
+Carrier* — the finale mixes every hazard with jammed zones (no flipping),
+double-speed stretches and dropouts that hide the far line. The ending
+("CARRIER RESTORED"): a noisy trace settles into a clean carrier with the
+packet riding it, the poles along the line light up, amber fireworks. Modem
 handshake noises, chiptune pentatonic music.
 
 ### retrofuture — Atomic Defense (missile command)
