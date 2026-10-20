@@ -103,9 +103,21 @@ for (const touch of [false, true]) {
     assert(drift < (touch ? 12 : 24), `release drift ${drift}`);
     console.log(`${touch ? 'phone' : 'desktop'} release drift: ${drift.toFixed(2)} world px`);
     for (const level of [1, 2, 3]) {
-        const run = game(touch, level);
+        const run = game(touch, level), seen = new Set();
+        const cells = () => run.s.bunkers.reduce((n, b) => n + b.cells.filter(Boolean).length, 0), whole = cells();
         let ticks = 0;
-        while (run.screen() === 'play' && ticks < 36000) { run.step(steer(ticks, run.s)); ticks++; }
+        while (run.screen() === 'play' && ticks < 36000) {
+            run.step(steer(ticks, run.s)); ticks++;
+            if (run.s.inv.some(e => e.state === 'dive' && e.kind !== 'm')) seen.add('diver');
+            if (run.s.power.rapid > 0 || run.s.power.double > 0 || run.s.shield) seen.add('capsule');
+            if (run.s.beams.length) seen.add('beam');
+            if (run.s.groups.length > 1) seen.add('crossfire');
+        }
+        if (cells() < whole) seen.add('bunker');
+        // Each level brings its own mechanics, and they really happen in play.
+        const want = [['bunker'], ['bunker', 'crossfire', 'diver', 'capsule'], ['bunker', 'diver', 'capsule', 'beam']][level - 1];
+        assert.deepEqual(want.filter(m => !seen.has(m)), [], `level ${level} mechanics seen: ${[...seen]}`);
+        if (level === 3) assert.equal(run.s.boss, null, 'the finale is won by downing the mothership');
         console.log({ touch, level, screen: run.screen(), seconds: ticks / 60, lives: run.G.lives, foes: run.s.inv.length, boss: run.s.boss?.hp });
         assert.equal(run.screen(), 'clear');
         const idle = game(touch, level);
