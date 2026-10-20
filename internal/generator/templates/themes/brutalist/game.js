@@ -12,6 +12,10 @@
  * swing counts. Demolish the target share before time is up (every missed
  * deadline costs a life and buys a short overtime), and keep the cab out
  * from under what falls.
+ *
+ * Three sites: two plain concrete stacks to learn the swing, an arcade of
+ * lintels with rebar and glass, and the megastructure finale with charges,
+ * wind and tremors.
  */
 (function () {
     'use strict';
@@ -39,20 +43,16 @@
     // Ball damage is (impact speed - minV) / HIT_SCALE + base; a landing does
     // (landing speed / FALL_SCALE) * fall.
     var HIT_SCALE = 200, FALL_SCALE = 600;
-    // Timers are roughly twice what a practised player needs on the early
-    // levels and more generous from level 4 on, where rebar and fuses make a
-    // sloppy swing cost real time: they should bind for a newcomer, not
-    // for someone who needs three tries at a rebar stub. Running out costs
-    // a life and buys OVERTIME seconds, so a slow first attempt is not
-    // thrown away at once, and doing nothing still loses: the last life
-    // goes two overtimes after the deadline.
-    // tremor is the pause between two tremors in seconds, [min, max]: the
-    // megastructure shakes more often than the level that introduces them.
+    // Timers are roughly twice what a practised player needs, and more
+    // generous where rebar and fuses make a sloppy swing cost real time:
+    // they should bind for a newcomer, not for someone who needs three tries
+    // at a rebar stub. Running out costs a life and buys OVERTIME seconds, so
+    // a slow first attempt is not thrown away at once, and doing nothing
+    // still loses: the last life goes two overtimes after the deadline.
+    // tremor is the pause between two tremors in seconds, [min, max].
     var LEVELS = [
-        { time: 100, target: 0.6 }, { time: 100, target: 0.7 }, { time: 110, target: 0.7 },
-        { time: 150, target: 0.6 }, { time: 150, target: 0.65 }, { time: 170, target: 0.65 },
-        { time: 155, target: 0.6 }, { time: 160, target: 0.65, wind: true },
-        { time: 170, target: 0.65, tremor: [10, 13] }, { time: 180, target: 0.7, wind: true, tremor: [8, 11] }
+        { time: 100, target: 0.6 }, { time: 150, target: 0.65 },
+        { time: 180, target: 0.65, wind: true, tremor: [10, 13] }
     ];
     // A tremor announces itself TREMOR_WARN seconds ahead; the piece it
     // aims at the cab is lobbed higher (AIMED_VY) than the stray ones
@@ -72,26 +72,7 @@
         for (var r = r0; r < r0 + h; r++) for (var c = c0; c < c0 + w; c++) g[r][c] = kind;
     }
 
-    function buildWall(g) { fill(g, 9, 0, 5, 3, CONC); fill(g, 16, 0, 2, 2, CONC); }
-
     function buildStacks(g) { fill(g, 7, 0, 2, 7, CONC); fill(g, 11, 0, 1, 3, CONC); fill(g, 14, 0, 3, 8, CONC); }
-
-    // Concrete frame with glass infill on every other floor.
-    function buildGlassHouse(g) {
-        for (var r = 0; r < 7; r++) {
-            for (var c = 8; c < 16; c++) {
-                var pillar = c === 8 || c === 11 || c === 12 || c === 15;
-                g[r][c] = (r % 2 === 1 && !pillar) ? GLASS : CONC;
-            }
-        }
-    }
-
-    // The rebar stub in the middle is a wall the crane cannot pass: break
-    // it with a full swing, or work on the far half over its top.
-    function buildRebarCore(g) {
-        fill(g, 5, 0, 2, 4, CONC);
-        fill(g, 10, 0, 7, 7, CONC); fill(g, 13, 0, 1, 2, REBAR);
-    }
 
     // Pillars with doorways between them: the slab above only holds while
     // both of its ends are still standing.
@@ -100,46 +81,6 @@
         fill(g, 5, 2, 15, 1, CONC);
         for (c = 5; c <= 19; c++) fill(g, c, 3, 1, 2, (c - 5) % 2 === 1 ? GLASS : CONC);
         fill(g, 5, 5, 15, 1, CONC); fill(g, 9, 6, 7, 2, CONC); fill(g, 15, 6, 1, 2, REBAR);
-    }
-
-    // Rebar footings make the usual trick (take out the ground floor)
-    // useless; the charges on the faces are the way in.
-    function buildShortFuse(g) {
-        fill(g, 5, 0, 4, 8, CONC); fill(g, 5, 0, 4, 1, REBAR);
-        g[2][5] = CHARGE; g[5][8] = CHARGE;
-        fill(g, 13, 0, 6, 10, CONC); fill(g, 13, 0, 6, 1, REBAR);
-        fill(g, 13, 1, 1, 2, REBAR); fill(g, 18, 1, 1, 2, REBAR);
-        g[3][13] = CHARGE; g[6][18] = CHARGE; g[9][15] = CHARGE;
-    }
-
-    function buildSilos(g) {
-        [[5, 11], [11, 10], [17, 11]].forEach(function (t) {
-            fill(g, t[0], 0, 3, t[1], CONC);
-            fill(g, t[0], 5, 3, 1, REBAR);
-            fill(g, t[0], t[1] - 1, 3, 1, GLASS);
-        });
-        g[7][5] = CHARGE; g[2][11] = CHARGE; g[4][17] = CHARGE;
-    }
-
-    function buildZiggurat(g) {
-        for (var r = 0; r < 7; r++) {
-            for (var c = 6 + r; c <= 19 - r; c++) {
-                var edge = c === 6 + r || c === 19 - r, core = (c === 12 || c === 13) && r < 2;
-                g[r][c] = core ? REBAR : (r % 2 === 1 && edge ? GLASS : CONC);
-            }
-        }
-        g[2][8] = CHARGE; g[4][15] = CHARGE;
-    }
-
-    // A slab block riddled with window holes, with a rebar stub in the
-    // middle and a rebar end wall.
-    function buildCondemned(g) {
-        fill(g, 6, 0, 14, 10, CONC);
-        fill(g, 12, 0, 2, 2, REBAR); fill(g, 19, 0, 1, 5, REBAR);
-        for (var r = 1; r < 10; r += 2) {
-            for (var c = 7; c < 19; c += 3) g[r][c] = (r === 3 || r === 7) ? GLASS : null;
-        }
-        g[2][6] = CHARGE; g[5][11] = CHARGE; g[9][9] = CHARGE;
     }
 
     // Podium on pillars, two towers with rebar in their cores and a glazed
@@ -156,8 +97,7 @@
         g[5][6] = CHARGE; g[6][19] = CHARGE; g[3][12] = CHARGE; g[11][9] = CHARGE;
     }
 
-    var BUILD = [buildWall, buildStacks, buildGlassHouse, buildRebarCore, buildArcade,
-        buildShortFuse, buildSilos, buildZiggurat, buildCondemned, buildMega];
+    var BUILD = [buildStacks, buildArcade, buildMega];
 
     function cellY(r) { return GROUND - (r + 1) * CH; }
 
@@ -671,7 +611,7 @@
     }
 
     // ------------------------------------------------------------------
-    // Hazards of the late levels
+    // Hazards of the finale
     // ------------------------------------------------------------------
 
     // Gusts push the ball sideways for a few seconds; a gust can ruin a
@@ -710,7 +650,7 @@
     // gets punished; the others land at random, but far enough from the cab
     // that there is room to drive out from under the first one.
     function quake(s) {
-        var tops = topBlocks(s), n = Math.min(tops.length, G.level >= 10 ? 3 : 2);
+        var tops = topBlocks(s), n = Math.min(tops.length, 2);
         G.shake(12, 0.5); G.sfx('boom');
         for (var i = 0; i < n; i++) {
             var b = tops.splice(Math.floor(G.rnd(0, tops.length)), 1)[0];
@@ -1015,6 +955,60 @@
         return 'DEMO ' + Math.floor(s.gone / s.total * 100) + '/' + Math.round(s.cfg.target * 100) + '%  T ' + Math.max(0, Math.ceil(s.time));
     }
 
+    // ------------------------------------------------------------------
+    // The ending: a controlled demolition, over and over
+    // ------------------------------------------------------------------
+
+    // Two towers flank the buttons. Each cycle they rise, their charges
+    // blink, the base blows and the floors drop into the ground one after
+    // another while dust and coloured smoke billow up. Everything follows
+    // from e.t, so the scene keeps no state.
+    var END_CYCLE = 7, END_RISE = 0.8, END_BLAST = 1.8, END_FLOORS = 10, END_BW = 24, END_BH = 20;
+    var END_TOWERS = [120, 840], END_PUFFS = ['#9a9a9a', RED, '#ffffff', '#ffd166', '#c8c8c8', RED];
+
+    function drawEndTower(ctx, x0, t) {
+        var built = Math.min(END_FLOORS, Math.floor(t / END_RISE * END_FLOORS)), fall = t - END_BLAST;
+        for (var r = 0; r < built; r++) {
+            // Floors let go from the bottom up, each a moment after the one below.
+            var ft = fall - r * 0.06, drop = ft > 0 ? 450 * ft * ft : 0, top = GROUND - (r + 1) * END_BH + drop;
+            if (top >= GROUND - 2) continue;
+            for (var c = 0; c < 4; c++) {
+                var g = 120 + ((r * 7 + c * 3) % 5) * 14;
+                ctx.fillStyle = 'rgb(' + g + ',' + g + ',' + g + ')';
+                ctx.fillRect(x0 - 2 * END_BW + c * END_BW, top, END_BW - 2, Math.min(END_BH - 2, GROUND - top));
+            }
+        }
+        // The charges on the ground floor blink before the blast.
+        if (t > END_RISE && t < END_BLAST && Math.floor(t * 8) % 2 === 0) {
+            ctx.fillStyle = RED;
+            ctx.fillRect(x0 - 2 * END_BW + 4, GROUND - END_BH + 4, 10, 10);
+            ctx.fillRect(x0 + END_BW + 6, GROUND - END_BH + 4, 10, 10);
+        }
+    }
+
+    function drawEndDust(ctx, x0, t, side) {
+        var age = t - END_BLAST;
+        if (age <= 0) return;
+        for (var i = 0; i < END_PUFFS.length; i++) {
+            var a = age - i * 0.12;
+            if (a <= 0) continue;
+            ctx.globalAlpha = Math.max(0, 0.4 * (1 - a / 3.6));
+            ctx.fillStyle = END_PUFFS[i];
+            ctx.beginPath();
+            ctx.arc(x0 + side * (i - 2.5) * 22 * (1 + a), GROUND - 20 - a * (30 + i * 12), 14 + a * 34, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        ctx.globalAlpha = 1;
+    }
+
+    function drawEnding(e, ctx) {
+        var t = e.t % END_CYCLE;
+        END_TOWERS.forEach(function (x0, i) {
+            drawEndTower(ctx, x0, t);
+            drawEndDust(ctx, x0, t, i ? -1 : 1);
+        });
+    }
+
     G.register('brutalist', {
         title: 'WRECKING BALL',
         blurb: 'Swing the ball, knock out the support, bring the concrete down before time runs out.',
@@ -1026,8 +1020,13 @@
         ],
         // B does nothing in this game; the brake is the one action button.
         touch: { a: 'BRAKE', hide: ['b'] },
-        levelNames: ['Garden Wall', 'Twin Stacks', 'Glass House', 'Rebar Core', 'Arcade',
-            'Short Fuse', 'Silos', 'Crosswind', 'Aftershock', 'Megastructure'],
+        ending: {
+            title: 'SITE CLEARED',
+            text: 'Every tower down, right on schedule.',
+            colors: [RED, '#ffffff', '#ffd166', '#c8c8c8'],
+            draw: drawEnding
+        },
+        levelNames: ['Twin Stacks', 'Arcade', 'Megastructure'],
         colors: { bg: '#0a0a0a', fg: '#ffffff', accent: RED, dim: '#9a9a9a' },
         lives: 3,
         // A slow, heavy dorian stomp: sawtooth bass, a clanking off-beat

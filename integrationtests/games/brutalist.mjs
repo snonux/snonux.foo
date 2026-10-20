@@ -30,7 +30,7 @@ function rendering(touch, level, damaged = false, hazards = false) {
     return { calls, labels, rects, s };
 }
 
-for (const level of [1, 5, 10]) {
+for (const level of [1, 2, 3]) {
     const desktop = rendering(false, level), phone = rendering(true, level);
     assert.deepEqual(JSON.parse(JSON.stringify(phone.s.grid)), JSON.parse(JSON.stringify(desktop.s.grid)), 'phone keeps demolition layout and block hit points');
     for (const k of ['total', 'need', 'time', 'L', 'cab', 'ball']) {
@@ -42,14 +42,14 @@ for (const level of [1, 5, 10]) {
     assert.ok(phone.labels.every((l) => l.y - l.size >= 30), 'phone labels clear the engine HUD');
     assert.ok(phone.rects.some((r) => r[1] === 476 && r[2] === 68 && r[3] === 9), 'phone debris mark matches its danger width and has more contrast');
     assert.ok(phone.calls < desktop.calls * 0.8, 'phone removes at least 20% of decorative canvas calls');
-    if (level === 10) assert.ok(phone.labels.some((l) => l.label === '!' && l.size === 26));
+    if (level === 3) assert.ok(phone.labels.some((l) => l.label === '!' && l.size === 26));
     assert.equal(rendering(true, level, true).calls - phone.calls, 5, 'damaged phone blocks keep a single visible crack');
     assert.equal(rendering(false, level, true).calls - desktop.calls, 11, 'desktop keeps detailed damage cracks');
     console.log(`ok   brutalist level ${level} rendering: desktop ${desktop.calls}, phone ${phone.calls} canvas calls`);
 }
 
 for (const touch of [false, true]) {
-    const labels = rendering(touch, 10, false, true).labels;
+    const labels = rendering(touch, 3, false, true).labels;
     const wind = labels.find((l) => l.label.startsWith('WIND'));
     const tremor = labels.find((l) => l.label.startsWith('TREMOR'));
     assert.ok(wind && tremor, 'simultaneous hazards both show warnings');
@@ -60,13 +60,13 @@ for (const touch of [false, true]) {
 // pad buttons. Seed hazards for reproducibility; never alter the game state.
 function demolish() {
     const results = [];
-    for (const level of [1, 5, 10]) {
+    for (const level of [1, 2, 3]) {
         let seed = 42;
         const oldRandom = Math.random;
         Math.random = () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; };
         SnoGame.debug.start(level);
         let ticks = 0, dir = 1;
-        const period = level === 10 ? 130 : 150, length = level === 10 ? 350 : 390;
+        const period = level === 3 ? 130 : 150, length = level === 3 ? 350 : 390;
         try {
             for (; ticks < 18000 && SnoGame.debug.state().screen === 'play'; ticks++) {
                 if (ticks % period === 0) dir = -dir;
@@ -93,14 +93,14 @@ if (process.argv.includes('--browser')) {
             await page.eval("SnoGame.launch('brutalist')");
             await page.waitFor('SnoGame.debug.state() && SnoGame.debug.state().registered', 'brutalist registration');
             for (const r of await page.eval(`(${demolish.toString()})()`)) {
-                assert.equal(r.state.screen, r.level === 10 ? 'victory' : 'clear', `${name}: level ${r.level} must be won through play: ${JSON.stringify(r)}`);
+                assert.equal(r.state.screen, r.level === 3 ? 'victory' : 'clear', `${name}: level ${r.level} must be won through play: ${JSON.stringify(r)}`);
                 assert.ok(r.gone >= r.need, `${name}: target was actually demolished`);
             }
             const idle = await page.eval('(function(){SnoGame.debug.start(1);SnoGame.debug.step(9000,{});return SnoGame.debug.state();})()');
             assert.equal(idle.screen, 'over', `${name}: idle loses`);
             assert.deepEqual(await page.eval('SnoGame.debug.errors.slice()'), []);
             assert.deepEqual(page.problems, []);
-            console.log(`ok   brutalist ${name}: pad-only wins 1, 5, 10; idle loses`);
+            console.log(`ok   brutalist ${name}: pad-only wins 1, 2, 3; idle loses`);
             await page.eval('SnoGame.quit()');
         }
     } finally { await close(); }

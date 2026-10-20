@@ -35,8 +35,8 @@ assert(countRain(phone) < countRain(desktop) / 2);
 assert(phone.labels.some(l => l.text === 'TIME' && l.opts.size === 30));
 assert(desktop.labels.some(l => l.text === 'TIME' && l.opts.size === 20));
 assert.equal(phone.def.hud(phone.s), 'P:8  FOES 11');
-const ten = game(true, 10); ten.s.ammo.shotgun = 6;
-assert.equal(ten.def.hud(ten.s), 'P:10 S:6  FOES 24');
+const lobby = game(true, 3); lobby.s.ammo.shotgun = 6;
+assert.equal(lobby.def.hud(lobby.s), 'P:10 S:6  FOES 15');
 
 // A tap on empty floor remains a deliberate shot there, without snapping to
 // the nearest distant enemy. FIRE locks a target and a tap snaps to it.
@@ -56,7 +56,7 @@ assert.equal(automatic.s.ammo.pistol, 7);
 
 // Layer several lethal warnings with target brackets and an ammo message.
 // The mobile treatment must retain red intent lasers and the hostile round.
-const danger = game(true, 10);
+const danger = game(true, 3);
 danger.s.agents[0].wind = .3;
 danger.s.bullets.push({ x: 160, y: 270, vx: -270, vy: 0, own: danger.s.agents[0] });
 danger.s.lock = danger.s.agents[0]; danger.s.msg = 'AMMO AT DROP MARKER'; danger.s.msgT = 2;
@@ -67,6 +67,35 @@ assert(danger.calls.some(c => c.kind === 'arc' && c.color === '#d8ffe0' && c.wid
 assert(danger.labels.some(l => l.text === danger.s.msg && l.opts.size === 30 && l.opts.max === 900));
 assert.equal(danger.s.p.r, 8); assert.equal(danger.s.agents[0].r, 11);
 console.log('matrix touch targeting, misses, combined warnings, collision footprints and rain budget pass');
+
+// The campaign's mechanics, each on its own: time crawls while the player
+// stands still and runs while they move; an empty-handed player gets a dead
+// drop; running into an agent's back deletes it; the glass office has
+// glass; sentinels only arrive with the lobby's later waves.
+{
+    const still = game(false, 1);
+    for (let i = 0; i < 60; i++) still.step();
+    assert(still.s.ts < 0.2, `standing still crawls: ${still.s.ts}`);
+    still.G.key = { up: true };
+    for (let i = 0; i < 30; i++) still.step();
+    assert(still.s.ts > 0.9, `moving runs time: ${still.s.ts}`);
+
+    const empty = game(false, 1);
+    empty.s.ammo.pistol = 0;
+    for (let i = 0; i < 240; i++) empty.step();
+    assert.equal(empty.s.pickups.length, 1, 'dead drop for an empty-handed player');
+
+    const sneak = game(false, 1), p = sneak.s.p, agent = sneak.s.agents[0];
+    Object.assign(agent, { x: p.x + 24, y: p.y, face: 0, post: { x: p.x + 200, y: p.y }, out: true });
+    sneak.G.key = { right: true };
+    for (let i = 0; i < 20 && !agent.dead; i++) sneak.step();
+    assert(agent.dead, 'a run into an agent from behind is a takedown');
+
+    assert(game(false, 2).s.grid.includes(2), 'the glass office has glass');
+    const drones = (level) => game(false, level).s.lv.waves.map(w => w.filter(e => e[0] === 'z').length).join();
+    assert.deepEqual([drones(1), drones(2), drones(3)], ['0,0,0', '0,0,0', '0,1,1']);
+    console.log('matrix bullet time, dead drop, takedown, glass and lobby sentinels pass');
+}
 
 export function steer(i, s, G) {
     const p = s.p, foes = s.agents.concat(s.drones), ammo = s.ammo.pistol + s.ammo.shotgun;
@@ -125,7 +154,7 @@ if (process.argv.includes('--browser')) {
             await page.goto(`${base}/index.html`);
             await page.eval("SnoGame.launch('matrix')");
             await page.waitFor('SnoGame.debug.state()?.registered', 'matrix register');
-            for (const level of [1, 5, 10]) {
+            for (const level of [1, 2, 3]) {
                 const run = await page.eval(`(function(){
                     var bot=${steer.toString()},attempts=[],success=false;
                     for(var attempt=0;attempt<12&&!success;attempt++){

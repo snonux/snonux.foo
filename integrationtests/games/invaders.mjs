@@ -46,8 +46,17 @@ function steer(i, s) {
             const reach = p.x + Math.max(-340 * eta, Math.min(340 * eta, x - p.x));
             if (Math.abs(reach - bx) < (b.kind === 'zig' ? 85 : 60)) danger += 2500 * (1.4 - eta);
         }
-        for (const b of s.beams) if (Math.abs(x - b.src.x) < 45) danger += 1500;
-        for (const e of s.inv) if (e.state !== 'form' && e.y > 360 && Math.abs(x - e.x - e.vx * .2) < 60) danger += 500;
+        // Beams: their lane, and crossing them just before they fire.
+        for (const b of s.beams) {
+            if (Math.abs(x - b.src.x) < 50 || (b.t > .7 && (p.x - b.src.x) * (x - b.src.x) < 0)) danger += 3000;
+        }
+        // Committed fliers: where they cross the cannon's row, and the path there.
+        for (const e of s.inv) {
+            if (e.state === 'form' || e.state === 'return' || e.y < 330 || e.y > 516) continue;
+            const eta = Math.max(0, (496 - e.y) / Math.max(60, e.vy)), fx = e.x + e.vx * Math.min(eta, .5);
+            const crossing = eta < .7 && fx > Math.min(x, p.x) - 45 && fx < Math.max(x, p.x) + 45;
+            if (Math.abs(x - fx) < 70 || crossing) danger += 1800 * (1.6 - Math.min(1.5, eta));
+        }
         let capsule = 0;
         for (const c of s.caps) if (c.y > 270 && Math.abs(c.x - p.x) < (496 - c.y) * 2) capsule = Math.max(capsule, Math.max(0, 100 - Math.abs(x - c.x)));
         const c = aim + Math.abs(x - p.x) * .14 + danger - capsule;
@@ -65,7 +74,7 @@ function paints(g) {
 const updated = game(false, 1);
 console.log('paint submissions:', paints(updated));
 assert(paints(updated) < 200);
-const phoneHud = game(true, 10);
+const phoneHud = game(true, 3);
 phoneHud.s.power = { rapid: 10, double: 10 }; phoneHud.s.shield = true;
 assert.equal(phoneHud.def.hud(phoneHud.s), 'R+D+S  FOES 28');
 
@@ -93,10 +102,22 @@ for (const touch of [false, true]) {
     const drift = g.s.player.x - x;
     assert(drift < (touch ? 12 : 24), `release drift ${drift}`);
     console.log(`${touch ? 'phone' : 'desktop'} release drift: ${drift.toFixed(2)} world px`);
-    for (const level of [1, 5, 10]) {
-        const run = game(touch, level);
+    for (const level of [1, 2, 3]) {
+        const run = game(touch, level), seen = new Set();
+        const cells = () => run.s.bunkers.reduce((n, b) => n + b.cells.filter(Boolean).length, 0), whole = cells();
         let ticks = 0;
-        while (run.screen() === 'play' && ticks < 36000) { run.step(steer(ticks, run.s)); ticks++; }
+        while (run.screen() === 'play' && ticks < 36000) {
+            run.step(steer(ticks, run.s)); ticks++;
+            if (run.s.inv.some(e => e.state === 'dive' && e.kind !== 'm')) seen.add('diver');
+            if (run.s.power.rapid > 0 || run.s.power.double > 0 || run.s.shield) seen.add('capsule');
+            if (run.s.beams.length) seen.add('beam');
+            if (run.s.groups.length > 1) seen.add('crossfire');
+        }
+        if (cells() < whole) seen.add('bunker');
+        // Each level brings its own mechanics, and they really happen in play.
+        const want = [['bunker'], ['bunker', 'crossfire', 'diver', 'capsule'], ['bunker', 'diver', 'capsule', 'beam']][level - 1];
+        assert.deepEqual(want.filter(m => !seen.has(m)), [], `level ${level} mechanics seen: ${[...seen]}`);
+        if (level === 3) assert.equal(run.s.boss, null, 'the finale is won by downing the mothership');
         console.log({ touch, level, screen: run.screen(), seconds: ticks / 60, lives: run.G.lives, foes: run.s.inv.length, boss: run.s.boss?.hp });
         assert.equal(run.screen(), 'clear');
         const idle = game(touch, level);
@@ -114,7 +135,7 @@ if (process.argv.includes('--browser')) {
             await page.goto(`${base}/index.html`);
             await page.eval("SnoGame.launch('invaders')");
             await page.waitFor('SnoGame.debug.state()?.registered', 'register');
-            for (const level of [1, 5, 10]) {
+            for (const level of [1, 2, 3]) {
                 await page.eval(`SnoGame.debug.start(${level}); SnoGame.debug.step(600, ${steer.toString()})`);
                 await sleep(80);
                 await page.screenshot(`/tmp/invaders-${phone.name}-${level}.jpg`);

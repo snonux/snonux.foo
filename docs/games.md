@@ -10,10 +10,12 @@ beside the splash and header buttons opens a menu of every theme's game (see
 - `internal/generator/templates/shared/arcade.js` — the menu of all games
 - `internal/generator/templates/themes/<theme>/game.js` — one game per theme
 - `internal/generator/templates/themes/<theme>/game-thumb.jpg` — its picture in the menu
-- `integrationtests/games/` — the Chrome test tools (`e2e.mjs`, `play.mjs`)
+- `integrationtests/games/` — the Chrome test tools (`e2e.mjs`, `campaign.mjs`, `play.mjs`)
+- `integrationtests/games/bots/<theme>.js` — the bot that plays a game's campaign
 
 The engine owns the overlay, the loop, input, audio, effects, menus, the
-ten-level flow and the save cookie. A game only describes its own world.
+three-level flow, the ending scene and the save cookie. A game only
+describes its own world.
 
 ## Writing a game
 
@@ -33,7 +35,7 @@ A game is one self-contained file that registers itself under its theme name.
         title: 'MY GAME',
         blurb: 'One line that says what to do.',
         controls: ['← → move', 'SPACE jump'],          // 1-4 short lines
-        levelNames: ['…', /* exactly ten */],
+        levelNames: ['…', '…', '…'],                     // exactly three
         colors: { bg: '#000', fg: '#fff', accent: '#0ff', dim: '#888' },
         lives: 3,
         music: { /* see Music */ },
@@ -41,20 +43,24 @@ A game is one self-contained file that registers itself under its theme name.
         hud: function (s) { return 'FUEL 80'; },       // optional, right side of the HUD
         cursor: 'none',                                // optional CSS cursor during a level
                                                        // (menus always show the pointer)
-        touch: { a: 'JUMP', hide: ['up', 'down', 'b'] } // optional touch pad setup (see Touch)
+        touch: { a: 'JUMP', hide: ['up', 'down', 'b'] }, // optional touch pad setup (see Touch)
+        ending: { title: 'CASE CLOSED', colors: ['#f33', '#fff'] } // optional (see The ending)
     });
 })();
 ```
 
 ### Rules
 
-1. **Ten levels that differ.** `init(level)` gets 1..10. Later levels must add
-   something (new enemy, hazard, layout, mechanic), not only raise a speed.
-   Build layouts from `G.rng(seed)` so a level is the same on every visit.
+1. **Three levels that differ.** `init(level)` gets 1..3: an introduction, a
+   development and a finale. Each must add something (new enemy, hazard,
+   layout, mechanic), not only raise a speed; the game's signature late
+   mechanic or boss belongs in level 3. Build layouts from `G.rng(seed)` so a
+   level is the same on every visit.
 2. **Winnable and losable through play.** Every level needs a reachable goal
    that calls `G.win(bonus)`, and a way to fail that calls `G.die()` or
-   `G.loseLife()`. Level 1 should take a new player about a minute; level 10
-   should be hard but fair. Aim for 1-3 minutes per level.
+   `G.loseLife()`. Level 1 should take a new player about a minute; level 3
+   should be a satisfying finale a casual player can still finish. Aim for
+   1-3 minutes per level: the point of three levels is that people finish.
 3. **Action first.** The player must be doing something every second.
 4. **Sound.** Give every meaningful event a sound (`G.sfx` presets or your own
    `G.tone` / `G.noise`), and compose a `music` track that suits the theme.
@@ -77,13 +83,55 @@ A game is one self-contained file that registers itself under its theme name.
 11. **Playable on a phone.** Every game must be winnable with the touch pad
     and taps alone; see [Touch](#touch).
 
+### The ending
+
+Clearing level 3 does not show a plain banner: the engine opens the ending
+scene. The game's `update` stops, its last frame stays behind (dimmed), and
+fireworks go up over the title, the score and two buttons, **PLAY AGAIN**
+(a new run from level 1) and **LEVELS** (the title screen). `← →` pick,
+`ENTER` confirms, a tap on a button picks and confirms; for its first 1.2
+seconds the scene ignores input so a held fire button cannot skip it. `Esc`
+or `✕` quits as anywhere else. Pause, mute and the hidden-tab pause work as
+on every screen, and quitting or relaunching leaves nothing of it behind.
+
+A game gives the scene its own character with `def.ending`; every field is
+optional and a game that declares nothing gets the fireworks in its colours.
+
+```js
+ending: {
+    title: 'CASE CLOSED',        // the big line (default 'YOU WIN')
+    text: 'The city sleeps.',    // a line under it
+    colors: ['#f33', '#fff'],    // the firework palette (default: accent, fg, gold, pink)
+    fireworks: true,             // false switches the engine's fireworks off
+    draw: function (e, ctx, G) { // the theme's own scene, behind the fireworks
+        // e.t: seconds since the scene opened; e.score, e.level;
+        // e.data: a scratch object kept for the scene's lifetime;
+        // e.rng: a seeded 0..1 generator
+    }
+}
+```
+
+`draw` is called every frame on top of the dimmed last frame of level 3 and
+under the fireworks and the text, so keep it to the middle band (y 210-370
+is covered by text less than the rest) or to large shapes. It runs only
+after the real third-level goal; the same rules as `draw` apply (no sounds,
+no state outside `e.data`, a few hundred canvas calls at most).
+
+### Saves
+
+The save is one cookie per game: `unlocked.hiscore.lastLevel.won`. A save
+from the old ten-level campaigns is migrated, not thrown away: levels above 3
+are capped at 3 (so a player who had got past level 3 finds all three open)
+and the high score and the completed star stay. Anything malformed falls
+back to a fresh save.
+
 ### The API
 
 State and flow:
 
 | | |
 |---|---|
-| `G.W`, `G.H`, `G.HUD`, `G.STEP` | 960, 540, 30, 1/60 |
+| `G.W`, `G.H`, `G.HUD`, `G.STEP`, `G.LEVELS` | 960, 540, 30, 1/60, 3 |
 | `G.level`, `G.lives`, `G.score`, `G.t` | current level, lives left, run score, seconds played since the level's last `init` (it restarts after `G.die()`) |
 | `G.win(bonus)` | level cleared; `bonus` is added to the score |
 | `G.die()` | lose a life and restart the level from `init` (after a one-second freeze) |
@@ -295,13 +343,23 @@ A new or changed game needs two things for it:
 
 ## Testing
 
+Requirements: node 22 or newer and Chrome or Chromium (found at the usual
+paths, or set `CHROME=/path/to/chrome`). Nothing is npm-installed. A missing
+browser is a failed test run, never a pass.
+
 ```sh
 # Develop: launch your game, start a level, run a snippet, take a screenshot.
 node integrationtests/games/play.mjs mytheme --level=3 --shot=/tmp/l3.jpg
 node integrationtests/games/play.mjs mytheme --eval=/tmp/bot.js
 node integrationtests/games/play.mjs mytheme --serve     # play it yourself
 
-# The gate: must pass before the game is done, on desktop and on a phone.
+# Playability: the theme's bot plays the whole campaign by input only.
+node integrationtests/games/campaign.mjs mytheme --shots=/tmp/shots
+node integrationtests/games/campaign.mjs --touch mytheme            # phone, landscape
+node integrationtests/games/campaign.mjs --touch=portrait mytheme
+node integrationtests/games/campaign.mjs --levels=3 --seed=4 mytheme # one level, another seed
+
+# Smoke tests of the engine flow, on desktop and on a phone.
 node integrationtests/games/e2e.mjs mytheme --shots=/tmp/shots
 node integrationtests/games/e2e.mjs --touch mytheme --shots=/tmp/shots
 
@@ -309,35 +367,77 @@ node integrationtests/games/e2e.mjs --touch mytheme --shots=/tmp/shots
 node integrationtests/games/play.mjs mytheme --touch --shot=/tmp/phone.jpg
 ```
 
-`GAMES_GPU=1 node integrationtests/games/cpu.mjs [theme…]` measures what a
-game costs: frame rate, JS time per frame and Chrome's CPU use on levels 1
-and 10. A game should hold 60 fps at well under one core. Its cost is mostly
-the canvas calls the browser has to rasterise, not its JS: keep a frame to a
-few hundred calls, draw static scenery (walls, mazes, backdrops) once into an
-offscreen canvas and blit it, batch same-coloured shapes into one path, and
-avoid `shadowBlur` on anything drawn many times.
+Without theme names `campaign.mjs` and `e2e.mjs` run every game;
+`campaign.mjs` then fails for any theme that has no bot (`--allow-missing`
+skips those instead). `mage gamesE2E`, `mage gamesTouchE2E` and
+`mage gamesCampaign` run them for all games.
 
-`play.mjs --eval` evaluates one expression in the page. The test hooks:
+### Smoke tests and playability tests
 
-| | |
-|---|---|
-| `SnoGame.debug.start(level)` | jump straight into play |
-| `SnoGame.debug.step(n, input)` | run `n` ticks synchronously; `input` is `{left, right, up, down, a, b, codes: {KeyW: true}, mouse: {x, y, down, rdown}}` or a function `(i, s, G) => input`. A button held at the end of one call and the start of the next stays held (one `G.hit` edge, not one per call); `debug.start` forgets what was held |
-| `SnoGame.debug.state()` | `{screen, level, lives, score, …}`; `screen` is `play`, `clear`, `over`, `victory`, … |
-| `SnoGame.debug.s()` | the game's own state object |
-| `SnoGame.debug.errors` | exceptions thrown by `init` / `update` / `draw` |
+The two kinds prove different things, and a game needs both.
 
-Because `step` runs faster than real time, a scripted bot can play a whole
-level in milliseconds. Before a game is done, show with such a bot (reading
-`s` to steer) that **level 1, level 5 and level 10 can each be won through
-real play**, and that doing nothing loses. Look at screenshots of at least
-levels 1, 5 and 10: check nothing overlaps the HUD and the picture is readable.
+**`e2e.mjs` is a smoke test of the engine flow.** It plays each level with a
+random bot for 15 seconds to shake out exceptions and, where that bot does
+not win (it usually does not), forces the win with `debug.win()` to check the
+clear, unlock, ending and save flow. A pass says nothing about whether a
+level *can* be won.
 
-`e2e.mjs` checks the rest in real Chrome: all four launchers, `Esc`, real key
+**`campaign.mjs` is the playability test.** Each theme has a bot in
+`integrationtests/games/bots/<theme>.js`, one expression:
+
+```js
+({
+    // Called every tick of play; returns that tick's input, as debug.step takes it.
+    play: function (s, G, mem) { return { right: s.ball.x > s.paddle.x, a: true }; },
+    // Optional negative control (default: do nothing): must lose level 1.
+    fail: function (s, G, mem) { return { a: true }; },
+    budget: 300   // optional: game seconds a level may take (default 360)
+})
+```
+
+`s` (the game's state) and `G` (the engine) are read-only views: the bot may
+read anything to steer, but a write throws, and a bot that calls `G.win`,
+`G.die`, `G.loseLife`, `G.gameOver`, `G.addScore`, `G.addLife` or any
+`SnoGame.debug` hook fails the run. No forced wins, no invulnerability, no
+teleports, no edits to the world: only the buttons, the mouse and taps a
+player has. `mem` is the bot's own scratch object, fresh for each level.
+
+The run, per theme: fresh cookies and a seeded `Math.random` (`--seed`), the
+game launched, level 1 started from the title by a real `Enter` (a real tap
+with `--touch`), each level played to its natural end, a real `Enter`/tap on
+LEVEL CLEAR to go on, so levels 1 → 2 → 3 → ending run without any
+`debug.start`. A game over is retried from its own screen (`--retries`,
+default 2). The ending must appear, animate and hold; LEVELS on it must lead
+to the title with the campaign saved, and the save must survive a reload.
+Then the negative control plays level 1 with `fail` and must reach a natural
+game over with lives lost. Each level prints its result, game seconds, lives
+lost and retries (`--json=file` writes them); a level over its budget, a
+stalled or throwing bot, an engine error or a page error fails the theme
+with a screenshot, and the exit status is nonzero.
+
+The bot drives the logical buttons through `debug.step`, which is what the
+keyboard and the touch pad feed; `e2e.mjs` and `e2e.mjs --touch` prove that
+real key presses and real touches reach those buttons, and `campaign.mjs
+--touch` does every menu step with real taps on an emulated phone (the game
+then also runs its `G.isTouch()` variant).
+
+Before a game is done: the campaign passes on desktop and on a phone in both
+orientations, `e2e.mjs` passes both ways, and you have looked at
+screenshots of all three levels and the ending (`--shots`): nothing overlaps
+the HUD and the goal is readable.
+
+### What e2e.mjs checks
+
+`e2e.mjs` checks in real Chrome: all four launchers, `Esc`, real key
 presses, a canvas that draws and keeps changing with no input, pause, music,
 sound effects made by the game itself (the engine's own jingles do not
-count), a random bot on all ten levels without exceptions, the unlock cookie,
-the level select and the cookie's survival across a reload.
+count), a random bot on all three levels without exceptions, the unlock
+cookie, the ending (it opens after level 3 only, animates, stops the game and
+leads to the title), the level select and the cookie's survival across a
+reload. Its engine checks cover save parsing and the migration of old
+ten-level saves, `debug.start(4)` not starting a fourth level, Enter on level
+2's clear opening level 3, the ending's input delay, PLAY AGAIN and LEVELS,
+a theme's `def.ending`, and cleanup after quit and relaunch.
 
 `e2e.mjs --touch` turns Chrome into a phone (844x390 landscape and 390x844
 portrait, touch screen, coarse pointer) and uses real touch events: the game
@@ -351,10 +451,38 @@ game's `def.touch`, and tries the `def.touch` options themselves on a stand-in
 game. It does not judge whether the game is *fun* on a phone: play a level
 with `--touch` screenshots in front of you, and on a real phone if you can.
 
+`GAMES_GPU=1 node integrationtests/games/cpu.mjs [theme…]` measures what a
+game costs: frame rate, JS time per frame and Chrome's CPU use on levels 1
+and 3. A game should hold 60 fps at well under one core. Its cost is mostly
+the canvas calls the browser has to rasterise, not its JS: keep a frame to a
+few hundred calls, draw static scenery (walls, mazes, backdrops) once into an
+offscreen canvas and blit it, batch same-coloured shapes into one path, and
+avoid `shadowBlur` on anything drawn many times.
+
+`play.mjs --eval` evaluates one expression in the page. The test hooks:
+
+| | |
+|---|---|
+| `SnoGame.debug.start(level)` | jump straight into play (1..3; a higher level starts level 3) |
+| `SnoGame.debug.step(n, input)` | run `n` ticks synchronously; `input` is `{left, right, up, down, a, b, codes: {KeyW: true}, mouse: {x, y, down, rdown}}` or a function `(i, s, G) => input`. A button held at the end of one call and the start of the next stays held (one `G.hit` edge, not one per call); `debug.start` forgets what was held |
+| `SnoGame.debug.state()` | `{screen, level, lives, score, …}`; `screen` is `play`, `clear`, `over`, `victory`, … |
+| `SnoGame.debug.s()` | the game's own state object |
+| `SnoGame.debug.hold(on)` | `true` stops real time from ticking the game (frames still draw), so only `step` moves it; quit releases it |
+| `SnoGame.debug.ending()` | while the ending is on screen: `{t, choice, shells, sparks, fireworks, title}`, else `null` |
+| `SnoGame.debug.errors` | exceptions thrown by `init` / `update` / `draw` |
+| `SnoGame.debug.win()`, `.lose()` | force a win or a game over: engine-flow smoke tests only, never proof of playability |
+
+Because `step` runs faster than real time, a scripted bot can play a whole
+level in milliseconds; `campaign.mjs` uses exactly this, which is why a
+campaign bot is the way to show a level can be won.
+
 ## The games
 
 Each spec is the contract for that theme's game. Details may be tuned for
-fun, but the core mechanic, the goal and the ten-level arc must stay.
+fun, but the core mechanic and the goal must stay. Each game has three
+levels (introduction, development, finale); where a spec below still
+describes a longer arc, its section is rewritten when that game is
+converted.
 
 ### aurora — Polar Rush (downhill ski slalom)
 Top-down downhill run under the northern lights; the slope scrolls up as the
@@ -362,11 +490,20 @@ skier descends. `← →` carve (turning bleeds speed, with inertia), `↓` tuck
 speed, `SPACE` jump (also off ramps, for airtime and points). Pass between
 slalom gate flags (a miss costs time), dodge pines, rocks and ice crevasses
 (crash = lose a life, short stun). Reach the finish line before the clock runs
-out. Levels: longer and denser courses; side wind gusts from level 3; a yeti
-that chases when you are slow from level 4; moguls and ice patches (no grip)
-from level 6; an avalanche wall closing from behind from level 8; level 10 is a
-storm run with everything. Draw aurora ribbons in the sky strip and snow
-spray particles. Music: airy lydian arpeggios.
+out; a missed gate costs three seconds. Levels:
+
+1. **Pine Forest** — pines, rocks and ramps (big air clears even a tree):
+   learn the line, the tuck and the jump.
+2. **Blue Crevasse** — a longer, tighter course with crevasses and chasms to
+   jump (half with a ramp), side wind gusts, and a yeti that chases when you
+   are slow.
+3. **Polar Storm** — the finale: storm fog and snow, moguls and ice patches
+   (no grip), a tree-lined chute in the middle third, the yeti, and an
+   avalanche wall closing in from behind.
+
+Aurora ribbons in the sky strip, snow spray particles. The ending: the aurora
+fills the whole sky and coloured snow glints down through the fireworks
+(**POLAR CHAMPION**). Music: airy lydian arpeggios.
 
 ### biomech — Spine Crawler (centipede-style shooter)
 A segmented biomechanical worm winds down through a field of bone nodes; it
@@ -374,10 +511,40 @@ turns and drops a row whenever it meets a node or a wall. The player's turret
 moves freely in the bottom quarter (`arrows`), `SPACE` rapid fire. A shot
 segment calcifies into a node and splits the worm in two. Clear every segment
 to win the level. Also: spore droppers that fall leaving nodes, parasites that
-zigzag through the player zone, a fast eye that poisons nodes. Levels: longer
-and faster worms, several worms at once, regenerating nodes, and at level 10 a
-Queen that spawns worms and must be shot in the head. Wet, fleshy noise-based
-sounds; phrygian music.
+zigzag through the player zone (eating nodes), a fast eye that poisons nodes (a
+worm touching one dives), and lone heads crawling in from the walls while a
+worm is loose in the zone. Levels:
+
+1. **First Vertebra** — three worms one after another and spore sacs: learn
+   how a hit splits a worm and leaves bone.
+2. **Twin Spines** — worms from both walls at once on a mirrored field,
+   faster, with parasites and the eye.
+3. **The Queen** — she sweeps along the top behind armour, breeds worms
+   (faster once wounded) over a regenerating field, with sacs and parasites;
+   only her head takes damage. Kill her and her brood to win.
+
+The ending: the Queen's carapace flakes apart and her head melts while rings
+of luminous spores burst across the field (**THE QUEEN DISSOLVES**). Wet,
+fleshy noise-based sounds; phrygian music.
+
+### breakout — Brick Breaker (paddle and ball)
+The reference game. `← →` or the mouse move the paddle (on a phone ◀ ▶ or a
+finger on the board), `SPACE` / **SERVE** or a click serves. Where the ball
+lands on the paddle sets the angle it leaves at, and each return speeds it up
+a little (capped). Bricks take one to three hits, steel never breaks, and
+about one brick in four drops a capsule: wide paddle, multiball, laser (fire
+with `SPACE`), slow ball, extra life. Clear every breakable brick to win;
+every ball lost costs a life. Levels:
+
+1. **Warm-up** — four open rows, mostly one hit.
+2. **Invader** — a space-invader sprite with two-hit rows on top, faster ball,
+   narrower paddle.
+3. **The Fortress** — a three-hit core inside steel walls whose floor has
+   three gates: aim through a gate (or up a side gutter) to get in, and the
+   ball then rattles around the core.
+
+The ending: a last wall drops into place row by row, a ball streaks into it
+and it shatters outwards into the fireworks (**THE WALL IS DOWN**).
 
 ### brutalist — Wrecking Ball (pendulum demolition)
 Side view. Drive a crane along the ground (`← →`); its ball hangs on a chain
@@ -385,9 +552,20 @@ and swings as a real pendulum (drive to build momentum, `↑ ↓` reel the chain
 in or out). Concrete towers are built from blocks with gravity: knock out
 support and what is above falls and breaks. Damage depends on impact speed;
 rebar blocks need a hard hit. Demolish the target percentage before the timer
-ends. Falling slabs that hit the cab cost a life. Levels: taller and wider
-structures, rebar cores, glass (bonus) floors, a second timer-fused charge
-block that explodes when hit, and at level 10 a megastructure. Heavy thuds,
+ends (a missed deadline costs a life and buys a short overtime). Falling
+slabs and debris that hit the cab cost a life. Levels:
+
+1. **Twin Stacks** — plain concrete stacks: learn to pump the swing, brake
+   to whip the ball and knock out the bottom row.
+2. **Arcade** — pillars carrying lintels (a slab holds only while both ends
+   stand), glass (bonus) floors and rebar that needs a fast hit.
+3. **Megastructure** — a podium, two towers with rebar cores, a glazed
+   skybridge and TNT charges that blow 1.6 s after they are struck (and set
+   off their neighbours), under side wind gusts and tremors that throw roof
+   blocks at the cab.
+
+The ending: two towers rise, their charges blink and they implode floor by
+floor into clouds of dust and coloured smoke (**SITE CLEARED**). Heavy thuds,
 dust particles, industrial dorian music.
 
 ### cathedral — Gargoyle (joust-style flapping combat)
@@ -395,38 +573,67 @@ A stone gargoyle in a cathedral nave. `SPACE` flaps against gravity, `← →`
 steer, the screen wraps left/right, stone ledges to land on. Collide with a
 demon: whoever is higher wins; the loser bursts into a soul orb. Collect the
 orb before it re-hatches into a tougher demon. Clear all demons in every wave
-of the level. Holy fire along the floor kills. Levels: more waves, faster
-demon tiers, bat swarms that push you, crumbling ledges, a swinging censer
-hazard, and at level 10 an archdemon that needs three strikes from above.
-Organ-like harmonic-minor music, bell sounds.
+of the level; a cleared wave blesses a lost life back. Holy fire along the
+floor kills. Levels:
+
+1. **Matins** — imps, then a fiend, in the open nave: learn to strike from
+   above and to catch the souls.
+2. **The Censer** — imps and fiends, then a wraith, under a swinging censer
+   whose burning bowl kills, bat swarms that shove the gargoyle, and two
+   high ledges that crumble underfoot.
+3. **Archdemon** — fiends and wraiths among the censer, bats and fire
+   geysers that open under the gargoyle, then the archdemon: three strikes
+   from above, each one calling reinforcements.
+
+The ending: two bells swing and ring out in golden rings while stained
+glass bursts across the nave (**THE NAVE IS HALLOWED**). Organ-like
+harmonic-minor music, bell sounds.
 
 ### cosmos — Gravity Well (asteroids with gravity)
-`← →` rotate, `↑` thrust, `SPACE` fire, `X` hyperspace (risky random jump).
-Ship, rocks and bullets all feel the pull of black holes and stars, so shots
-curve and rocks slingshot; the screen wraps. Rocks split twice. Destroy every
-rock to clear the level; falling into a well kills. Levels: more wells, a
-binary pair that orbits, saucers that shoot back from level 4, a pulsar that
-sweeps a deadly beam from level 7, level 10 circles a giant hole. Spacey
+`← →` rotate, `↑` thrust, `SPACE` fire, `X` hyperspace (risky random jump
+that keeps the ship's momentum). Ship, rocks and bullets all feel the pull of
+black holes and stars, so shots curve and rocks slingshot; the screen wraps.
+Rocks split twice; iron rocks (purple) take two hits. Destroy every rock of
+every wave to clear the level; falling into a core kills, rocks bounce off.
+Four ships per level. Levels: 1 *First Light*, one star and two small waves
+to learn the pull; 2 *Binary Waltz*, a pair of black holes orbiting each
+other, iron rocks and saucers that shoot curving shots back; 3 *Event
+Horizon*, the gravity finale: three waves on circular orbits around a giant
+hole, with an orbiting pulsar that sweeps a deadly beam and sniper saucers.
+The ending is a supernova: the giant flares out in shock rings while a new
+constellation is drawn star by star, under gold and blue fireworks. Spacey
 dorian pads and arps.
 
 ### dos — DIGGER.EXE (CGA tunnel digger)
 Grid-based digging in the CGA palette (black, cyan, magenta, white) with the
 DOS font. `arrows` dig through dirt, `SPACE` fires a shot down the tunnel
-(slow recharge). Collect every emerald to clear the level. Enemies come out of
-a corner nest and chase through tunnels; later ones dig too. Gold bags fall
-when undermined (they wobble first): they crush enemies and the player, and
-burst into gold if they fall far. Levels: ten maps, more and faster enemies,
-more bags, digging enemies from level 5, a bonus cherry that turns the tables
-for a few seconds. PC-speaker style square-wave sounds and music.
+(slow recharge). Collect every emerald to clear the level; every emerald can
+be dug out (rocks never touch, and an emerald a bag lands on is ground to
+dust). Enemies come out of a corner nest and chase through tunnels. Gold bags
+fall when undermined (they wobble first): they crush enemies and the player,
+and burst into gold if they fall far. A bonus cherry turns the tables for a
+few seconds. Levels: 1 *AUTOEXEC.BAT*, one nobbin at a time and a few bags to
+learn digging and dropping; 2 *CHERRY.COM*, rocks, two nobbins and the
+cherry; 3 *FORMAT C:*, the finale: two nests, hobbins that dig their own
+tunnels, the TSR ghost that drifts through soil, and tunnels that silt up
+behind you. The ending is a victory session at the DOS prompt (`FORMAT C:
+/EMERALDS` … `Format complete.`) under CGA fireworks and a marquee border.
+PC-speaker style square-wave sounds and music.
 
 ### invaders — Formation (fixed shooter)
 A marching formation that speeds up as it thins, bunkers that erode where
 they are hit, a bonus saucer across the top. `← →` move, `SPACE` fire (one or
-two shots on screen). Destroy the formation before it lands. Levels: different
-formation shapes, divers that peel off and swoop from level 3, shielded
-invaders, splitting invaders, capsules (rapid, double, shield), a mothership
-boss at levels 5 and 10. Classic four-note march that speeds up with the
-formation, layered over the sequencer.
+two shots on screen). Destroy the formation before it lands. Levels: 1 *First
+Contact*, the classic block of five rows to learn the march and the bunkers;
+2 *Crossfire*, two groups marching against each other with shielded invaders,
+divers that peel off and swoop, weaving bombs and capsules (rapid, double,
+shield) from kills and the saucer; 3 *Mothership*, the finale: the mothership
+boss fires aimed fans and launches minis, escorted by lancers that charge
+beams and splitters that burst into minis; its core glows open now and then
+for triple damage. The ending blows the mothership apart: the hull shudders,
+flashes and bursts into spinning plates and shock rings under mint and amber
+fireworks. Classic four-note march that speeds up with the formation, layered
+over the sequencer.
 
 ### matrix — Bullet Time (time moves when you move)
 Top-down rooms in green code. Time runs at full speed only while the player
@@ -434,67 +641,109 @@ moves or shoots; standing still slows everything to a crawl, so bullets can be
 read and dodged. `WASD`/arrows move, mouse aims and clicks to shoot
 (keyboard: `SPACE` shoots toward the facing direction). One hit kills.
 Agents patrol, take cover and fire; picked-up guns have limited ammo; with no
-ammo, running into an agent from behind takes them down. Clear the room.
-Levels: ten rooms with more walls and agents, shotgun agents, agents that
-dodge, a sentinel drone that only moves in real time, level 10 is the lobby
-with pillars. `lives: 1`. Digital glitch sounds, dark minor music that slows
-down with time is a bonus, not a requirement.
+ammo, running into an agent from behind takes them down, and an operator's
+dead drop refills an empty-handed player. Clear the room. Levels: 1 *Wake
+Up*, pistol agents in a plain room with plenty of rounds; 2 *Glass Office*,
+see-through panes that stop people but shatter under fire, shotgun agents,
+dodgers and agents that duck into cover to reload; 3 *The Lobby*, the finale:
+rows of pillars, every kind of agent leading its shots, and a sentinel drone
+that moves in real time in each wave after the first. `lives: 1`. The ending
+slows the code rain to a halt and resolves it into the bullet-time tableau:
+the hero facing a frozen volley, the last agent coming apart into glyphs.
+Digital glitch sounds, dark minor music that slows down with time is a bonus,
+not a requirement.
 
 ### neon — Light Cycles (tron arena)
 Grid arena. Every cycle leaves a solid wall of light; hitting any wall
-destroys you. `arrows` turn, `SPACE` boost (limited charge). Outlast every AI
-rider; win the required number of rounds to clear the level. Levels: more and
-smarter riders (they look ahead and cut you off), faster cycles, arena
-obstacles, trails that decay, a shrinking arena from level 8, level 10 is a
-duel series against an expert. Neon glow, pentatonic synth lead.
+destroys you. `arrows` turn, `SPACE` boost (limited charge, refilled by
+yellow pods and by riding beside a rival's wall). Outlast every AI rider; win
+the required number of rounds to clear the level. Levels: 1 *Grid Zero*, two
+easy riders and the first energy pods; 2 *Fading Light*, three riders
+including a hunter that boosts and cuts you off, bars to ride around, and
+trails that fade until they lock; 3 *The Expert*, the finale: a first-to-three
+duel series against an expert rider in an arena that collapses ring by ring.
+The ending, *End of Line*, sends light cycles racing up out of the grid until
+their trails burst into neon fireworks. Neon glow, pentatonic synth lead.
 
 ### noir — Midnight Alley (crosshair gallery shooter)
 A rainy alley front: windows, doors, a parked car. Gangsters pop out and take
 aim (a visible draw timer); shoot them before they fire. Civilians and the
 informant also appear — shooting one costs a life. Mouse moves the crosshair
 (keyboard: arrows move it, `SPACE` shoots), `X` or right click reloads the
-six-shot revolver. Hit the level's quota to clear it. Levels: faster draws,
-more simultaneous targets, runners crossing the street, hostage shields,
-drive-by cars, level 10 is the boss behind cover. Mostly black and white with
-one red accent, rain particles, slow blues music with a walking bass.
+six-shot revolver (an empty click reloads too, slower). Twelve busts in a row
+earn a life. Levels: 1 *First Watch* — windows and doors, gangsters and
+civilians, 34 busts; 2 *Drive-By* — runners and paperboys crossing the street, the
+informant, cover pop-ups, hostage shields and drive-by cars, 40 busts; 3 *The
+Kingpin* — a storm with power cuts and two-hit heavies while the Kingpin
+leans out of his barricade on three sides until 22 hits bring him down.
+Ending: *CASE CLOSED* — rain over the alley, the case file stamped CLOSED in
+red and the Kingpin's hat in a rippling puddle under red fireworks. Mostly
+black and white with one red accent, rain particles, slow blues music with a
+walking bass.
 
 ### nukem — Nukem Time (run'n'gun platformer)
 Side-scrolling tile levels (use `G.tileMove`). `← →` run, `↑` jump, `SPACE`
-shoot, `X` throws a grenade (limited). Find the keycard, reach the exit door. Enemies: walking
-grunts, turrets, flying drones. Exploding barrels chain-react. Health, ammo
-power-ups (spread, rapid). Levels: ten scrolling stages built from a seeded
-generator with hand-shaped chunks (gaps never wider than the jump), moving
-platforms, acid pools, lifts, more enemy types, and a boss at level 10.
-Player has a health bar inside each life. Loud square-wave rock riff.
+shoot, `X` throws a grenade (limited). Find the keycard, reach the exit door
+before the warhead's clock runs out; whoever camps in one spot gets shelled.
+Enemies: walking grunts, turrets, flying drones. Exploding barrels
+chain-react. Health, ammo power-ups (spread, rapid), crates that hide
+supplies. The stages are built from a seeded generator with hand-shaped
+chunks (gaps never wider than the jump), so each level is the same on every
+visit. Levels: 1 *Rooftops* — grunts, turrets, barrels, crates and gaps;
+2 *Acid Works* — drones, acid pools, moving platforms and troopers that shoot
+back; 3 *The Overlord* — lifts, hopping mutants and laser gates on the way to
+a sealed arena where the Overlord mech carries the keycard (100 hits, three
+attack phases; entering the arena tops up health). Player has a health bar
+inside each life. Ending: *OVERLORD DOWN* — the wreck smoking on the left,
+the hero holding up the keycard, a skyline whose windows light up under
+fireworks. Loud square-wave rock riff.
 
 ### ocean — Deep Channel (submarine cave scroller)
 The trench scrolls right to left. The sub has buoyancy and inertia: `↑ ↓`
 ballast, `← →` trim speed. `SPACE` fires torpedoes forward, `X` drops depth
-charges. Oxygen drains — collect bubble columns. Touching the cave or a
-creature costs hull. Reach the end of the trench. Levels: narrower caves,
-jellyfish fields, mines on chains, anglerfish that lunge, enemy subs, dark
-zones lit only by the headlight, currents, a kraken boss at level 10.
-Sonar pings, muffled noise, slow lydian music.
+charges. Oxygen drains — linger in bubble columns. Touching the cave or a
+creature costs hull; crates repair it. Reach the end of the trench. Levels:
+1 *Sunlit Shelf* — a wide cave with jellyfish, a jellyfish curtain that has
+to be torpedoed through, and chain mines; 2 *Angler Hollow* — a narrower
+cave with anglerfish that lunge, enemy subs and currents; 3 *Kraken's Maw* —
+the tightest cave, dark zones lit only by the headlight, vents, falling
+stalactites, and the kraken at the end (shoot an arm to make it recoil, then
+the eye; its air column is inside the arms' reach). Ending: *SURFACED* — the
+boat bobbing on the night sea while bioluminescent sparks rise and burst
+under fireworks. Sonar pings, muffled noise, slow lydian music.
 
 ### pacmaze — Neon Maze (maze chase)
 Grid maze, eat every pellet. Four ghosts with different behaviour (chaser,
 ambusher, flanker, wanderer), scatter/chase phases, power pellets that turn
-them vulnerable, side tunnels, bonus fruit. `arrows` steer with buffered
-turns. Levels: ten different mazes (hand-drawn as strings), faster ghosts,
-shorter power time, and extra twists late on (a fifth ghost, a dark level with
-limited sight). The classic wakka sound, siren that rises as pellets run out.
+them vulnerable, side tunnels, bonus fruit (the second one is an extra
+life). `arrows` steer with buffered turns. Levels: 1 *First Bite* — an open
+grid with one side tunnel and slow ghosts; 2 *Gatecrash* — two groups of
+timed shutters, turbo pads and side tunnels on two rows, faster ghosts that
+leave the house sooner; 3 *Neon Core* — dark (only a circle around Pac is
+lit, the lights come up while the ghosts are blue), a fifth ghost that never
+scatters, shutters, a pad, side tunnels and vertical warps, and eight power
+pellets. Ending: *MAZE CLEARED* — the core's walls light up ring by ring in
+cycling neon while Pac chases four blue ghosts along the top, under
+fireworks. The classic wakka sound, siren that rises as pellets run out.
 
 ### pinball — Electro Ball (pinball)
 A real table: gravity, two flippers that add momentum when they swing
 (`←` left, `→` right), `SPACE` plunger (hold to charge), pop bumpers,
-slingshots, drop targets, lanes, a spinner. Ball against line segments and
-circles with proper reflection and restitution; sub-step the ball so it never
-tunnels through a flipper. Each level is a mission on a changed table: score
-target plus a named goal (light all lanes, drop all targets, lock two balls
-for multiball …). Four balls per level; losing all is game over. `↓` nudges
-(too much tilts). Flipping again and again with no ball near the flippers
-heats the coils until the flippers rest for a moment, so flapping blindly
-does not keep a ball alive. Bells, chimes and knocker sounds; ragtime-ish major music.
+slingshots, drop targets, top lanes, saucers and a magnet. Ball against line
+segments and circles with proper reflection and restitution; sub-step the
+ball so it never tunnels through a flipper. Each level is a mission on a
+changed table: a named goal plus a points target. Levels: 1 *First Spark* —
+ring the pop bumpers; 2 *Drop Zone* — knock down both banks of drop targets,
+with top lanes (lit by flipped balls, shifted by the flippers) for points;
+3 *Overload* — drop the targets to light the locks (and earn an extra ball),
+lock two balls in the saucers to start multiball, then ring bumpers — every
+bumper is a jackpot during multiball — past a moving Rover bumper and a
+magnet. Four balls per level; losing all is game over. `↓` nudges (too much
+tilts). Flipping again and again with no ball near the flippers heats the
+coils until the flippers rest for a moment, so flapping blindly does not
+keep a ball alive. Ending: *JACKPOT!* — chase lamps running round the
+screen, searchlights sweeping and arcs crackling, under fireworks. Bells,
+chimes and knocker sounds; ragtime-ish major music.
 
 ### plasma — Plasma Storm (vertical bullet-hell shmup)
 `arrows` move in all directions, `SPACE` fire (hold; while firing the ship
@@ -502,16 +751,31 @@ moves slower and its small hitbox is shown, for threading bullets), `X` bomb
 (clears bullets, limited). Enemies arrive in scripted waves
 with bullet patterns (aimed, radial, spiral). Collect plasma orbs: three of a
 colour merge into a weapon upgrade (spread / beam / homing). Each level ends
-with a boss with a health bar and phases. Levels: denser patterns, new enemy
-types, tougher bosses. Small hitbox, generous graze. Fast driving minor music.
+with a boss with a health bar and phases, each boss one phase longer than the
+last. Small hitbox, generous graze (every 40 grazes earn a bomb). Levels:
+1 *First Sparks* — drones, spinners and weavers, then EMBER (aimed fans,
+rings); 2 *Cyclone Front* — lancers, dashing darts, turrets and mines, a
+spread gun to start with, then CYCLONE (crosses, warning-lit lances with
+rain, spirals with fans); 3 *Eye of the Storm* — wardens with lane beams and
+prisms with curving fans join everything, every wreck fires a parting shot,
+the ship starts with spread, beam and homing, and THE EYE fights four phases
+ending in a summoned swarm. The ending: THE EYE blooms into plasma petals and
+rings of sparks under cyan, magenta and yellow fireworks ("STORM BROKEN").
+Fast driving minor music.
 
 ### retro — Carrier Lost (gravity-flip runner)
 Amber monochrome. A data packet runs automatically along a phone line
 corridor; `SPACE` flips gravity between floor and ceiling. Spikes, gaps,
 sliding blocks and noise bursts kill. Reach the end of the line (a distance
-goal, with a progress bar); a checkpoint halfway. Levels: faster scroll,
-tighter patterns, moving blocks, zones where flipping is jammed for a moment,
-double-speed stretches, level 10 mixes all. Deterministic layouts. Modem
+goal, with a progress bar); a relay halfway is the checkpoint and hands back
+a life, and the flip windows narrow after it. Deterministic layouts with a
+guaranteed reaction window per flip. Levels: 1 *Dial Tone* — spikes, breaks
+and sliding blocks at an easy pace; 2 *Line Noise* — faster, with noise
+bursts that flicker a warning first, swinging blocks and zigzags; 3 *No
+Carrier* — the finale mixes every hazard with jammed zones (no flipping),
+double-speed stretches and dropouts that hide the far line. The ending
+("CARRIER RESTORED"): a noisy trace settles into a clean carrier with the
+packet riding it, the poles along the line light up, amber fireworks. Modem
 handshake noises, chiptune pentatonic music.
 
 ### retrofuture — Atomic Defense (missile command)
@@ -519,47 +783,80 @@ Six domed cities and three missile batteries with limited ammunition. Mouse
 aims (keyboard: arrows move the cursor), click or `SPACE` fires from the
 nearest battery with ammo; the counter-missile explodes at the cursor in an
 expanding blast that chains. Enemy ICBMs streak down, some split (MIRV),
-smart bombs dodge blasts, saucers cross and bomb. Survive every wave of the
-level with at least one city. Levels: faster and more missiles, MIRVs,
-smart bombs, saucers, night levels with only trails visible; bonus city for
-points. Googie styling, theremin-like sine slides, optimistic major music.
+smart bombs dodge blasts, saucers cross and bomb. Ammunition refills each
+wave; blasts chain. Survive every wave of the level with at least one city;
+3000 points earn a bonus city. Levels: 1 *First Light* — three waves of plain
+warheads to learn leading a target; 2 *Split Atoms* — salvos, MIRVs that
+split, a few smart bombs and saucers; 3 *Doomsday* — the final assault adds
+heavy warheads (two blasts, flatten the neighbours) and cruise missiles from
+the sides, the second wave is a blackout with only trails visible, and the
+third brings the shielded mothership. The ending ("CITIES SAVED"): six domes
+rise in the foreground under sweeping searchlights, Googie starbursts and
+fireworks in the theme's colours. Googie styling, theremin-like sine slides,
+optimistic major music.
 
 ### spaceage — Orbital Dock (thrust lander)
 `← →` rotate, `↑` or `SPACE` thrust. Gravity, inertia, limited fuel. Land on
-the pad gently and upright (speed and angle limits shown); crash otherwise.
-Terrain is a jagged cave/landscape. Levels: tighter caves, wind, moving pads,
-fuel pickups, gun turrets to avoid, cargo to pick up and deliver (two
-landings), low and high gravity worlds, level 10 docks with a rotating
-starbase. Engine rumble, radio beeps, calm space-age music.
+the pad gently and upright (descent, side slip and tilt limits shown); crash
+otherwise. Terrain is a jagged landscape; each level is a route of pads, and
+every pad on the way refills the tank. Levels: 1 *First Contact* — a beacon
+pad, then the goal; 2 *Cargo Haul* — fetch a crate in the west and deliver it
+east (the loaded capsule is weaker) under a crosswind, past a flak turret
+that hits slow ships, with a fuel canister on the way; 3 *Starbase Halo* — a
+rotating station pulls towards its hub, debris circles it, and the crate
+must be carried from one docking arm to the other while matching the spin.
+The ending ("DOCKED"): the station turns with the capsule docked on its arm,
+beacon rings pulse out, satellites circle a ringed planet, and fireworks.
+Engine rumble, radio beeps, calm space-age music.
 
 ### surveillance — Blind Spot (stealth action)
 Top-down facility. `arrows` move, `X` sprint (noisy), `SPACE` EMP pulse
-(limited charges, disables nearby cameras for a few seconds). Collect every
-data drive and reach the exit. Rotating cameras and patrolling guards have
-vision cones blocked by walls; being seen fills a detection meter — full means
-caught (lose a life). Laser tripwires that blink, pressure plates, drones that
-investigate noise. Levels: ten facility layouts with more devices and tighter
-timing; level 10 has a moving searchlight grid. CRT-green on black with red
-alerts; tense sparse music, alarm when spotted.
+(limited charges, disables nearby devices for five seconds; an empty EMP
+recharges one charge in 20s). Collect every data drive and reach the exit.
+Sweeping cameras and patrolling guards have vision cones blocked by walls;
+being seen fills a detection meter — full means caught (lose a life, start
+the level over). Levels: three. 1 Orientation: cameras only, learn cones and
+cover. 2 Hive: a guard, blinking laser tripwires, a pressure plate that seals
+the start room (cross while dark or EMP it) and drones that fly to the noise
+of a sprint. 3 Searchlight Grid: two guards, tripwire mazes and roaming
+searchlights that see over walls, with a plate sealing the exit. Cameras
+swing, guards walk and tripwires blink a little faster each level. Ending:
+EXTRACTED — a helicopter winches the agent off the roof while the camera
+feeds drop to NO SIGNAL, the uplink fills with the stolen drives, and the
+console celebrates with green phosphor fireworks, rolling scanlines and a
+blinking REC light. CRT-green on black with red alerts; tense sparse music,
+alarm when spotted.
 
 ### synthwave — Outrun the Sun (pseudo-3D racer)
 Classic segment-projected road toward a striped sun. `← →` steer, `↑`
 accelerate, `↓` brake, `SPACE` nitro. Curves push the car outward; leaving the
 road slows you; hitting traffic or roadside objects costs speed. Reach the
-finish before the timer hits zero. Levels: ten stages with their own curve and
-hill profile, more traffic, tighter time, night/sunset palettes, oncoming
-lanes late on. Engine pitch follows speed. Driving synthwave music with a
-gated-snare beat.
+finish before the timer hits zero; every checkpoint adds time and nitro, and
+squeezing past traffic refills the tank. One life: the clock running out ends
+the race. Levels: 1 *Sunset Strip* — gentle S-bends along the coast with light
+traffic; 2 *Midnight Storm* — hills through a rainy night city, trucks, oil
+slicks and a road that pushes harder in the bends; 3 *Outrun the Sun* — the
+finale: hairpins and crests with oncoming lanes, roadworks, crosswind gusts,
+oil and trucks. Each level's clock is set from what a casual driver holds
+there. The ending: the car crosses the line as a striped sun sinks into a
+neon grid between palm silhouettes, under neon fireworks. Engine pitch
+follows speed. Driving synthwave music with a gated-snare beat.
 
 ### terminal — kill -9 (ASCII twin-stick arena shooter)
 Everything is drawn as monospace glyphs in terminal green. `WASD` moves the
 `@`, the arrow keys fire in eight directions (mouse aim and click also work).
-Rogue processes swarm: `Z` zombies shamble, `&` forks split when shot, `d`
-daemons keep distance and shoot, `>` pipes dash in lines, `#` root shells
+Rogue processes swarm: `Z` zombies shamble, `&` forks split when shot,
+`d` daemons keep distance and shoot, `>` pipes dash in lines, `#` root shells
 soak damage. Pickups: `$` score, `+` life, `!` spread shot, `*` bomb. Clear
-every wave in the level. Levels: bigger waves and mixes, spawners (`[fork]`)
-that must be destroyed, a fork bomb level, and `init` (pid 1) as the level 10
-boss. Bell and keyclick sounds, fast square-wave music.
+every wave in the level. Levels: 1 */bin/sh* — zombies, then splitting forks
+and the first daemons; 2 *| pipeline* — pipes dashing between solid
+directories, root shells, daemons, and two `[fork]` spawners that must be
+destroyed; 3 *init (pid 1)* — a fork bomb whose forks grow and replicate up
+to a full process table, then `init` itself, a boss that cycles rings, fans,
+adopted orphans and, at half health, spirals and pipes (it wakes at the end
+of the arena away from the player). The ending: a shell types out an empty
+process table and a zero load average while ASCII fireworks burst above.
+Bell and keyclick sounds, fast square-wave music.
 
 ### tetris — Block Blaster (quarth-style block shooter)
 A wall of block rows with gaps descends from the top. The launcher at the
@@ -567,27 +864,46 @@ bottom moves by column (`← →`) and fires a block up its column (`SPACE`); th
 block sticks under the lowest block there. A row with no gaps clears (line
 clear), and everything above it drops. Lose a life when the wall reaches the
 launcher line. Clear the level's line quota. `↓` speeds the descent for bonus
-points. Levels: faster descent, wider gaps patterns, armoured blocks that
-need two hits, bomb blocks that clear neighbours, rows that shift sideways,
-level 10 has all. Tetromino colours, chunky clear effects, a brisk minor-key
-folk-dance style tune of your own.
+points. Levels: 1 *First Wall* — plain rows with one or two single gaps, 36
+lines; 2 *Steel and Bombs* — a faster wall with wide gaps, two-row wells,
+steel plates that need two hits and bombs that blast the neighbouring rows,
+40 lines; 3 *Block Blaster* — the last wall, fastest, with everything plus
+rows that slide sideways on a beat and surges that slam it down a cell, 44
+lines. Speeds and quotas are set so a player who takes 0.7 s per shot wins
+every level in one to one and a half minutes. The ending: a wall drops into
+the middle of the screen and clears from the bottom up in one long combo,
+each row bursting into flying blocks, under block-coloured fireworks.
+Tetromino colours, chunky clear effects, a brisk minor-key folk-dance style
+tune of your own.
 
 ### tropicale — Island Hopper (classic jump'n'run)
 Side-scrolling tile platformer (use `G.tileMove`). `← →` run with
 acceleration, `SPACE` or `↑` jump (variable height, coyote time, jump
 buffering). Stomp crabs, avoid urchins (not stompable) and swooping gulls,
 bounce on springy palm leaves, ride rafts across water, collect pineapples
-(100 = extra life), touch checkpoint flags, reach the tiki totem. Falling in
-water or touching an enemy from the side costs a life. Levels: ten stages
-from a seeded chunk generator across beach, jungle, cave and ridge settings,
-with gaps always clearable; moving and falling platforms, coconut-throwing
-monkeys, rising tide on a late level. Bright major-pentatonic calypso tune.
+(100 = extra life), touch checkpoint flags (each adds time to the tide
+clock), reach the tiki totem. Falling in water or touching an enemy from the
+side costs a life. Each level is built from a seeded chunk generator whose
+chunks are clearable on their own, so gaps are always clearable. Levels:
+1 *Shell Beach* — crabs, gaps, islets, urchins, a spring and a raft across a
+lagoon; 2 *Glow Cave* — under a cave roof with falling stalactites, moving
+planks over wide water, crumbling slabs and a coconut-throwing monkey;
+3 *Totem Storm* — the finale: tide surges that flood the low beaches, gulls,
+fast red crabs, a lift up a cliff and the totem at the end. The ending: an
+island festival at the totem, torches, lanterns and dancing silhouettes
+between palms, under tropical fireworks. Bright major-pentatonic calypso
+tune.
 
 ### volcano — Magma Rising (vertical climber)
 The lava rises without pause. `← →` run, `SPACE` jump, wall-jump off the
-shaft walls. Climb ledges (solid, crumbling, moving), ride steam geysers,
+shaft walls. Climb ledges (solid, crumbling, drifting), ride steam geysers,
 dodge falling lava bombs and fire bats. Reach the crater rim (a height goal,
-shown as a meter). Touching lava is instant death. Levels: taller shafts,
-faster lava, more crumbling ledges, earthquakes that shake ledges loose,
-lava-fall columns that switch on and off, level 10 is an eruption with
-everything. Camera follows upward. Rumbling noise bed, urgent phrygian music.
+shown as a meter). Touching lava is instant death; bombs and bats only
+knock the climber about. Every ledge is reachable from the one below it.
+Levels: 1 *First Ascent* — slow lava, cracked ledges and one wall-kick gap;
+2 *Steam and Bats* — a taller shaft with drifting slabs, steam vents, lava
+bombs and fire bats; 3 *Eruption* — the finale: quakes that shake ledges
+loose, lava-fall columns to time, lava surges, on top of everything before.
+The ending: out of the crater as the mountain blows, two cones throwing
+lava up as fireworks while the climber waves from the ridge. Camera follows
+upward. Rumbling noise bed, urgent phrygian music.

@@ -13,8 +13,9 @@
  *   - Web Audio sound effects and a step-sequenced music track per game
  *   - particles, floating score popups, screen shake and flashes
  *   - small physics helpers (overlap tests, tile-grid movement)
- *   - title / level select / pause / level clear / game over / victory screens
- *   - ten levels per game, with progress saved in a cookie per game
+ *   - title / level select / pause / level clear / game over screens
+ *   - three levels per game, with progress saved in a cookie per game, and a
+ *     celebratory ending scene (fireworks, or a theme's own) after level 3
  *
  * Esc always quits back to the blog. While a game is open, every key is
  * swallowed in the capture phase so shared.js shortcuts do not fire.
@@ -25,7 +26,9 @@
     'use strict';
     if (window.SnoGame) return;
 
-    var W = 960, H = 540, STEP = 1 / 60, HUD_H = 30, LEVELS = 10;
+    var W = 960, H = 540, STEP = 1 / 60, HUD_H = 30, LEVELS = 3;
+    // Saves written before the three-level campaigns counted up to ten.
+    var LEGACY_LEVELS = 10;
 
     // Theme name → game title. The launch buttons need the title before the
     // game script itself has been fetched, so the list lives here.
@@ -56,6 +59,7 @@
     var dom = null;         // overlay nodes: { root, canvas, ctx }
     var scale = 1;          // backing-store pixels per logical pixel
     var raf = 0, lastTime = 0, acc = 0;
+    var clockHeld = false;  // debug.hold(): frames still draw, only debug.step() ticks
     var ambientWasPlaying = false;
     var errors = [];
 
@@ -193,12 +197,15 @@
 
     // Save format: "unlocked.hiscore.lastLevel.won". Anything malformed or
     // out of range falls back to a fresh save rather than being trusted.
+    // A save from the old ten-level campaigns (levels up to 10) migrates:
+    // its levels are capped at LEVELS, so a player who had got past level 3
+    // finds all three open, and the high score and completed star are kept.
     function parseSave(raw) {
         var p = String(raw || '').split('.');
         var save = {
-            unlocked: intIn(p[0], 1, LEVELS, 1),
+            unlocked: Math.min(LEVELS, intIn(p[0], 1, LEGACY_LEVELS, 1)),
             hi: intIn(p[1], 0, MAX_SCORE, 0),
-            last: intIn(p[2], 1, LEVELS, 1),
+            last: Math.min(LEVELS, intIn(p[2], 1, LEGACY_LEVELS, 1)),
             won: intIn(p[3], 0, 1, 0)
         };
         if (save.last > save.unlocked) save.last = save.unlocked;
@@ -1162,7 +1169,10 @@
     }
 
     function beginLevel(level) {
+        // There is no level after the last one, whoever asks for it.
+        level = G.clamp(Math.floor(level) || 1, 1, LEVELS);
         clearFx();
+        cur.ending = null;
         cur.level = level;
         G.lives = maxLives();
         initState(level);
@@ -1176,6 +1186,7 @@
 
     function toTitle() {
         clearFx();
+        cur.ending = null;
         cur.sel = cur.save.last;
         G.score = 0;
         G.lives = maxLives();
@@ -1192,7 +1203,7 @@
         else if (cur.level + 1 > cur.save.unlocked) cur.save.unlocked = cur.level + 1;
         writeSave();
         engineSfx('win');
-        setScreen(cur.level >= LEVELS ? 'victory' : 'clear', cur.level >= LEVELS ? 0 : 6);
+        if (cur.level >= LEVELS) startEnding(); else setScreen('clear', 6);
     };
 
     function gameOver() {
@@ -1252,7 +1263,7 @@
     function onTimer() {
         if (cur.screen === 'intro') setScreen('play');
         else if (cur.screen === 'dead') respawn();
-        else if (cur.screen === 'clear') beginLevel(cur.level + 1);
+        else if (cur.screen === 'clear' && cur.level < LEVELS) beginLevel(cur.level + 1);
     }
 
     function togglePause() {
@@ -1277,7 +1288,7 @@
         else if (cur.age < 0.5) return;
         else if (sc === 'clear') beginLevel(cur.level + 1);
         else if (sc === 'over') { G.score = 0; beginLevel(cur.level); }
-        else if (sc === 'victory') toTitle();
+        else if (sc === 'victory') endingConfirm();
     }
 
     // Leaves the crashed-game screen a moment after the tap that asked for it.
@@ -1289,17 +1300,18 @@
 
     function menuKey(code) {
         if (code === 'Enter' || code === 'Space' || code === 'NumpadEnter') { menuConfirm(); return; }
+        if (cur.screen === 'victory') { endingKey(LOGICAL[code]); return; }
         if (cur.screen !== 'title') return;
         if (LOGICAL[code] === 'left') selectLevel(cur.sel - 1);
         else if (LOGICAL[code] === 'right') selectLevel(cur.sel + 1);
     }
 
-    // Level boxes on the title screen: 10 squares in one centred row. On a
+    // Level boxes on the title screen: three squares in one centred row. On a
     // phone they are bigger (the whole canvas may be 390 px wide there) and a
     // tap counts for a box from half a gap beside it and `slop` above and
     // below it, so a thumb need not be exact.
-    var BOX = { size: 56, gap: 12, y: 340, font: 26, base: 38, slop: 0 };
-    var TOUCH_BOX = { size: 80, gap: 12, y: 322, font: 36, base: 54, slop: 18 };
+    var BOX = { size: 64, gap: 28, y: 336, font: 30, base: 43, slop: 0 };
+    var TOUCH_BOX = { size: 80, gap: 32, y: 322, font: 36, base: 54, slop: 18 };
     function boxes() { return pad ? TOUCH_BOX : BOX; }
     function boxX(i) {
         var b = boxes();
@@ -1319,6 +1331,7 @@
     }
 
     function menuClick() {
+        if (cur.screen === 'victory') { endingClick(); return; }
         var i = cur.screen === 'title' ? boxAt() : null;
         if (i === null) { menuConfirm(); return; }
         if (i < 0 || i + 1 > cur.save.unlocked) return;
@@ -1332,6 +1345,8 @@
         if (cur.screen === 'play') {
             G.t += STEP;
             guard(function () { cur.def.update(cur.s, STEP, G); });
+        } else if (cur.screen === 'victory') {
+            updateEnding(STEP);
         } else if (cur.timer > 0) {
             cur.timer -= STEP;
             if (cur.timer <= 0) onTimer();
@@ -1434,9 +1449,9 @@
         if (sc === 'title') drawTitle(ctx);
         else if (sc === 'intro') drawBanner(ctx, cur.banner, levelName(cur.level));
         else if (sc === 'paused') drawBanner(ctx, 'PAUSED', (pad ? 'TAP' : 'P') + ' resume · ' + quit + ' quit');
-        else if (sc === 'clear') drawBanner(ctx, 'LEVEL ' + cur.level + ' CLEAR', (cur.bonus ? 'BONUS ' + cur.bonus + ' · ' : '') + go + ' for level ' + (cur.level + 1));
+        else if (sc === 'clear') drawBanner(ctx, 'LEVEL ' + cur.level + ' CLEAR', (cur.bonus ? 'BONUS ' + cur.bonus + ' · ' : '') + go + ' for level ' + (cur.level + 1) + (cur.level + 1 === LEVELS ? ' · the finale' : ''));
         else if (sc === 'over') drawBanner(ctx, 'GAME OVER', 'SCORE ' + pad6(G.score) + ' · ' + go + ' retry level ' + cur.level + ' · ' + quit + ' quit', '#ff5566');
-        else if (sc === 'victory') drawBanner(ctx, 'YOU WIN', 'All ' + LEVELS + ' levels cleared · SCORE ' + pad6(G.score) + ' · ' + go);
+        else if (sc === 'victory') drawEnding(ctx);
         else if (sc === 'error') drawBanner(ctx, 'GAME CRASHED', quit + ' to return to the blog', '#ff5566');
         else if (sc === 'loading') drawBanner(ctx, 'LOADING', TITLES[cur.theme] || '');
     }
@@ -1470,8 +1485,161 @@
             ctx.fillRect(0, 0, W, H);
             ctx.globalAlpha = 1;
         }
-        if (cur.def && cur.screen !== 'title' && cur.screen !== 'loading' && cur.screen !== 'error') drawHud(ctx);
+        if (cur.def && cur.screen !== 'title' && cur.screen !== 'loading' && cur.screen !== 'error' && cur.screen !== 'victory') drawHud(ctx);
         drawScreen(ctx);
+    }
+
+    // ------------------------------------------------------------------
+    // The ending: a celebration after the last level is cleared
+    // ------------------------------------------------------------------
+
+    // Clearing level 3 opens this scene instead of a plain banner. It stays
+    // until the player picks PLAY AGAIN (a new run from level 1) or LEVELS
+    // (the title screen), or quits. The game's update() no longer runs; its
+    // last frame stays behind the celebration, dimmed.
+    //
+    // def.ending (all optional) lets a theme make it its own:
+    //   title, text   the big line and the line under it
+    //   colors        firework palette (default: the game's accent and fg)
+    //   fireworks     false to switch the engine's fireworks off
+    //   draw(e, ctx, G)  paints the theme's own scene each frame, behind the
+    //                 fireworks; e = { t, score, level, data, rng } where
+    //                 `data` is a scratch object that lives as long as the
+    //                 scene (games keep no state of their own outside s)
+    var ENDING_ARM = 1.2;     // seconds before a key or tap may leave the scene
+    var ENDING_SPARKS = 480;  // cap, so a long celebration cannot pile up
+    var ENDING_CHOICES = ['PLAY AGAIN', 'LEVELS'];
+
+    function endingDef() { return (cur.def && cur.def.ending) || {}; }
+
+    function startEnding() {
+        var d = endingDef(), c = colors();
+        musicStop();
+        clearFx();
+        cur.ending = {
+            t: 0, choice: 0, shells: [], sparks: [], next: 0.2, data: {},
+            title: d.title || 'YOU WIN', text: d.text || '',
+            palette: d.colors && d.colors.length ? d.colors : [c.accent, c.fg, '#ffd166', '#ff6b9d'],
+            fireworks: d.fireworks !== false, rng: G.rng(G.score + 7)
+        };
+        setScreen('victory');
+    }
+
+    function launchShell(e) {
+        var r = e.rng;
+        e.shells.push({
+            x: W * (0.15 + r() * 0.7), y: H, vx: (r() - 0.5) * 60, vy: -(420 + r() * 160),
+            fuse: 0.75 + r() * 0.45, color: e.palette[Math.floor(r() * e.palette.length)]
+        });
+    }
+
+    function explodeShell(e, sh) {
+        var n = 36 + Math.floor(e.rng() * 24);
+        for (var i = 0; i < n && e.sparks.length < ENDING_SPARKS; i++) {
+            var a = (i / n) * Math.PI * 2, sp = 120 + e.rng() * 110, life = 1.1 + e.rng() * 0.7;
+            e.sparks.push({ x: sh.x, y: sh.y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: life, max: life, color: sh.color });
+        }
+        // A soft pop through the engine's own channel: it follows mute and
+        // pause like every other sound, and is not counted as the game's.
+        engineSound = true;
+        G.noise(0.3, { freq: 1800, slide: 200, vol: 0.08 });
+        engineSound = false;
+    }
+
+    function updateEnding(dt) {
+        var e = cur.ending, i;
+        if (!e) return;
+        e.t += dt;
+        if (e.fireworks && (e.next -= dt) <= 0) { launchShell(e); e.next = 0.35 + e.rng() * 0.45; }
+        for (i = e.shells.length - 1; i >= 0; i--) {
+            var sh = e.shells[i];
+            sh.vy += 300 * dt; sh.x += sh.vx * dt; sh.y += sh.vy * dt; sh.fuse -= dt;
+            if (sh.fuse <= 0 || sh.vy >= 0) { explodeShell(e, sh); e.shells.splice(i, 1); }
+        }
+        for (i = e.sparks.length - 1; i >= 0; i--) {
+            var p = e.sparks[i];
+            p.life -= dt;
+            if (p.life <= 0) { e.sparks.splice(i, 1); continue; }
+            p.vy += 90 * dt; p.vx *= 1 - 1.2 * dt; p.vy *= 1 - 1.2 * dt;
+            p.x += p.vx * dt; p.y += p.vy * dt;
+        }
+    }
+
+    function drawSparks(ctx, e) {
+        var i, p;
+        for (i = 0; i < e.shells.length; i++) {
+            ctx.globalAlpha = 1; ctx.fillStyle = e.shells[i].color;
+            ctx.fillRect(e.shells[i].x - 2, e.shells[i].y - 2, 4, 4);
+        }
+        for (i = 0; i < e.sparks.length; i++) {
+            p = e.sparks[i];
+            ctx.globalAlpha = Math.max(0, p.life / p.max);
+            ctx.fillStyle = p.color;
+            ctx.fillRect(p.x - 2, p.y - 2, 4, 4);
+        }
+        ctx.globalAlpha = 1;
+    }
+
+    // The two choices as buttons in canvas coordinates; bigger on a phone.
+    function endingButtons() {
+        var w = pad ? 260 : 220, h = pad ? 70 : 54, gap = 40, y = pad ? 380 : 392;
+        var x0 = (W - (2 * w + gap)) / 2;
+        return ENDING_CHOICES.map(function (label, i) { return { x: x0 + i * (w + gap), y: y, w: w, h: h, label: label }; });
+    }
+
+    function drawEndingPanel(ctx, e) {
+        var c = colors(), go = pad ? 'tap a button' : '← → choose · ENTER confirm', quit = pad ? '✕ quit' : 'ESC quit';
+        G.text(e.title, W / 2, 150, { size: 64, bold: true, color: c.accent, align: 'center', glow: c.accent, max: W - 60 });
+        if (e.text) G.text(e.text, W / 2, 196, { size: 22, color: c.fg, align: 'center', max: W - 80 });
+        G.text('All ' + LEVELS + ' levels cleared', W / 2, 262, { size: 22, color: c.fg, align: 'center' });
+        G.text('SCORE ' + pad6(G.score) + '   HI ' + pad6(cur.save.hi), W / 2, 306, { size: 28, bold: true, color: c.accent, align: 'center' });
+        endingButtons().forEach(function (b, i) {
+            var sel = i === e.choice;
+            ctx.globalAlpha = 1; ctx.lineWidth = 3;
+            ctx.fillStyle = sel ? c.accent : 'rgba(0,0,0,0.6)';
+            ctx.strokeStyle = c.accent;
+            ctx.fillRect(b.x, b.y, b.w, b.h); ctx.strokeRect(b.x, b.y, b.w, b.h);
+            G.text(b.label, b.x + b.w / 2, b.y + b.h / 2 + (pad ? 11 : 8), { size: pad ? 30 : 24, bold: true, align: 'center', color: sel ? c.bg : c.fg });
+        });
+        if (e.t >= ENDING_ARM) G.text(go + ' · ' + quit, W / 2, 500, { size: pad ? 20 : 15, color: c.dim, align: 'center', max: W - 40 });
+    }
+
+    function drawEnding(ctx) {
+        var e = cur.ending, d = endingDef();
+        if (!e) return;
+        dimScreen(ctx, 0.74);
+        if (d.draw) {
+            ctx.save();
+            guard(function () { d.draw({ t: e.t, score: G.score, level: cur.level, data: e.data, rng: e.rng }, ctx, G); });
+            ctx.restore();
+            ctx.globalAlpha = 1; ctx.shadowBlur = 0;
+        }
+        drawSparks(ctx, e);
+        drawEndingPanel(ctx, e);
+    }
+
+    function endingConfirm() {
+        var e = cur.ending;
+        if (!e || e.t < ENDING_ARM) return;
+        if (e.choice === 0) { G.score = 0; beginLevel(1); } else toTitle();
+    }
+
+    function endingKey(name) {
+        var e = cur.ending;
+        if (!e || (name !== 'left' && name !== 'right')) return;
+        e.choice = name === 'left' ? 0 : 1;
+        engineSfx('blip');
+    }
+
+    // A click or tap on a button picks it and confirms; anywhere else it
+    // confirms what is selected, as on every other menu screen.
+    function endingClick() {
+        var e = cur.ending, m = G.mouse;
+        if (!e) return;
+        endingButtons().forEach(function (b, i) {
+            if (m.x >= b.x && m.x <= b.x + b.w && m.y >= b.y && m.y <= b.y + b.h) e.choice = i;
+        });
+        endingConfirm();
     }
 
     // ------------------------------------------------------------------
@@ -1504,6 +1672,7 @@
         raf = engineRaf(loop);
         acc += Math.min(0.1, (now - lastTime) / 1000);
         lastTime = now;
+        if (clockHeld) acc = 0;
         while (acc >= STEP) { tick(); acc -= STEP; }
         frame();
     }
@@ -1683,6 +1852,7 @@
     G.quit = function () {
         if (!G.active) return;
         G.active = false;
+        clockHeld = false;
         cancelRaf(raf);
         releaseBackdrop();
         if (cur && cur.def) writeSave();
@@ -1858,6 +2028,7 @@
         // Jumps straight into play on the given level (no intro banner), with
         // no button remembered as held from earlier step() calls.
         start: function (level) {
+            if (!cur || !cur.def) return;
             stepMem = newStepMem();
             G.score = 0; beginLevel(level);
             if (cur.screen !== 'error') setScreen('play');
@@ -1879,6 +2050,16 @@
             clearInput();
             return G.debug.state();
         },
+        // The ending scene's own state while it is on screen, else null.
+        ending: function () {
+            var e = cur && cur.screen === 'victory' ? cur.ending : null;
+            return e ? { t: e.t, choice: e.choice, shells: e.shells.length, sparks: e.sparks.length, fireworks: e.fireworks, title: e.title } : null;
+        },
+        // hold(true) stops real time from ticking the game (frames are still
+        // drawn), so a bot driving it with step() is the only thing that
+        // moves it, however long the test pauses between calls. Quit
+        // releases it.
+        hold: function (on) { clockHeld = !!on; },
         win: function () { G.win(0); },
         lose: function () { while (cur && cur.screen === 'play') G.loseLife(); }
     };

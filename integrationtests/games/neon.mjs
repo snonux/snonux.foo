@@ -33,13 +33,13 @@ try {
         }
         function same(a,b){return a.every(function(v,i){return v===b[i];});}
         var stable=true,animated=true;
-        for(var level=1;level<=10;level++){
+        for(var level=1;level<=3;level++){
             var state=scene(level,0),first=pixels(state);
             stable=stable&&same(first,pixels(state));
             state.time+=0.5;animated=animated&&!same(first,pixels(state));
         }
-        var s=scene(8,0),before=pixels(s);
-        s.ring=3;var collapsed=pixels(s),fresh=pixels(scene(8,3));
+        var s=scene(3,0),before=pixels(s);
+        s.ring=3;var collapsed=pixels(s),fresh=pixels(scene(3,3));
         s.ring=0;var reset=pixels(s);
         s.ring=3;s.time=2;
         var warningBefore=pixels(s);s.time+=0.2;var warningAfter=pixels(s);
@@ -51,7 +51,7 @@ try {
         var resized=true,native=true;
         for(var scale of [4/3,1.37,2,3,1]){
             resize(scale);s.ring=3;s.time=2;
-            var cached=pixels(s),uncached=pixels(scene(8,3));
+            var cached=pixels(s),uncached=pixels(scene(3,3));
             resized=resized&&same(cached,uncached);
             // Each major vertical grid line is drawn directly as a reference:
             // averaging across neighbouring pixels would miss a soft cache.
@@ -78,7 +78,7 @@ try {
             layoutChanges:!same(pixels(scene(1,0)),pixels(scene(3,0)))
         };
     })()`);
-    assert.equal(result.stable, true, 'cached frames must match the initial render on all ten levels');
+    assert.equal(result.stable, true, 'cached frames must match the initial render on all three levels');
     assert.equal(result.animated, true, 'caching must not freeze the scan line or warnings');
     assert.equal(result.warningAnimated, true, 'the collapse warning must animate independently of the scan line');
     assert.equal(result.collapseVisible, true, 'a collapsed ring must change the arena pixels');
@@ -92,7 +92,7 @@ try {
         var pic=document.createElement('canvas');pic.width=960;pic.height=540;
         var ctx=pic.getContext('2d'),labels=[],sameRules=true,minHudSize=21;
         try{
-            for(var level=1;level<=10;level++){
+            for(var level=1;level<=3;level++){
                 G.isTouch=function(){return false;};var desktop=def.init(level);
                 G.isTouch=function(){return true;};var phone=def.init(level);
                 sameRules=sameRules&&desktop.cfg===phone.cfg&&
@@ -103,7 +103,7 @@ try {
                 minHudSize=Math.min(minHudSize,21*Math.min(1,412/width));
             }
             G.text=function(str,x,y,opts){labels.push({text:str,y:y,size:opts.size});};
-            phone=def.init(9);phone.note={text:'TRAILS LOCKED',t:2};
+            phone=def.init(2);phone.note={text:'TRAILS LOCKED',t:2};
             def.draw(phone,ctx);
             return {sameRules:sameRules,minHudSize:minHudSize,labels:labels,
                 fourWay:def.touch.dirs===4,unusedHidden:def.touch.hide.includes('b')};
@@ -117,6 +117,36 @@ try {
     }
     assert.equal(mobile.fourWay, true, 'grid steering must select one direction per thumb gesture');
     assert.equal(mobile.unusedHidden, true, 'the unused B button must stay hidden');
+    // The campaign's mechanics, each on its own: riders and round quotas per
+    // level, the boost draining and refilling, fading trails that lock, and
+    // the finale's collapse taking a rider on the outer ring with it.
+    const rules = await page.eval(`(function(){
+        var G=SnoGame,def=window.__neonDef,saved={win:G.win,loseLife:G.loseLife,addScore:G.addScore,a:G.key.a},won=0;
+        function run(level){var s=def.init(level);s.phase='run';return s;}
+        try{
+            G.win=function(){won++;};G.loseLife=function(){return 1;};G.addScore=function(){};
+            var cfg=[1,2,3].map(function(l){var c=def.init(l).cfg;
+                return [c.riders.join('+'),c.need,c.decay||0,c.shrink?c.shrink.every:0,c.layout||''].join(' ');});
+            var s=run(1);G.key.a=true;
+            for(var i=0;i<30;i++)def.update(s,1/60);
+            var drained=s.me.boosting&&s.me.charge<0.8;
+            G.key.a=false;var low=s.me.charge;
+            for(i=0;i<30;i++)def.update(s,1/60);
+            var refilled=!s.me.boosting&&s.me.charge>low;
+            s=run(2);s.roundT=11.99;def.update(s,1/60);
+            var locked=s.locked&&s.note.text==='TRAILS LOCKED';
+            s=run(3);var expert=s.cycles[1];expert.y=0;expert.dir=0;s.shrinkT=0.001;
+            def.update(s,1/60);
+            return {cfg:cfg,drained:drained,refilled:refilled,locked:locked,
+                collapse:s.ring===1&&!expert.alive&&s.wins===1&&won===0&&s.phase==='end'};
+        }finally{G.win=saved.win;G.loseLife=saved.loseLife;G.addScore=saved.addScore;G.key.a=saved.a;}
+    })()`);
+    assert.deepEqual(rules.cfg, ['rookie+scout 2 0 0 ', 'hunter+scout+rookie 2 80 0 bars', 'expert 3 0 6 pillars']);
+    assert.equal(rules.drained, true, 'holding BOOST must boost and drain the charge');
+    assert.equal(rules.refilled, true, 'the charge must come back after the boost');
+    assert.equal(rules.locked, true, 'fading trails must lock after a while');
+    assert.equal(rules.collapse, true, 'a collapsing ring must derez the expert riding on it and win the round');
+    console.log('ok   neon riders, round quotas, boost, trail lock and the collapsing duel');
     assert.deepEqual(page.problems, [], 'no browser errors');
     console.log('ok   neon arena: caching, scaling, animation, mobile labels/HUD and unchanged level rules');
 } finally {

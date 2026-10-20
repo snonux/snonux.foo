@@ -3,8 +3,8 @@
  *
  * Drive the digger through the dirt and collect every emerald. Monsters crawl
  * out of the corner nest and hunt through the tunnels (nobbins), dig their own
- * way (hobbins, from level 5) or drift straight through the soil (the TSR
- * ghost, from level 9). Gold bags wobble and fall once they are undermined:
+ * way (hobbins) or drift straight through the soil (the TSR ghost): those two
+ * are kept for the finale. Gold bags wobble and fall once they are undermined:
  * they crush whatever is below and burst into gold after a long drop. The
  * laser needs a slow recharge, and a cherry turns the tables for a while.
  *
@@ -30,39 +30,31 @@
     var RUN_SPEED = 4.8, DIG_SPEED = 3.4, SHOT_SPEED = 13;      // cells per second
     var BAG_G = 34, BAG_VMAX = 12;                              // cells per second (squared)
     var REFILL_AGE = 8, LOST_AGE = 3, FAR = 999, TOUCH_SCALE = 1.15;
-    // Monster speed in cells per second: it climbs a little on every level
-    // and stops at DIG_SPEED, so even on level 10 a digger that is cutting
-    // fresh tunnel is never run down from behind by a nobbin.
-    var MONSTER_SPEED = 2.3, MONSTER_STEP = 0.12;
-    // Laser recharge in seconds, again growing by a small step per level.
+    // Monster speed in cells per second: it climbs on every level but stays
+    // below DIG_SPEED, so a digger that is cutting fresh tunnel is never run
+    // down from behind by a nobbin.
+    var MONSTER_SPEED = 2.3, MONSTER_STEP = 0.25;
+    // Laser recharge in seconds, growing by a small step per level.
     var RECHARGE = 3, RECHARGE_STEP = 0.2;
+    // Seconds the cherry keeps the monsters edible, a little less per level.
+    var POWER = 8, POWER_STEP = 0.5;
     var GEM_NOTES = [523, 587, 659, 698, 784, 880, 988, 1047];  // a rising scale for emerald streaks
 
     function abs(v) { return Math.abs(v); }
 
-    // One entry per level. `tunnels` are the pre-dug corridors [c0, r0, c1, r1]
-    // that always join the nest(s) to the start cell, so an idle player is
+    // One entry per level: AUTOEXEC.BAT teaches digging, bags and the
+    // nobbin; CHERRY.COM adds rocks, a second monster and the cherry;
+    // FORMAT C: is the finale with two nests, digging hobbins, the ghost and
+    // tunnels that silt up. `tunnels` are the pre-dug corridors [c0, r0, c1,
+    // r1] that always join the nest(s) to the start cell, so an idle player is
     // always found. `kinds` is the spawn order: n nobbin, h hobbin, g ghost.
+    // `seed` picks the rock, bag and emerald layout.
     var LEVELS = [
-        { tunnels: [[19, 0, 10, 0], [10, 0, 10, 9]], bags: 3, rocks: 0, max: 1, spawn: 5, kinds: 'n', nests: 1,
+        { tunnels: [[19, 0, 10, 0], [10, 0, 10, 9]], seed: 1, bags: 3, rocks: 0, max: 1, spawn: 5, kinds: 'n', nests: 1,
             gems: function (c, r) { return (c >= 2 && c <= 7 && r >= 2 && r <= 4) || (c >= 12 && c <= 17 && r >= 5 && r <= 7) || (c >= 3 && c <= 7 && r >= 7 && r <= 8); } },
-        { tunnels: [[19, 0, 19, 4], [19, 4, 4, 4], [4, 4, 4, 9], [4, 9, 10, 9]], bags: 5, rocks: 0, max: 2, spawn: 5, kinds: 'n', nests: 1,
-            gems: function (c, r) { return (r === 1 || r === 6 || r === 8) && c >= 1 && c <= 18; } },
-        { tunnels: [[19, 0, 14, 0], [14, 0, 14, 6], [14, 6, 6, 6], [6, 6, 6, 2], [10, 6, 10, 9]], bags: 5, rocks: 0, max: 2, spawn: 4.5, kinds: 'n', nests: 1, cherry: true,
+        { tunnels: [[19, 0, 14, 0], [14, 0, 14, 6], [14, 6, 6, 6], [6, 6, 6, 2], [10, 6, 10, 9]], seed: 3, bags: 5, rocks: 8, max: 2, spawn: 4.5, kinds: 'n', nests: 1, cherry: true,
             gems: function (c, r) { return abs(c - 3) + abs(r - 4) <= 2 || abs(c - 17) + abs(r - 5) <= 2 || abs(c - 10) + abs(r - 3) <= 2 || abs(c - 4) + abs(r - 8) <= 1 || abs(c - 15) + abs(r - 8) <= 1; } },
-        { tunnels: [[19, 0, 19, 2], [19, 2, 0, 2], [10, 2, 10, 9], [3, 2, 3, 7], [16, 2, 16, 7]], bags: 6, rocks: 14, max: 3, spawn: 4.5, kinds: 'n', nests: 1, cherry: true,
-            gems: function (c, r) { return (c + r) % 2 === 0 && r >= 4 && r <= 8; } },
-        { tunnels: [[19, 0, 12, 0], [12, 0, 12, 4], [12, 4, 7, 4], [7, 4, 7, 9], [7, 9, 10, 9]], bags: 6, rocks: 0, max: 3, spawn: 4.5, kinds: 'nnh', nests: 1, cherry: true,
-            gems: function (c, r) { return c % 2 === 1 && r >= 2 && r <= 8; } },
-        { tunnels: [[19, 0, 19, 8], [19, 8, 1, 8], [10, 8, 10, 9], [1, 8, 1, 1], [1, 1, 16, 1]], bags: 14, stack: true, rocks: 6, max: 3, spawn: 4, kinds: 'nnh', nests: 1, cherry: true,
-            gems: function (c, r) { return ((r === 3 || r === 4 || r === 6) && c >= 3 && c <= 17) || (r === 7 && c >= 6 && c <= 14); } },
-        { tunnels: [[0, 0, 19, 0], [10, 0, 10, 9], [4, 0, 4, 5], [15, 0, 15, 5]], bags: 7, rocks: 0, max: 4, spawn: 4, kinds: 'nhn', nests: 2, cherry: true,
-            gems: function (c, r) { return (c + r * 2) % 8 < 3 && r >= 2; } },
-        { tunnels: [[19, 0, 19, 3], [19, 3, 13, 3], [13, 3, 13, 6], [13, 6, 7, 6], [7, 6, 7, 9], [7, 9, 10, 9]], bags: 7, rocks: 0, max: 4, spawn: 4, kinds: 'nnh', nests: 1, cherry: true, refill: true,
-            gems: function (c, r) { return ((r === 1 || r === 8) && c >= 2 && c <= 17) || ((c === 2 || c === 17) && r >= 2 && r <= 7) || ((r === 4 || r === 5) && c >= 5 && c <= 11); } },
-        { tunnels: [[19, 0, 10, 0], [10, 0, 10, 9], [2, 5, 17, 5]], bags: 8, rocks: 8, max: 4, spawn: 4, kinds: 'nhng', nests: 1, cherry: true,
-            gems: function (c, r, rnd) { return rnd() < 0.27; } },
-        { tunnels: [[0, 0, 0, 4], [19, 0, 19, 4], [0, 4, 19, 4], [10, 4, 10, 9], [5, 4, 5, 8], [14, 4, 14, 8]], bags: 10, rocks: 12, max: 5, spawn: 4.5, kinds: 'nhnhg', nests: 2, cherry: true, refill: true,
+        { tunnels: [[0, 0, 0, 4], [19, 0, 19, 4], [0, 4, 19, 4], [10, 4, 10, 9], [5, 4, 5, 8], [14, 4, 14, 8]], seed: 10, bags: 8, rocks: 10, max: 3, spawn: 4.5, kinds: 'nhgnh', nests: 2, cherry: true, refill: true,
             gems: function (c, r) { return c % 3 !== 1 && r % 2 === 1; } }
     ];
 
@@ -126,22 +118,20 @@
         return { c: c, r: r, y: r, vy: 0, r0: r, state: 'rest', t: 0, slide: 0, pushed: false, gone: false };
     }
 
-    // Bags start on solid dirt with room to fall once it is dug away. The
-    // "stack" level piles a second bag on top for chain reactions.
+    // Bags start on solid dirt with room to fall once it is dug away.
     function placeBags(s, rnd) {
         for (var n = 0, tries = 0; n < s.cfg.bags && tries < 800; tries++) {
             var c = Math.floor(rnd() * COLS), r = Math.floor(rnd() * (ROWS - 2));
             var free = s.dirt[idx(c, r)] && s.dirt[idx(c, r + 1)] && !bagAt(s, c, r) && !bagAt(s, c, r + 1);
             if (!free || (abs(c - START.c) < 2 && r > 5)) continue;
             s.bags.push(newBag(c, r)); n++;
-            if (s.cfg.stack && r > 0 && s.dirt[idx(c, r - 1)] && !bagAt(s, c, r - 1)) { s.bags.push(newBag(c, r - 1)); n++; }
         }
     }
 
-    function placeGems(s, rnd) {
+    function placeGems(s) {
         for (var r = 0; r < ROWS; r++) {
             for (var c = 0; c < COLS; c++) {
-                if (!s.dirt[idx(c, r)] || bagAt(s, c, r) || !s.cfg.gems(c, r, rnd)) continue;
+                if (!s.dirt[idx(c, r)] || bagAt(s, c, r) || !s.cfg.gems(c, r)) continue;
                 s.gem[idx(c, r)] = true; s.left++;
             }
         }
@@ -152,7 +142,7 @@
     }
 
     function init(level) {
-        var cfg = LEVELS[level - 1], rnd = G.rng(level * 7919 + 13), n = COLS * ROWS;
+        var cfg = LEVELS[level - 1], rnd = G.rng(cfg.seed * 7919 + 13), n = COLS * ROWS;
         var s = {
             cfg: cfg, level: level, touch: G.isTouch(), time: 0, left: 0, dirt: [], rock: [], gem: [], dug: [], dist: [],
             bags: [], golds: [], enemies: [], shot: null, cherry: null, pl: newPlayer(), want: null, dir: null,
@@ -165,7 +155,7 @@
         for (i = 0; i < cfg.nests; i++) s.dirt[idx(NESTS[i].c, NESTS[i].r)] = false;
         placeRocks(s, rnd);
         placeBags(s, rnd);
-        placeGems(s, rnd);
+        placeGems(s);
         return s;
     }
 
@@ -193,7 +183,7 @@
     }
 
     // Removes the dirt of a cell and stamps when it was last used, which is
-    // what the refilling levels age against. Returns whether dirt was dug.
+    // what the finale's creeping soil ages against. Returns whether dirt was dug.
     function digCell(s, c, r) {
         var i = idx(c, r), was = s.dirt[i];
         if (was || s.dug[i] > 0) s.dug[i] = s.time;
@@ -525,7 +515,7 @@
         var cfg = s.cfg, nest = NESTS[s.spawned % cfg.nests], kind = cfg.kinds.charAt(s.spawned % cfg.kinds.length);
         // One ghost at a time is plenty: nothing on the map slows it down.
         if (kind === 'g' && s.enemies.some(function (e) { return e.kind === 'g'; })) kind = 'n';
-        var base = kind === 'g' ? 1.4 + s.level * 0.06 : Math.min(DIG_SPEED, MONSTER_SPEED + s.level * MONSTER_STEP) * (kind === 'h' ? 0.9 : 1);
+        var base = kind === 'g' ? 1.4 + s.level * 0.06 : (MONSTER_SPEED + s.level * MONSTER_STEP) * (kind === 'h' ? 0.9 : 1);
         s.spawned++;
         s.enemies.push({ kind: kind, c: nest.c, r: nest.r, dc: 0, dr: 0, ldc: 0, ldr: 0, p: 0, base: base, speed: base, born: 0.8, lost: 0, mutant: false, gone: false });
         beep(220, 0.1, 440, 0, 0.08); beep(330, 0.1, 660, 0.1, 0.08);
@@ -543,7 +533,7 @@
     }
 
     // A nobbin can lose every route to the digger: tunnels silt up on the
-    // DEFRAG levels, and on any level a bag that drops into a tunnel plugs
+    // finale, and on any level a bag that drops into a tunnel plugs
     // it. It would idle for the rest of the level, hold a spawn slot and
     // leave a digger behind the plug safe for ever, so after a while it
     // turns hobbin and digs its way through. Where soil does not creep back
@@ -558,7 +548,7 @@
     }
 
     // The mutation lasts only as long as it is needed: back in a tunnel that
-    // leads to the digger the monster is a nobbin again, so the early levels
+    // leads to the digger the monster is a nobbin again, so the first two levels
     // never keep a digging enemy.
     function revertMutant(s, e) {
         if (!e.mutant || e.kind !== 'h' || s.dist[idx(e.c, e.r)] >= FAR) return;
@@ -610,7 +600,7 @@
 
     function eatCherry(s) {
         s.cherry = null;
-        s.power = Math.max(4.5, 8 - s.level * 0.3); s.combo = 0; s.cherryT = 22;
+        s.power = POWER - s.level * POWER_STEP; s.combo = 0; s.cherryT = 22;
         G.addScore(100); G.flash(MAGENTA, 0.2);
         [523, 659, 784, 1047, 1319].forEach(function (f, k) { beep(f, 0.08, 0, k * 0.06, 0.12); });
         say(s, 'CHERRY.COM: monsters are edible!');
@@ -640,7 +630,7 @@
         return s.bags.some(function (b) { return b.c === c && (b.r === r || (b.state === 'fall' && b.r + 1 === r)); });
     }
 
-    // On the DEFRAG levels soil creeps back into dug tunnels that have not
+    // In the finale soil creeps back into dug tunnels that have not
     // been used for a while, oldest first, so escape routes close behind you.
     function refill(s, dt) {
         s.refillT -= dt;
@@ -1002,6 +992,41 @@
 
     function hud(s) { return 'EMERALDS ' + s.left; }
 
+    // ------------------------------------------------------------------
+    // The ending: a victory session at the DOS prompt under CGA fireworks
+    // ------------------------------------------------------------------
+
+    var VICTORY_LINES = ['C:\\DIGGER>FORMAT C: /EMERALDS', 'Format complete. 0 monsters remaining.', 'C:\\DIGGER>'];
+    var TYPE_RATE = 32;      // characters per second, as fast as a BBS modem
+
+    // Chequered bars in the three CGA colours run along the top and bottom
+    // edge like a marquee.
+    function drawMarquee(t, ctx) {
+        var shift = Math.floor(t * 8), colors = [CYAN, MAGENTA, WHITE];
+        for (var k = 0; k < COLS * 2; k++) {
+            box(ctx, colors[(k + shift) % 3], k * 24, 0, 24, 8);
+            box(ctx, colors[(k + 2 * shift) % 3], k * 24, G.H - 8, 24, 8);
+        }
+    }
+
+    // The prompt types its session line by line in the corner above the
+    // title, then waits with a blinking cursor.
+    function drawPrompt(t, ctx) {
+        var chars = Math.floor(t * TYPE_RATE);
+        for (var i = 0; i < VICTORY_LINES.length && chars > 0; i++) {
+            var line = VICTORY_LINES[i], shown = line.slice(0, chars);
+            chars -= line.length;
+            var last = chars <= 0 || i === VICTORY_LINES.length - 1;
+            var cursor = last && Math.floor(t * 3) % 2 ? '_' : '';
+            G.text(shown + cursor, 24, 34 + i * 22, { size: 18, color: i === 1 ? WHITE : CYAN });
+        }
+    }
+
+    function drawEnding(e, ctx) {
+        drawMarquee(e.t, ctx);
+        drawPrompt(e.t, ctx);
+    }
+
     G.register('dos', {
         title: 'DIGGER.EXE',
         blurb: 'Dig out every emerald. Drop gold bags on whatever crawls out of the nest.',
@@ -1011,7 +1036,7 @@
             'Undermined bags wobble, then fall: they crush monsters - and you',
             'A long fall bursts a bag into gold · the cherry makes monsters edible'
         ],
-        levelNames: ['AUTOEXEC.BAT', 'CONFIG.SYS', 'CHERRY.COM', 'BAD SECTORS', 'HOBBIN.COM', 'GOLDRUSH.ZIP', 'DUAL BOOT', 'DEFRAG', 'GHOST.TSR', 'FORMAT C:'],
+        levelNames: ['AUTOEXEC.BAT', 'CHERRY.COM', 'FORMAT C:'],
         colors: { bg: BLACK, fg: WHITE, accent: CYAN, dim: MAGENTA },
         lives: 4,
         // PC-speaker flavour: nothing but square waves, and only a tick of
@@ -1030,6 +1055,12 @@
         // Grid movement: one direction at a time, so a thumb a little off
         // axis cannot hold two. A is the laser; nothing sits on B.
         touch: { a: 'FIRE', hide: ['b'], dirs: 4 },
-        init: init, update: update, draw: draw, hud: hud
+        init: init, update: update, draw: draw, hud: hud,
+        ending: {
+            title: 'ALL EMERALDS DUG',
+            text: 'Abort, Retry, Fail? None of the above.',
+            colors: [CYAN, MAGENTA, WHITE],
+            draw: drawEnding
+        }
     });
 })();

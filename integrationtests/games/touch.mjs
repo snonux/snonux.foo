@@ -216,13 +216,13 @@ async function checkStick(page, l, part, fourWay) {
 const onCanvas = (l, x, y) => ({ x: l.canvas.x + x / 960 * l.canvas.w, y: l.canvas.y + y / 540 * l.canvas.h });
 
 // The level boxes as the engine draws them on a phone (TOUCH_BOX in
-// games.js): ten 80 px squares, 12 px apart, centred, from y 322.
-const boxCentre = (level) => ({ x: 26 + (level - 1) * 92 + 40, y: 362 });
+// games.js): three 80 px squares, 32 px apart, centred, from y 322.
+const boxCentre = (level) => ({ x: 328 + (level - 1) * 112 + 40, y: 362 });
 
 // On a fresh save only level 1 is open. A tap on a locked box, or beside the
 // row at the height of the boxes, is a miss and must not start anything.
 async function checkTitleMisses(page, l) {
-    for (const [what, at] of [['a locked level box', boxCentre(5)], ['beside the row of level boxes', { x: 12, y: 362 }]]) {
+    for (const [what, at] of [['a locked level box', boxCentre(3)], ['beside the row of level boxes', { x: 12, y: 362 }]]) {
         const p = onCanvas(l, at.x, at.y);
         await page.tap(p.x, p.y);
         await sleep(120);

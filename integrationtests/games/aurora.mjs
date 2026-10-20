@@ -7,7 +7,7 @@ import { PHONES } from './touch.mjs';
 
 function playCourses() {
     var results = [];
-    for (var level of [1, 5, 10]) {
+    for (var level of [1, 2, 3]) {
         SnoGame.debug.start(level);
         var ticks = 0, jumping = false;
         for (; ticks < 14000 && SnoGame.debug.state().screen === 'play'; ticks++) {
@@ -26,7 +26,8 @@ function playCourses() {
                 return { left: err < -8, right: err > 8, b: !a, a: a };
             });
         }
-        results.push({ level: level, ticks: ticks, state: SnoGame.debug.state(), passed: SnoGame.debug.s().passed });
+        var s = SnoGame.debug.s(), done = function (k) { return s.obs.filter(function (o) { return o.k === k && o.done; }).length; };
+        results.push({ level: level, ticks: ticks, state: SnoGame.debug.state(), passed: s.passed, gates: s.gates.length, leaps: done('crev'), ramps: done('ramp'), y: s.sk.y, len: s.cfg.len });
     }
     return results;
 }
@@ -41,9 +42,12 @@ try {
         await page.waitFor('SnoGame.debug.state() && SnoGame.debug.state().registered', 'aurora registration');
         const results = await page.eval(`(${playCourses.toString()})()`);
         for (const result of results) {
-            assert.equal(result.state.screen, result.level === 10 ? 'victory' : 'clear', `${name}: level ${result.level} must be winnable`);
+            assert.equal(result.state.screen, result.level === 3 ? 'victory' : 'clear', `${name}: level ${result.level} must be winnable`);
             assert.ok(result.state.lives > 0, `${name}: finishing must leave a life`);
-            assert.ok(result.passed > 0, `${name}: the bot must actually pass gates`);
+            assert.ok(result.passed >= result.gates * 0.8, `${name}: level ${result.level}: the bot must pass most gates (${result.passed}/${result.gates})`);
+            assert.ok(result.y >= result.len, `${name}: level ${result.level} is won at the finish line`);
+            assert.ok(result.ramps > 0, `${name}: level ${result.level}: ramps launch the skier`);
+            if (result.level > 1) assert.ok(result.leaps > 0, `${name}: level ${result.level}: crevasses are jumped`);
         }
         const idle = await page.eval(`(function(){
             SnoGame.debug.start(1);
@@ -53,7 +57,7 @@ try {
         assert.equal(idle.screen, 'over', `${name}: no input must lose`);
         assert.deepEqual(await page.eval('SnoGame.debug.errors.slice()'), [], `${name}: no engine errors`);
         assert.deepEqual(page.problems, [], `${name}: no browser errors`);
-        console.log(`ok   aurora ${name}: levels 1, 5, 10 won through steering and jumping; idle loses`);
+        console.log(`ok   aurora ${name}: levels 1, 2, 3 won through steering and jumping; idle loses`);
         await page.eval('SnoGame.quit()');
     }
 } finally {

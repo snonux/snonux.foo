@@ -7,8 +7,11 @@
  * higher). Every course is built around a "racing line" through its gates:
  * hazards are kept a little away from that line, so a course is always
  * skiable, and everything that makes a level special (wind, the yeti, moguls,
- * ice, the avalanche, darkness, the storm) attacks the player's ability to
- * stay on it.
+ * ice, the avalanche, the storm) attacks the player's ability to stay on it.
+ *
+ * Three runs: a forest with ramps to learn the line and the jump, a crevasse
+ * field with wind and the yeti, and the storm finale with moguls, ice, a
+ * tree chute and the avalanche.
  */
 (function () {
     'use strict';
@@ -37,50 +40,53 @@
     // Course generation
     // ------------------------------------------------------------------
 
-    // Everything that changes from level to level lives here, so the rest of
-    // the code only asks the config what the level has. The slope of every
-    // number is gentle on purpose: a late level is harder mostly through what
-    // it adds (wind, yeti, ice, avalanche, dark, storm), and its course is
-    // only a little tighter than the first one, so that the storm run can be
+    // What each run adds. `tier` sets how tight the course is: the slope of
+    // every number in config() is gentle on purpose, because a later run is
+    // harder mostly through what it adds, and the finale must still be
     // finished by a player who reacts in a quarter of a second.
+    var RUNS = [
+        { tier: 1, len: 15400, rocks: true, ramps: true },
+        { tier: 4, len: 19600, rocks: true, ramps: true, cracks: true, chasm: 0.36, wind: 52, yeti: 334 },
+        { tier: 8, len: 25200, rocks: true, ramps: true, cracks: true, chasm: 0.2, wind: 64, yeti: 350, bumps: true, aval: 282, storm: true }
+    ];
+
+    // Everything that changes from level to level lives here, so the rest of
+    // the code only asks the config what the level has.
     function config(level) {
-        var gap = 560 - level * 10, len = 14000 + level * 1400;
+        var run = RUNS[level - 1], tier = run.tier, gap = 560 - tier * 10;
         // On the touch pad one thumb works both TUCK and JUMP, so a hop comes
         // later and costs the tuck: the phone gets a wider lane, lighter wind
         // and slower chasers to make up for it.
         var soft = G.isTouch() ? 1 : 0;
         return {
             touch: !!soft, label: soft ? 28 : 20,
-            level: level, len: len, gap: gap, gateW: 150 - level * 4,
+            tier: tier, len: run.len, gap: gap, gateW: 150 - tier * 4,
             // The lateral step between two gates is capped by their spacing,
-            // otherwise a late level would ask for turns nobody can make.
-            swing: Math.min(120 + level * 6, gap * 0.45),
-            rowGap: 118 - level * 4, cruise: 300 + level * 4,
+            // otherwise a tight course would ask for turns nobody can make.
+            swing: Math.min(120 + tier * 6, gap * 0.45),
+            rowGap: 118 - tier * 4, cruise: 300 + tier * 4,
             // Free space either side of the racing line. It shrinks only a
             // little: wind and ice already push the skier off the line late on.
-            clear: 66 - level + soft * 8,
-            rocks: level >= 2, ramps: level >= 2, cracks: level >= 3,
-            wind: level >= 3 ? (40 + level * 3) * (1 - soft * 0.2) : 0,
+            clear: 66 - tier + soft * 8,
+            rocks: !!run.rocks, ramps: !!run.ramps, cracks: !!run.cracks,
+            wind: (run.wind || 0) * (1 - soft * 0.2),
             // The yeti is a little faster than an upright skier going straight
             // (cruise + 18) and much faster than one who is carving, but far
             // slower than a tuck: an upright skier who keeps turning can be
             // caught within the CHASE seconds, a tucked one never is.
-            yeti: level >= 4 ? 318 + level * 4 - soft * 8 : 0,
-            chasm: level < 5 ? 0 : (level === 5 ? 0.36 : 0.2),
-            bumps: level >= 6,
-            aval: level >= 8 ? 250 + level * 4 - soft * 14 : 0,
-            dark: level === 9, storm: level === 10,
+            yeti: run.yeti ? run.yeti - soft * 8 : 0,
+            chasm: run.chasm || 0, bumps: !!run.bumps,
+            aval: run.aval ? run.aval - soft * 14 : 0,
+            storm: !!run.storm,
             // Enough for an upright run with some missed gates and a crash;
             // dawdling or missing every other gate still runs it out.
-            time: len / (240 + level * 2) + 10
+            time: run.len / (240 + tier * 2) + 10
         };
     }
 
-    // Level 7 is one long tree-lined chute; the storm run has a chute in its
-    // middle third.
+    // The storm run has a tree-lined chute in its middle third.
     function chuteAt(cfg, y) {
-        if (cfg.level === 7) return y > 900 && y < cfg.len - 500;
-        return cfg.level === 10 && y > cfg.len * 0.4 && y < cfg.len * 0.62;
+        return cfg.storm && y > cfg.len * 0.4 && y < cfg.len * 0.62;
     }
 
     // Gates zigzag: most steps flip the side, so skiing straight down misses.
@@ -200,7 +206,7 @@
         // Only the set pieces exist yet, so every crevasse here is a chasm.
         var cfg = s.cfg, strips = landingStrips(s.obs);
         for (var y = ROW0; y < cfg.len - 260; y += cfg.rowGap) {
-            var n = 2 + (s.rnd() < cfg.level * 0.06 ? 1 : 0) + (s.rnd() < cfg.level * 0.025 ? 1 : 0);
+            var n = 2 + (s.rnd() < cfg.tier * 0.06 ? 1 : 0) + (s.rnd() < cfg.tier * 0.025 ? 1 : 0);
             for (var j = 0; j < n; j++) addHazard(s, 40 + s.rnd() * 880, y + s.rnd() * cfg.rowGap * 0.8, strips);
             if (chuteAt(cfg, y)) addWalls(s, y);
         }
@@ -884,17 +890,6 @@
     // Drawing: weather, sky and overlays
     // ------------------------------------------------------------------
 
-    // Night run: only a pool of lamp light around and ahead of the skier. It
-    // is wide enough that a tree is still told from the dark about 230px
-    // out, two thirds of a second ahead at speed.
-    function drawDarkness(s, ctx) {
-        var sk = s.sk, y = sk.y - s.cam + 100;
-        var grad = ctx.createRadialGradient(sk.x, y, 90, sk.x, y, 390);
-        grad.addColorStop(0, 'rgba(2,6,14,0)'); grad.addColorStop(1, 'rgba(2,6,14,0.93)');
-        ctx.fillStyle = grad;
-        ctx.fillRect(0, HORIZON, G.W, G.H - HORIZON);
-    }
-
     // Storm fog thickens toward the bottom edge, where things first appear.
     // It stays thin enough that a pale tree can still be made out there on a
     // small screen: the storm shortens the view, it must not blind.
@@ -916,7 +911,7 @@
     }
 
     // A chevron at the bottom edge shows where the next gate will appear; it
-    // is what makes the dark and the storm level fair.
+    // is what makes the storm run fair.
     function drawGateHint(s, ctx) {
         var g = s.gates[s.nextGate];
         if (!g || g.y - s.cam < G.H - 20) return;
@@ -948,7 +943,9 @@
         }
     }
 
-    function drawRibbon(ctx, t, phase, color) {
+    // One aurora curtain hanging from y; `scale` stretches it (the sky strip
+    // uses 1, the ending a much taller one) and `ceil` is the highest it reaches.
+    function drawRibbon(ctx, t, phase, color, y, scale, ceil) {
         ctx.fillStyle = color;
         // Batch each brightness band instead of issuing 160 fills per ribbon.
         // The same curtains stay animated at the phone's native canvas scale.
@@ -956,9 +953,9 @@
             ctx.globalAlpha = band ? 0.22 : 0.12;
             ctx.beginPath();
             for (var x = 0; x < G.W; x += 12) {
-                var base = 78 + 9 * Math.sin(x * 0.008 + t * 0.5 + phase) + 5 * Math.sin(x * 0.021 - t * 0.8 + phase);
-                var h = 26 + 14 * Math.sin(x * 0.013 + t * 0.9 + phase * 2);
-                var top = band ? base - h * 0.35 : Math.max(G.HUD + 4, base - h);
+                var base = y + scale * (9 * Math.sin(x * 0.008 + t * 0.5 + phase) + 5 * Math.sin(x * 0.021 - t * 0.8 + phase));
+                var h = scale * (26 + 14 * Math.sin(x * 0.013 + t * 0.9 + phase * 2));
+                var top = band ? base - h * 0.35 : Math.max(ceil, base - h);
                 ctx.rect(x, top, 12, base - top);
             }
             ctx.fill();
@@ -978,9 +975,9 @@
             ctx.fillRect(hash(i + 7) * G.W, G.HUD + hash(i + 9.3) * 46, 2, 2);
         }
         ctx.globalCompositeOperation = 'lighter';
-        drawRibbon(ctx, s.clock, 0, GREEN);
-        drawRibbon(ctx, s.clock, 2.1, TEAL);
-        drawRibbon(ctx, s.clock, 4.4, PURPLE);
+        drawRibbon(ctx, s.clock, 0, GREEN, 78, 1, G.HUD + 4);
+        drawRibbon(ctx, s.clock, 2.1, TEAL, 78, 1, G.HUD + 4);
+        drawRibbon(ctx, s.clock, 4.4, PURPLE, 78, 1, G.HUD + 4);
         ctx.globalCompositeOperation = 'source-over';
         drawRidge(ctx);
     }
@@ -1068,7 +1065,6 @@
         drawWorld(s, ctx);
         drawYeti(s, ctx);
         drawAvalanche(s, ctx);
-        if (s.cfg.dark) drawDarkness(s, ctx);
         if (s.cfg.storm) drawFog(ctx);
         drawFlakes(s, ctx);
         drawGateHint(s, ctx);
@@ -1086,6 +1082,31 @@
         return text;
     }
 
+    // ------------------------------------------------------------------
+    // The ending: the aurora fills the whole sky and snow sparkles fall
+    // ------------------------------------------------------------------
+
+    // Three tall curtains, livelier than the sky strip's, and a snowfall that
+    // glints in the curtains' colours. Positions come from e.t and the
+    // flake's index alone, so the scene keeps no state.
+    function drawEndingSky(e, ctx) {
+        var t = e.t * 1.6, rise = G.clamp(e.t / 1.5, 0, 1);
+        ctx.globalCompositeOperation = 'lighter';
+        drawRibbon(ctx, t, 0, GREEN, 260, 5 * rise, 0);
+        drawRibbon(ctx, t, 2.1, TEAL, 300, 4 * rise, 0);
+        drawRibbon(ctx, t, 4.4, PURPLE, 340, 3.5 * rise, 0);
+        ctx.globalCompositeOperation = 'source-over';
+        var tints = [SNOW, GREEN, TEAL, PURPLE];
+        for (var i = 0; i < 90; i++) {
+            var fall = 30 + hash(i + 0.7) * 50, y = (hash(i + 0.2) * G.H + e.t * fall) % G.H;
+            var x = hash(i) * G.W + 14 * Math.sin(e.t * 1.3 + i);
+            ctx.globalAlpha = 0.45 + 0.55 * Math.abs(Math.sin(e.t * 3 + i));
+            ctx.fillStyle = tints[i % 4];
+            ctx.fillRect(x, y, 3, 3);
+        }
+        ctx.globalAlpha = 1;
+    }
+
     G.register('aurora', {
         title: 'POLAR RUSH',
         blurb: 'Ski the gates down to the finish before the clock runs out.',
@@ -1099,8 +1120,13 @@
         // 8-way pad a thumb sliding between ◀ and ▶ would hold ▼ half the
         // time, and an unwanted tuck (faster, worse steering) wrecks a line.
         touch: { a: 'JUMP', b: 'TUCK', hide: ['up', 'down'] },
-        levelNames: ['Bunny Slope', 'Pine Forest', 'Windy Ridge', 'Yeti Country', 'Blue Crevasse',
-            'Moguls and Ice', 'Tree Chute', 'White Thunder', 'Moonless Glacier', 'Polar Storm'],
+        ending: {
+            title: 'POLAR CHAMPION',
+            text: 'Down through the storm, under the northern lights.',
+            colors: [SNOW, GREEN, TEAL, PURPLE],
+            draw: drawEndingSky
+        },
+        levelNames: ['Pine Forest', 'Blue Crevasse', 'Polar Storm'],
         colors: { bg: NAVY, fg: SNOW, accent: GREEN, dim: '#7fa8b8' },
         lives: 3,
         music: {

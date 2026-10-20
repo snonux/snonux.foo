@@ -11,9 +11,10 @@
  * line, and they fall off when the row they hang from clears. The wall
  * reaching the launcher line costs a life.
  *
- * Later levels add wide gaps, two-row wells, steel plates that need two hits
- * before they count as filled, bombs that take the neighbouring rows with
- * them, rows that shift sideways, and surges that slam the wall down a cell.
+ * The second wall adds wide gaps, two-row wells, steel plates that need two
+ * hits before they count as filled and bombs that take the neighbouring rows
+ * with them; the last wall adds rows that shift sideways and surges that
+ * slam it down a cell. Clearing it ends in a screen-clearing combo.
  *
  * On a phone (coarse pointer) a tap on the board moves the launcher to the
  * tapped column and fires at once; the pad (← → FIRE ↓) works as the keys do.
@@ -45,22 +46,18 @@
     // shift: chance a row slides sideways every `every` seconds · surge: seconds between slams
     // The descent gets faster on every level; what a row asks of the player is
     // tuned so the shots per second needed to hold the wall rise steadily too.
-    // Quotas and speeds of levels 6-10 were settled with a bot that needs time
-    // to think, to travel, sometimes hesitates and sometimes mis-aims. With the
-    // four lives of this game a player with about 0.45s of thought per shot
-    // keeps two lives on 6-8, one on 9, and wins 10 in about two tries of three;
-    // at 0.4s level 10 is nearly safe, at 0.5s levels 9 and 10 are mostly lost.
+    // Speeds and quotas were settled with a bot that walks the launcher and
+    // then thinks before every shot: at 0.7 s a shot (a casual player) it
+    // clears the first two walls in about one minute each without losing a
+    // life and wins the finale in a minute and a half with two lives lost.
     var LEVELS = [
-        { speed: 13, quota: 40, gmin: 1, gmax: 2, wide: 0, well: 0, armour: 0, plates: 0, bomb: 0, shift: 0, every: 0, surge: 0 },
-        { speed: 14.5, quota: 40, gmin: 2, gmax: 2, wide: 0, well: 0, armour: 0, plates: 0, bomb: 0, shift: 0, every: 0, surge: 0 },
-        { speed: 16, quota: 40, gmin: 1, gmax: 1, wide: 0.9, well: 0, armour: 0, plates: 0, bomb: 0, shift: 0, every: 0, surge: 0 },
-        { speed: 17, quota: 42, gmin: 1, gmax: 1, wide: 0.5, well: 0.65, armour: 0, plates: 0, bomb: 0, shift: 0, every: 0, surge: 0 },
-        { speed: 18, quota: 44, gmin: 1, gmax: 1, wide: 0.25, well: 0.1, armour: 0.5, plates: 1, bomb: 0, shift: 0, every: 0, surge: 0 },
-        { speed: 19, quota: 44, gmin: 2, gmax: 2, wide: 0.2, well: 0.1, armour: 0.15, plates: 1, bomb: 0.24, shift: 0, every: 0, surge: 0 },
-        { speed: 20, quota: 44, gmin: 2, gmax: 2, wide: 0.15, well: 0, armour: 0, plates: 0, bomb: 0.1, shift: 0.45, every: 1.6, surge: 0 },
-        { speed: 21, quota: 56, gmin: 1, gmax: 1, wide: 0.3, well: 0.25, armour: 0.25, plates: 1, bomb: 0.15, shift: 0, every: 0, surge: 10 },
-        { speed: 21.25, quota: 48, gmin: 1, gmax: 1, wide: 0.4, well: 0.2, armour: 0.15, plates: 2, bomb: 0.1, shift: 0.3, every: 1.5, surge: 0 },
-        { speed: 21.5, quota: 50, gmin: 1, gmax: 2, wide: 0.3, well: 0.2, armour: 0.15, plates: 2, bomb: 0.2, shift: 0.3, every: 1.4, surge: 16 }
+        // Introduction: plain rows with one or two single gaps.
+        { speed: 13, quota: 36, gmin: 1, gmax: 2, wide: 0, well: 0, armour: 0, plates: 0, bomb: 0, shift: 0, every: 0, surge: 0 },
+        // Development: wide gaps and wells, steel plates and bombs.
+        { speed: 15.5, quota: 40, gmin: 1, gmax: 1, wide: 0.35, well: 0.25, armour: 0.35, plates: 1, bomb: 0.18, shift: 0, every: 0, surge: 0 },
+        // Finale, the last wall: everything, plus rows that slide on a beat
+        // and surges that slam the wall down a cell.
+        { speed: 17.5, quota: 44, gmin: 1, gmax: 2, wide: 0.3, well: 0.2, armour: 0.15, plates: 2, bomb: 0.2, shift: 0.3, every: 1.5, surge: 16 }
     ];
     // Tetromino outlines for the silhouettes that drift down the side panels.
     var SHAPES = [
@@ -807,6 +804,49 @@
         drawMeter(s, ctx);
     }
 
+    // ---- the ending ----------------------------------------------------------
+
+    // A four-row wall drops into the middle of the screen and clears from the
+    // bottom up as one long combo; every cleared row bursts into its blocks,
+    // which fly out like fireworks. It repeats every ENDING_CYCLE seconds.
+    // Everything follows from the scene's clock: the scene keeps no state.
+    var ENDING_CYCLE = 3.2, ENDING_ROWS = 4, ENDING_BASE = 370;
+
+    function hash(a, b, c) {
+        var h = Math.sin(a * 127.1 + b * 311.7 + c * 74.7) * 43758.5453;
+        return h - Math.floor(h);
+    }
+
+    function drawEndingRow(ctx, k, r, t) {
+        var clearAt = 0.7 + r * 0.35, y = ENDING_BASE - (r + 1) * CELL - Math.max(0, 1 - t / 0.5) * 220, c, dt, x;
+        // The standing wall is faint: the score and the buttons are on top.
+        ctx.globalAlpha = 0.35;
+        if (t < clearAt) {
+            for (c = 0; c < COLS; c++) drawBlock(ctx, OX + c * CELL, y, COLORS[Math.floor(hash(k, r, c) * COLORS.length)]);
+            ctx.globalAlpha = 1;
+            return;
+        }
+        dt = t - clearAt;
+        if (dt < 0.12) { ctx.fillStyle = INK; ctx.fillRect(OX, y, BW, CELL); ctx.globalAlpha = 1; return; }
+        if (dt > 1.6) return;
+        ctx.globalAlpha = 1 - dt / 1.6;
+        for (c = 0; c < COLS; c++) {
+            x = colX(c) + ((c - 5.5) * 45 + (hash(c, r, k) - 0.5) * 120) * dt;
+            ctx.fillStyle = COLORS[Math.floor(hash(k, r, c) * COLORS.length)];
+            ctx.fillRect(x - 8, y + CELL / 2 - (260 + hash(r, c, k) * 220) * dt + 420 * dt * dt - 8, 16, 16);
+        }
+        ctx.globalAlpha = 1;
+    }
+
+    function drawEnding(e, ctx) {
+        var k = Math.floor(e.t / ENDING_CYCLE), t = e.t - k * ENDING_CYCLE, r, cleared = 0;
+        for (r = 0; r < ENDING_ROWS; r++) {
+            drawEndingRow(ctx, k, r, t);
+            if (t >= 0.7 + r * 0.35) cleared++;
+        }
+        if (cleared > 1) G.text('COMBO x' + cleared, OX + BW + 24, ENDING_BASE - 2 * CELL, { size: 28, bold: true, color: YELLOW });
+    }
+
     function hud(s) {
         return 'LINES ' + s.lines + '/' + s.cfg.quota + (s.combo > 1 && s.comboT > 0 ? '  x' + Math.min(s.combo, 5) : '');
     }
@@ -820,7 +860,7 @@
             '↓ pull the wall down faster for bonus points',
             'A block sticks under the lowest one; with no gap to fill it hangs there'
         ],
-        levelNames: ['First Wall', 'Double Gap', 'Wide Open', 'Deep Wells', 'Steel Plate', 'Bomb Squad', 'Sidewinder', 'Surge', 'Steel Slide', 'Block Blaster'],
+        levelNames: ['First Wall', 'Steel and Bombs', 'Block Blaster'],
         colors: { bg: '#080b12', fg: '#f4f7fb', accent: '#36c5f0', dim: '#929cad' },
         lives: 4,
         // ↑ and B do nothing here. dirs: 4 keeps a thumb that is a little off
@@ -839,6 +879,12 @@
             drums: { k: 'x...x...x...x...', s: '....x.......x..x', h: '..x...x...x...x.' },
             leadWave: 'square', bassWave: 'triangle', arpWave: 'triangle', leadOct: 2
         },
-        init: init, update: update, draw: draw, hud: hud
+        init: init, update: update, draw: draw, hud: hud,
+        ending: {
+            title: 'WALL CLEARED',
+            text: 'The last wall is rubble. Every line blasted.',
+            colors: COLORS,
+            draw: drawEnding
+        }
     });
 })();

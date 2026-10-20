@@ -18,7 +18,7 @@ function game(touch, level) {
         circ: (ax, ay, ar, bx, by, br) => (ax - bx) ** 2 + (ay - by) ** 2 < (ar + br) ** 2,
         get lives() { return lives; }, addLife: () => lives = Math.min(4, lives + 1),
         loseLife: () => { if (--lives === 0) screen = 'over'; return lives; },
-        addScore: (n) => score += n, win: (n) => { score += n; screen = level === 10 ? 'victory' : 'clear'; },
+        addScore: (n) => score += n, win: (n) => { score += n; screen = level === 3 ? 'victory' : 'clear'; },
         sfx() {}, tone() {}, noise() {}, burst() {}, popup() {}, shake() {}, flash() {}, text() {}
     };
     const math = Object.create(Math); math.random = random;
@@ -31,30 +31,8 @@ function game(touch, level) {
     } };
 }
 
-// Read position/velocity and souls, then steer and flap using only pad inputs.
-function steer(s, tick) {
-    function wrap(x) { return (x + 1440) % 960 - 480; }
-    const p = s.p;
-    const distance = (d) => Math.abs(wrap(d.x - p.x)) + Math.abs(d.y - p.y);
-    let target = s.orbs.filter(o => o.arm < .25).sort((a, b) => distance(a) - distance(b))[0];
-    const orb = !!target;
-    if (!target) target = s.demons.filter(d => d.spawn <= 0 && d.grace <= 0).sort((a, b) => distance(a) - distance(b))[0];
-    let tx = target ? target.x : 200, ty = target ? (orb ? target.y : target.y - (target.boss ? 26 : 17)) : 120;
-    if (!orb && target && target.y < 100) { ty = 190; tx = (target.x + 200 + 960) % 960; }
-    for (const c of s.censers) {
-        if (Math.hypot(wrap(p.x - c.bx), p.y - c.by) >= 85) continue;
-        tx = (c.bx + (wrap(p.x - c.bx) < 0 ? -120 : 120) + 960) % 960; ty = Math.min(ty, c.by - 80);
-    }
-    ty = Math.min(ty, 445);
-    // Climb beside a ledge instead of flapping into its underside.
-    if (p.ceil && ty < p.ceil.y) {
-        const l = p.ceil, side = wrap(p.x - (l.x + l.w / 2)) < 0 ? -1 : 1;
-        tx = (l.x + (side < 0 ? -30 : l.w + 30) + 960) % 960;
-    }
-    const dx = wrap(tx - p.x), predicted = p.y + p.vy * .18;
-    return { left: dx - p.vx * .2 < -8, right: dx - p.vx * .2 > 8,
-        a: predicted > ty && p.vy > -190 && tick % 7 === 0 };
-}
+// The campaign bot (pad inputs only) plays each level in the browser.
+const BOT = readFileSync(new URL('./bots/cathedral.js', import.meta.url), 'utf8');
 
 // Isolate vertical flight to compare held-pad accessibility with desktop hover.
 const desktop = game(false, 1), phone = game(true, 1);
@@ -65,7 +43,7 @@ for (const g of [desktop, phone]) {
 assert.ok(phone.s.p.y < desktop.s.p.y - 70, 'holding FLAP climbs on phone');
 assert.equal(desktop.s.p.flapRepeat, .51, 'desktop hover rate is preserved');
 assert.equal(phone.s.p.flapRepeat, .32);
-for (const level of [1, 5, 10]) {
+for (const level of [1, 2, 3]) {
     const d = game(false, level), p = game(true, level);
     assert.deepEqual(JSON.parse(JSON.stringify(d.s.ledges)), JSON.parse(JSON.stringify(p.s.ledges)));
     assert.deepEqual(JSON.parse(JSON.stringify(d.s.cfg)), JSON.parse(JSON.stringify(p.s.cfg)));
@@ -87,7 +65,7 @@ function render(g) {
     g.def.draw(g.s, ctx);
     return { calls, radii };
 }
-for (const level of [1, 5, 10]) {
+for (const level of [1, 2, 3]) {
     const d = game(false, level), p = game(true, level);
     for (const g of [d, p]) {
         g.s.p.x = 310; g.s.p.y = 350;
@@ -103,6 +81,19 @@ for (const level of [1, 5, 10]) {
     console.log(`ok   cathedral level ${level}: desktop ${dr.calls}, phone ${pr.calls} canvas calls`);
 }
 
+// The ending is drawn every frame for as long as it is shown: it must draw
+// something at any age, and never hand the canvas a negative radius (which
+// throws).
+{
+    const { def } = game(false, 3), radii = [];
+    let calls = 0;
+    const ctx = new Proxy({}, { get: (o, key) => o[key] || ((...args) => { calls++; if (key === 'arc') radii.push(args[2]); }) });
+    for (const t of [0, 0.3, 1, 2.5, 7, 30]) def.ending.draw({ t, data: {} }, ctx);
+    assert.ok(calls > 100 && radii.length > 0 && radii.every(r => r >= 0), 'ending draws bells and glass');
+    assert.deepEqual([...def.levelNames], ['Matins', 'The Censer', 'Archdemon']);
+    console.log('ok   cathedral three levels and the ending');
+}
+
 if (process.argv.includes('--browser')) {
     const { page, base, close } = await startSession();
     try {
@@ -112,24 +103,24 @@ if (process.argv.includes('--browser')) {
             await page.goto(`${base}/index.html`);
             await page.eval("SnoGame.launch('cathedral')");
             await page.waitFor('SnoGame.debug.state() && SnoGame.debug.state().registered', 'cathedral registration');
-            for (const level of [1, 5, 10]) {
+            for (const level of [1, 2, 3]) {
                 const result = await page.eval(`(function () {
-                    const steer = ${steer.toString()};
+                    const bot = ${BOT}, mem = {};
                     const originalRandom = Math.random;
-                    let seed = ${!phone && level === 10 ? 42 : 93}, ticks = 0;
+                    let seed = 93, ticks = 0;
                     try {
                         Math.random = () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; };
                         SnoGame.debug.start(${level});
                         for (; ticks < 18000 && SnoGame.debug.state().screen === 'play'; ticks++) {
-                            SnoGame.debug.step(1, (i, s) => steer(s, ticks));
+                            SnoGame.debug.step(1, (i, s) => bot.play(s, SnoGame, mem));
                         }
                         return {state: SnoGame.debug.state(), ticks};
                     } finally { Math.random = originalRandom; }
                 })()`);
-                assert.equal(result.state.screen, level === 10 ? 'victory' : 'clear', `${name} level ${level}: ${JSON.stringify(result)}`);
+                assert.equal(result.state.screen, level === 3 ? 'victory' : 'clear', `${name} level ${level}: ${JSON.stringify(result)}`);
                 console.log(`ok   cathedral ${name} level ${level}: ${result.ticks} ticks, ${result.state.lives} lives left`);
                 // Show an active frame at this level, rather than its clear banner.
-                await page.eval(`SnoGame.debug.start(${level}); SnoGame.debug.step(180, (i,s) => (${steer.toString()})(s,i));`);
+                await page.eval(`(function () { const bot = ${BOT}, mem = {}; SnoGame.debug.start(${level}); SnoGame.debug.step(180, (i, s) => bot.play(s, SnoGame, mem)); })()`);
                 await page.screenshot(`/tmp/cathedral-${name}-${level}.jpg`);
             }
             const idle = await page.eval('(function(){SnoGame.debug.start(1);SnoGame.debug.step(18000,{});return SnoGame.debug.state();})()');

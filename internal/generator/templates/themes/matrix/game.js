@@ -59,77 +59,23 @@
                 [['a', 30, 2], ['a', 30, 16], ['a', 16, 2]],
                 [['a', 30, 9], ['a', 1, 2], ['a', 16, 16], ['a', 30, 3]]]
         },
-        { // 2: staggered baffles; agents now duck back into cover to reload
-            start: [2, 9], ammo: 6, cache: [2, 12], guns: [[5, 12, 'pistol']],
-            walls: [[1, 2, 30, 3], [1, 14, 30, 3], [8, 5, 1, 5], [14, 9, 1, 5], [20, 5, 1, 5], [26, 9, 1, 5]],
-            waves: [[['a', 11, 11, 11, 6], ['a', 17, 6, 17, 12], ['a', 23, 12, 23, 7], ['a', 29, 6, 29, 12]],
-                [['a', 30, 5], ['a', 30, 13], ['a', 1, 5]],
-                [['a', 30, 9], ['a', 1, 13], ['a', 16, 5], ['a', 22, 13]]]
-        },
-        { // 3: no gun at all: sneak up behind the first agent to get one
-            start: [2, 9], ammo: 0, cache: [2, 15], trace: 20, drop: 40,
-            walls: [[9, 6, 2, 2], [9, 12, 2, 2], [20, 6, 2, 2], [20, 12, 2, 2], [15, 9, 1, 1]],
-            waves: [[['a', 6, 4, 27, 4], ['a', 6, 15, 27, 15], ['a', 17, 10, 28, 10], ['a', 24, 6, 24, 14]],
-                [['a', 30, 2], ['a', 30, 16], ['a', 16, 2]],
-                [['a', 1, 2], ['a', 30, 9], ['a', 16, 16], ['a', 1, 16]]]
-        },
-        { // 4: shotgun agents, short ranged but hard to sidestep up close
-            start: [3, 14], ammo: 6, cache: [2, 16], guns: [[8, 15, 'shotgun']],
-            walls: [[15, 2, 2, 5], [15, 12, 2, 5], [6, 9, 6, 1], [20, 9, 6, 1]],
-            waves: [[['s', 4, 4, 12, 4], ['a', 20, 4, 28, 4], ['s', 27, 14, 19, 14], ['a', 28, 7, 28, 11], ['a', 12, 14, 12, 11]],
-                [['a', 30, 2], ['s', 30, 16], ['a', 1, 2]],
-                [['a', 30, 9], ['s', 1, 2], ['a', 16, 9], ['a', 30, 16]]]
-        },
-        { // 5: server racks make a maze of aisles with an agent in each
-            start: [2, 9], ammo: 6, cache: [2, 16], guns: [[4, 15, 'pistol']],
-            walls: [[6, 4, 1, 4], [10, 4, 1, 4], [14, 4, 1, 4], [18, 4, 1, 4], [22, 4, 1, 4], [26, 4, 1, 4],
-                [6, 11, 1, 4], [10, 11, 1, 4], [14, 11, 1, 4], [18, 11, 1, 4], [22, 11, 1, 4], [26, 11, 1, 4]],
-            waves: [[['a', 8, 3, 8, 7], ['a', 12, 15, 12, 11], ['s', 16, 3, 16, 7], ['a', 20, 15, 20, 11],
-                ['a', 24, 3, 24, 7], ['a', 29, 9, 29, 4], ['s', 28, 13, 28, 16]],
-                [['a', 30, 2], ['a', 30, 16], ['s', 30, 9], ['a', 16, 9]],
-                [['a', 1, 2], ['s', 30, 2], ['a', 30, 16], ['a', 1, 16]]]
-        },
-        { // 6: dodgers sidestep the first bullet they see coming
-            start: [2, 9], ammo: 6, cache: [2, 2], guns: [[3, 3, 'shotgun'], [3, 15, 'pistol']],
-            walls: [[7, 5, 5, 1], [7, 6, 1, 3], [20, 5, 5, 1], [24, 6, 1, 3], [7, 13, 5, 1], [7, 10, 1, 3],
-                [20, 13, 5, 1], [24, 10, 1, 3], [14, 8, 4, 3]],
-            waves: [[['d', 13, 3, 19, 3], ['d', 13, 15, 19, 15], ['d', 27, 9, 20, 9], ['a', 29, 3, 29, 7],
-                ['a', 29, 15, 29, 11], ['a', 10, 7, 10, 11]],
-                [['d', 30, 2], ['d', 30, 16], ['s', 16, 2]],
-                [['d', 30, 9], ['a', 1, 16], ['s', 30, 2], ['a', 13, 9]]]
-        },
-        { // 7: the first sentinel: it keeps coming while everything else is frozen
-            start: [2, 9], ammo: 8, cache: [2, 16], guns: [[3, 3, 'pistol'], [16, 9, 'shotgun']],
-            walls: [[6, 6, 3, 1], [6, 12, 3, 1], [14, 4, 1, 4], [14, 11, 1, 4], [21, 6, 3, 1], [21, 12, 3, 1], [26, 8, 1, 3]],
-            waves: [[['z', 29, 3], ['a', 11, 3, 11, 15], ['a', 18, 15, 18, 3], ['s', 24, 9, 19, 9], ['a', 28, 14, 28, 11], ['d', 23, 3, 29, 3]],
-                [['a', 30, 16], ['s', 30, 2], ['d', 16, 16]],
-                [['a', 1, 2], ['a', 30, 9], ['s', 1, 16], ['d', 16, 2]]]
-        },
-        { // 8: glass offices: glass stops people but not eyes, and bullets shatter it (agents shut in shoot
-          // their way out). A full magazine, because the first rounds go into the panes.
+        { // 2: glass offices: glass stops people but not eyes, and bullets shatter it (agents shut in shoot
+          // their way out). Shotgun agents and dodgers that sidestep the first bullet they see coming.
+          // A full magazine, because the first rounds go into the panes.
             start: [3, 9], ammo: 12, cache: [2, 16], guns: [[3, 15, 'pistol'], [18, 10, 'shotgun']],
             walls: [[10, 2, 1, 5], [10, 12, 1, 5], [21, 2, 1, 5], [21, 12, 1, 5]],
             glass: [[10, 7, 1, 5], [21, 7, 1, 5], [5, 8, 1, 3], [14, 5, 4, 1], [14, 13, 4, 1], [25, 6, 1, 3]],
-            waves: [[['a', 12, 3, 19, 3], ['a', 12, 15, 19, 15], ['d', 16, 9, 16, 7], ['a', 27, 3, 27, 8],
-                ['s', 28, 15, 23, 15], ['a', 29, 9, 29, 5], ['d', 24, 11, 29, 11]],
-                [['a', 30, 2], ['a', 30, 16], ['d', 16, 2], ['s', 16, 16]],
-                [['s', 30, 9], ['d', 1, 2], ['s', 30, 2], ['a', 11, 9]]]
+            waves: [[['a', 12, 3, 19, 3], ['a', 12, 15, 19, 15], ['d', 16, 9, 16, 7], ['a', 27, 3, 27, 8], ['s', 28, 15, 23, 15]],
+                [['a', 30, 2], ['d', 16, 2], ['s', 16, 16]],
+                [['d', 1, 2], ['a', 30, 9], ['s', 30, 2]]]
         },
-        { // 9: rooftop: agents lead their shots, and each later wave brings another sentinel
-            start: [2, 9], ammo: 8, cache: [2, 16], guns: [[3, 3, 'shotgun'], [14, 9, 'pistol']],
-            walls: [[5, 5, 2, 2], [12, 3, 2, 2], [10, 11, 2, 2], [17, 7, 2, 3], [23, 4, 2, 2], [22, 12, 3, 2], [28, 8, 1, 2], [6, 13, 2, 1]],
-            waves: [[['z', 29, 2], ['a', 9, 3, 9, 9], ['a', 15, 14, 15, 5], ['s', 20, 3, 20, 15], ['d', 27, 14, 27, 3], ['a', 25, 9, 25, 15]],
-                [['z', 30, 16], ['a', 30, 2], ['d', 16, 2], ['s', 16, 16], ['a', 1, 2]],
-                [['a', 30, 9], ['s', 1, 16], ['d', 16, 9], ['a', 30, 2], ['d', 1, 2], ['z', 30, 16]]]
-        },
-        { // 10: the lobby: rows of pillars, four waves of everything and a sentinel in each wave after the first
+        { // 3: the lobby: rows of pillars, every kind of agent, and a sentinel in each wave after the first
             start: [2, 9], ammo: 10, cache: [2, 16], guns: [[3, 3, 'pistol'], [3, 15, 'shotgun']],
             walls: [[5, 5, 2, 2], [10, 5, 2, 2], [15, 5, 2, 2], [20, 5, 2, 2], [25, 5, 2, 2],
                 [5, 12, 2, 2], [10, 12, 2, 2], [15, 12, 2, 2], [20, 12, 2, 2], [25, 12, 2, 2], [28, 8, 1, 3]],
-            waves: [[['a', 8, 3, 8, 15], ['a', 13, 15, 13, 3], ['s', 18, 3, 18, 15], ['d', 23, 15, 23, 3], ['a', 29, 4, 29, 6], ['s', 29, 14, 29, 12]],
-                [['a', 30, 2], ['a', 30, 16], ['d', 17, 2], ['d', 17, 16], ['s', 30, 9], ['z', 30, 12]],
-                [['z', 30, 2], ['z', 30, 16], ['a', 1, 2], ['a', 1, 16], ['s', 30, 7], ['d', 16, 9]],
-                [['d', 30, 2], ['s', 30, 16], ['a', 16, 9], ['d', 1, 16], ['a', 1, 2], ['z', 16, 2]]]
+            waves: [[['a', 8, 3, 8, 15], ['a', 13, 15, 13, 3], ['s', 18, 3, 18, 15], ['d', 23, 15, 23, 3], ['a', 29, 4, 29, 6]],
+                [['a', 30, 2], ['a', 30, 16], ['d', 17, 2], ['s', 30, 9], ['z', 30, 12]],
+                [['z', 30, 2], ['a', 1, 2], ['a', 1, 16], ['s', 30, 7], ['d', 16, 9]]]
         }
     ];
 
@@ -208,14 +154,16 @@
     // ------------------------------------------------------------------
 
     // Difficulty that rises with the level besides the room itself: agents
-    // aim faster, bullets fly faster, and late agents lead a moving target.
-    // The steps are small (with one life every extra bullet counts): by
-    // level 10 the aiming time is two thirds of level 1's and bullets are a
-    // quarter faster.
-    function tune(level, lv) {
+    // aim faster, bullets fly faster, and in the lobby they lead a moving
+    // target. From the second room on agents duck into cover to reload. The
+    // steps are small (one hit kills): in the lobby the aiming time is four
+    // fifths of the first room's and bullets are a fifth faster. trace is the
+    // seconds before the alarm, drop how long an empty-handed player waits
+    // for the operator's dead drop.
+    function tune(level) {
         return {
-            wind: 1.5 - level * 0.05, shot: 270 + level * 8, lead: level >= 9 ? 0.55 : 0,
-            cover: level >= 2, drone: 90 + level * 1.5, trace: lv.trace || 8, drop: lv.drop || 3
+            wind: 1.5 - (level - 1) * 0.15, shot: 270 + (level - 1) * 30, lead: level === 3 ? 0.3 : 0,
+            cover: level >= 2, drone: 95, trace: 8, drop: 3
         };
     }
 
@@ -246,7 +194,7 @@
     function init(level) {
         var lv = LEVELS[level - 1], grid = buildGrid(lv);
         var s = {
-            lv: lv, tune: tune(level, lv), grid: grid, flow: new Array(COLS * ROWS), flowTile: -1, flowDirty: false,
+            lv: lv, tune: tune(level), grid: grid, flow: new Array(COLS * ROWS), flowTile: -1, flowDirty: false,
             solid: function (tx, ty) { return tx < 0 || ty < 0 || tx >= COLS || ty >= ROWS || grid[ty * COLS + tx] !== FLOOR; },
             rnd: G.rng(level * 7919),
             p: { x: mid(lv.start[0]), y: mid(lv.start[1]), r: 8, vx: 0, vy: 0, face: 0 },
@@ -258,14 +206,12 @@
         };
         (lv.guns || []).forEach(function (g) { s.pickups.push({ x: mid(g[0]), y: mid(g[1]), kind: g[2], n: GUNS[g[2]].drop + 2 }); });
         lv.waves[0].forEach(function (spec) { spawn(s, spec, false); });
-        if (!lv.ammo) say(s, 'UNARMED — TAKE A GUN FROM BEHIND');
         computeFlow(s);
         return s;
     }
 
     function say(s, text) {
         var short = {
-            'UNARMED — TAKE A GUN FROM BEHIND': 'UNARMED: ATTACK FROM BEHIND',
             'EMPTY — TAKE THEM FROM BEHIND': 'EMPTY: ATTACK FROM BEHIND',
             'TRACE COMPLETE — AGENTS INBOUND': 'ALERT: AGENTS INBOUND',
             'OPERATOR: DEAD DROP AT THE MARKER': 'AMMO AT DROP MARKER'
@@ -1088,6 +1034,72 @@
         return guns + '  HOSTILES ' + hostiles(s);
     }
 
+    // ------------------------------------------------------------------
+    // The ending: the code rain slows to a halt and resolves into the
+    // bullet-time tableau, the hero facing a frozen volley and the last
+    // agent coming apart into glyphs
+    // ------------------------------------------------------------------
+
+    var RAIN_FAST = 420, RAIN_SLOW = 25, RAIN_STOP = 2.5;   // px/s, px/s, seconds to slow down
+
+    // How far the rain has fallen after t seconds: it decelerates linearly
+    // from RAIN_FAST and then drifts on at RAIN_SLOW.
+    function rainFall(t) {
+        var t1 = RAIN_STOP * (1 - RAIN_SLOW / RAIN_FAST), k = RAIN_FAST / (2 * RAIN_STOP);
+        var u = Math.min(t, t1);
+        return RAIN_FAST * u - k * u * u + RAIN_SLOW * Math.max(0, t - t1);
+    }
+
+    function drawEndRain(e, ctx) {
+        var fall = rainFall(e.t);
+        ctx.font = G.font(18);
+        ctx.textAlign = 'center';
+        ctx.fillStyle = e.t < RAIN_STOP ? GREEN : MID;
+        for (var c = 0; c < COLS; c += 2) {
+            var head = (fall * (0.7 + (c * 37) % 60 / 100) + c * 131) % (G.H + 140);
+            for (var k = 0; k < 6; k++) {
+                var row = Math.floor((head - k * 18) / 18);
+                ctx.globalAlpha = (k === 0 ? 0.8 : 0.4) * (1 - k / 6);
+                ctx.fillText(GLYPHS.charAt((c * 7 + row * 13 + 99) % GLYPHS.length), c * T + T / 2, row * 18);
+            }
+        }
+        ctx.globalAlpha = 1;
+    }
+
+    // Left: the hero, a volley hanging in the air in front of him with
+    // ripples round each round. Right: the last agent, deleted, its code
+    // rising off it.
+    function drawTableau(e, ctx) {
+        var show = G.clamp((e.t - 1.2) / 1.5, 0, 1), i;
+        if (!show) return;
+        ctx.globalAlpha = show;
+        drawFigure(ctx, { x: 150, y: 320, face: 0 }, 34, '#0b0f0c', PALE);
+        ctx.strokeStyle = PALE; ctx.fillStyle = PALE; ctx.lineWidth = 2;
+        for (i = 0; i < 5; i++) {
+            var bx = 236 + i * 20, by = 320 + (i - 2) * 30, f = (e.t * 0.5 + i * 0.2) % 1;
+            ctx.globalAlpha = show * 0.5;
+            ctx.fillRect(bx + 8, by - 1, 34, 2);
+            ctx.globalAlpha = show;
+            ctx.beginPath(); ctx.arc(bx, by, 4, 0, TAU); ctx.fill();
+            ctx.globalAlpha = show * (1 - f);
+            ctx.beginPath(); ctx.arc(bx, by, 6 + f * 22, 0, TAU); ctx.stroke();
+        }
+        ctx.globalAlpha = show * (0.45 + 0.25 * Math.sin(e.t * 9));
+        drawFigure(ctx, { x: 810, y: 320, face: Math.PI }, 34, '#001a05', GREEN);
+        ctx.font = G.font(20); ctx.textAlign = 'center'; ctx.fillStyle = GREEN;
+        for (i = 0; i < 8; i++) {
+            var rise = (e.t * 40 + i * 25) % 140;
+            ctx.globalAlpha = show * (1 - rise / 140);
+            ctx.fillText(GLYPHS.charAt((i * 5 + Math.floor(e.t * 6)) % GLYPHS.length), 786 + (i * 13) % 50, 330 - rise);
+        }
+        ctx.globalAlpha = 1;
+    }
+
+    function drawEnding(e, ctx) {
+        drawEndRain(e, ctx);
+        drawTableau(e, ctx);
+    }
+
     G.register('matrix', {
         title: 'BULLET TIME',
         blurb: 'Time only moves when you do. Stand still, read the bullets, clear the room.',
@@ -1097,7 +1109,7 @@
             'Touch: FIRE shoots the marked agent · tap another agent to shoot that one',
             'X / right click / GUN: switch gun · no ammo? run into an agent from behind'
         ],
-        levelNames: ['Wake Up', 'Corridor', 'Dojo', 'Shotgun Hall', 'Server Farm', 'Deja Vu', 'Sentinel', 'Glass Office', 'Rooftop', 'The Lobby'],
+        levelNames: ['Wake Up', 'Glass Office', 'The Lobby'],
         colors: { bg: '#000000', fg: GREEN, accent: GREEN, dim: MID },
         lives: 1,
         // A slow, dark pulse in E minor: sparse saw lead over a ticking arp.
@@ -1112,6 +1124,12 @@
         },
         init: init, update: update, draw: draw, hud: hud, cursor: 'crosshair',
         // The whole pad: eight-way movement, and both buttons carry a gun control.
-        touch: { a: 'FIRE', b: 'GUN' }
+        touch: { a: 'FIRE', b: 'GUN' },
+        ending: {
+            title: 'YOU ARE THE ONE',
+            text: 'The code stops. The world holds still, and waits for you.',
+            colors: [GREEN, PALE, MID],
+            draw: drawEnding
+        }
     });
 })();

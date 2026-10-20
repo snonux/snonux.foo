@@ -16,23 +16,16 @@
     var POWERS = ['wide', 'multi', 'laser', 'slow', 'life'];
     var POWER_COLOR = { wide: '#7fc8a9', multi: '#f2eddf', laser: '#c75c5c', slow: '#8fb4d9', life: '#d5aa58' };
 
+    // The three levels: an open warm-up, the invader that needs aim, and a
+    // steel fortress whose 3-hit core is reached only through its gates.
     // Each layout returns the hits a brick at column c, row r needs:
-    // 0 = no brick, 1..3 = breakable, STEEL = indestructible.
-    var LAYOUTS = [
-        function (c, r) { return r < 4 ? 1 : 0; },
-        function (c, r) { return r < 6 ? 1 + (r % 2) : 0; },
-        function (c, r) { return r < 7 && (c + r) % 2 === 0 ? 1 + (r < 2 ? 1 : 0) : 0; },
-        function (c, r) { return r < 7 && c >= r && c < COLS - r ? 1 + (r % 3 === 0 ? 1 : 0) : 0; },
-        function (c, r) {
-            if (r > 6) return 0;
-            var edge = r === 6 || c === 0 || c === COLS - 1;
-            return edge ? (c % 3 === 1 ? 0 : STEEL) : (r < 5 ? 1 + (r % 2) : 0);
-        },
-        function (c, r) { var d = Math.abs(c - 6.5) + Math.abs(r - 4); return d < 5.5 ? (d < 2.5 ? 3 : 1 + (d < 4 ? 1 : 0)) : 0; },
-        function (c, r) { return r < 8 ? (c % 3 === 1 ? (r === 7 ? STEEL : 0) : 1 + (r % 3)) : 0; },
-        function (c, r) { return invaderBit(c, r) ? 2 + (r < 3 ? 1 : 0) : 0; },
-        function (c, r, rnd) { return r < 8 && rnd() < 0.72 ? 1 + Math.floor(rnd() * 3) : 0; },
-        function (c, r) { return r < 7 ? ((c + r) % 5 === 0 && r > 4 ? STEEL : (r < 1 ? 3 : (r < 3 ? 2 : 1))) : 0; }
+    // 0 = no brick, 1..3 = breakable, STEEL = indestructible. The ball
+    // quickens and the paddle shrinks only a little per level: the layouts
+    // are what make a later level hard.
+    var LEVEL_CFG = [
+        { speed: 320, paddle: 136, layout: function (c, r) { return r < 4 ? 1 + (r === 0 && c % 2 ? 1 : 0) : 0; } },
+        { speed: 340, paddle: 128, layout: function (c, r) { return invaderBit(c, r) ? 1 + (r < 3 ? 1 : 0) : 0; } },
+        { speed: 360, paddle: 122, layout: fortress }
     ];
     var INVADER = ['..x......x..', '...x....x...', '..xxxxxxxx..', '.xx.xxxx.xx.', 'xxxxxxxxxxxx', 'x.xxxxxxxx.x', 'x.x......x.x', '...xx..xx...'];
 
@@ -41,11 +34,20 @@
         return !!row && row.charAt(c - 1) === 'x';
     }
 
-    function buildBricks(level) {
-        var rnd = G.rng(level * 977), bricks = [], layout = LAYOUTS[level - 1];
+    // Steel sides and a steel floor with three gates; the gutters beside
+    // the walls also lead up over the top, so every core brick is reachable.
+    function fortress(c, r) {
+        if (r > 6) return 0;
+        if (r === 6) return c % 4 === 2 ? 0 : STEEL;
+        if (c === 0 || c === COLS - 1) return STEEL;
+        return r < 1 ? 3 : (r < 3 ? 2 : 1);
+    }
+
+    function buildBricks(layout) {
+        var bricks = [];
         for (var r = 0; r < 9; r++) {
             for (var c = 0; c < COLS; c++) {
-                var hp = layout(c, r, rnd);
+                var hp = layout(c, r);
                 if (hp) bricks.push({ x: OX + c * (BW + GAP), y: OY + r * (BH + GAP), w: BW, h: BH, hp: hp });
             }
         }
@@ -56,14 +58,12 @@
         return { x: s.paddle.x, y: PADDLE_Y - BALL_R - 1, vx: 0, vy: 0, stuck: true };
     }
 
-    // The paddle shrinks and the ball quickens only a little per level (106 px
-    // and 410 px/s on level 10): the layouts are what make a late level hard,
-    // and a ball much faster than that cannot be followed on the keys.
     function init(level) {
+        var cfg = LEVEL_CFG[level - 1];
         var s = {
             touch: G.isTouch(),
-            paddle: { x: G.W / 2, w: 136 - level * 3, base: 136 - level * 3 },
-            speed: 310 + level * 10, bricks: buildBricks(level), balls: [], caps: [], shots: [],
+            paddle: { x: G.W / 2, w: cfg.paddle, base: cfg.paddle },
+            speed: cfg.speed, bricks: buildBricks(cfg.layout), balls: [], caps: [], shots: [],
             timers: { wide: 0, laser: 0, slow: 0 }, cooldown: 0, lastMouseX: G.mouse.x
         };
         s.balls.push(newBall(s));
@@ -280,6 +280,38 @@
         return 'BRICKS ' + bricksLeft(s) + (on.length ? '  ' + on.join('+').toUpperCase() : '');
     }
 
+    // The ending: a last wall is laid row by row, a ball streaks up into
+    // it, and it shatters outwards under gravity; the cycle repeats every
+    // ENDING_CYCLE seconds behind the fireworks. Only e.t drives it, so it
+    // needs no state at all.
+    var ENDING_CYCLE = 6, WALL_COLS = 12, WALL_ROWS = 5, WALL_TOP = 214, WALL_HIT = 2;
+
+    function drawEndingWall(e, ctx) {
+        var t = e.t % ENDING_CYCLE, x0 = (G.W - WALL_COLS * (BW + GAP)) / 2;
+        for (var r = 0; r < WALL_ROWS; r++) {
+            for (var c = 0; c < WALL_COLS; c++) {
+                var x = x0 + c * (BW + GAP), y = WALL_TOP + r * (BH + GAP);
+                // Rows drop in from the top, the lowest first.
+                var drop = G.clamp((t - (WALL_ROWS - 1 - r) * 0.25) / 0.3, 0, 1), fly = t - WALL_HIT;
+                y -= (1 - drop) * 260;
+                // Kept translucent: the scene's text is drawn over it.
+                ctx.globalAlpha = 0.6 * drop * (fly > 0 ? Math.max(0, 1 - fly / 2.6) : 1);
+                if (fly > 0) {
+                    // Each brick flies away from the point of impact.
+                    x += (c - (WALL_COLS - 1) / 2) * 70 * fly;
+                    y += (r - WALL_ROWS) * 40 * fly + 260 * fly * fly;
+                }
+                ctx.fillStyle = HUES[(r + c) % 3];
+                ctx.fillRect(x, y, BW, BH);
+            }
+        }
+        if (t > WALL_HIT - 0.4 && t < WALL_HIT) {
+            // The winning ball, on its way up into the wall.
+            ctx.globalAlpha = 1; ctx.fillStyle = '#f2eddf';
+            ctx.beginPath(); ctx.arc(G.W / 2, G.H - (t - WALL_HIT + 0.4) / 0.4 * 200, BALL_R + 2, 0, Math.PI * 2); ctx.fill();
+        }
+    }
+
     G.register('breakout', {
         title: 'BRICK BREAKER',
         blurb: 'Clear every brick. Aim with the edge of the paddle.',
@@ -288,7 +320,7 @@
             'SPACE / SERVE or click: serve, and fire while the laser capsule is active',
             'Capsules: W wide · M multiball · L laser · S slow · + extra life'
         ],
-        levelNames: ['Warm-up', 'Stripes', 'Checker', 'Pyramid', 'Fortress', 'Diamond', 'Columns', 'Invader', 'Rubble', 'The Wall'],
+        levelNames: ['Warm-up', 'Invader', 'The Fortress'],
         colors: { bg: '#1b1c1a', fg: '#f2eddf', accent: '#d98255', dim: '#96958f' },
         lives: 4,
         music: {
@@ -300,6 +332,12 @@
         // Phone pad: only left, right and one button are used. A finger on the
         // board works like the mouse — the paddle follows it and a tap serves.
         touch: { a: 'SERVE', hide: ['up', 'down', 'b'] },
+        ending: {
+            title: 'THE WALL IS DOWN',
+            text: 'Not one brick left standing.',
+            colors: ['#d5aa58', '#d98255', '#c75c5c', '#f2eddf', '#7fc8a9'],
+            draw: drawEndingWall
+        },
         init: init, update: update, draw: draw, hud: hud
     });
 })();

@@ -20,14 +20,14 @@ function render(s) {
         ? () => ({ addColorStop() {} }) : (...args) => calls.push({ key, args }), set: () => true });
     def.draw(s, ctx); return { calls, texts };
 }
-for (let level = 1; level <= 10; level++) {
+for (let level = 1; level <= 3; level++) {
     touch = false; const desktop = def.init(level);
     touch = true; const phone = def.init(level);
     assert.equal(JSON.stringify({ ...phone, touch: undefined }), JSON.stringify({ ...desktop, touch: undefined }), `level ${level}: phone preserves world and rules`);
 }
 assert.deepEqual(Array.from(def.touch.hide), ['up', 'down', 'b']);
 assert.equal(def.touch.a, 'JUMP');
-let s = def.init(9);
+let s = def.init(3);
 assert.equal(def.hud(s), 'PINE 0/100 75s');
 s.cam = 1500; s.p.x = 1600; s.p.inv = 0; s.tideT = 6.5;
 s.foes = [
@@ -67,13 +67,13 @@ assert.ok(s.p.vy < 0, 'early tap is remembered on landing');
 s = def.init(1); G.key = {}; G.hit = {}; G.lives = 4;
 s.pines = [{ x: s.p.x + 10, y: s.p.y + 14 }]; def.update(s, 0); assert.equal(s.got, 1);
 s.foes = [{ kind: 'urchin', x: s.p.x, y: s.p.y, w: 24, h: 22 }]; def.update(s, 0); assert.equal(G.lives, 3);
-for (const level of [1, 5, 10]) {
+for (const level of [1, 2, 3]) {
     s = def.init(level); G.lives = 4; over = false; G.key = {}; G.hit = {};
     for (let i = 0; i < 6000 && !over; i++) { G.t += 1 / 60; def.update(s, 1 / 60); }
     assert.ok(over, `level ${level}: idle loses to rising flood`);
 }
 let world, screen, held;
-G.win = () => { screen = G.level === 10 ? 'victory' : 'clear'; };
+G.win = () => { screen = G.level === 3 ? 'victory' : 'clear'; };
 G.gameOver = () => { screen = 'over'; };
 G.loseLife = () => { if (--G.lives <= 0) screen = 'over'; return G.lives; };
 G.debug = {
@@ -81,23 +81,42 @@ G.debug = {
     state: () => ({ screen, lives: G.lives }), s: () => world,
     step(n, input) {
         for (let i = 0; i < n && screen === 'play'; i++) {
-            G.key = input; G.hit = {};
-            for (const key of Object.keys(input)) G.hit[key] = input[key] && !held[key];
-            held = input; G.t += 1 / 60; def.update(world, 1 / 60);
+            const pressed = typeof input === 'function' ? input(i, world, G) : input;
+            G.key = pressed; G.hit = {};
+            for (const key of Object.keys(pressed)) G.hit[key] = pressed[key] && !held[key];
+            held = pressed; G.t += 1 / 60; def.update(world, 1 / 60);
         }
         return G.debug.state();
     }
 };
-const botSource = readFileSync(new URL('./tropicale-bot.js', import.meta.url), 'utf8');
-const proof = vm.runInNewContext(botSource, { SnoGame: G });
-assert.deepEqual(Array.from(proof, win => win.level), [1, 5, 10], 'all required levels have an input replay');
-for (const win of proof) {
-    assert.equal(win.screen, win.level === 10 ? 'victory' : 'clear', `level ${win.level}: ordinary pad controls win`);
-    assert.equal(win.idle, 'over', `level ${win.level}: idle cannot win`);
-    assert.ok(win.fruit > 0, `level ${win.level}: route really collects fruit`);
+// The campaign bot plays every level with ordinary pad input (see
+// tropicale-bot.js), and each level must have used what it is about.
+const botFile = readFileSync(new URL('./bots/tropicale.js', import.meta.url), 'utf8');
+const driver = readFileSync(new URL('./tropicale-bot.js', import.meta.url), 'utf8');
+function checkRuns(runs, where) {
+    assert.deepEqual(Array.from(runs, (r) => r.level), [1, 2, 3], `${where}: the campaign covers all three levels`);
+    for (const r of runs) {
+        assert.equal(r.screen, r.level === 3 ? 'victory' : 'clear', `${where} level ${r.level}: ordinary pad controls reach the totem`);
+        assert.equal(r.idle, 'over', `${where} level ${r.level}: idle cannot win`);
+        assert.ok(r.fruit > 0 && r.flags >= 3, `${where} level ${r.level}: the route collects fruit and raises the flags`);
+        assert.ok(r.seconds < 180, `${where} level ${r.level}: under three minutes`);
+    }
+    const [one, two, three] = runs;
+    assert.ok(one.rode.includes('raft') && one.springs > 0, `${where}: level 1 crosses its lagoon on a raft and uses a spring`);
+    assert.ok(two.rode.includes('mover') && two.rode.includes('fall'), `${where}: level 2 rides planks and crumbling slabs`);
+    assert.ok(three.rode.includes('lift') && three.surges > 0, `${where}: level 3 rides the lift and lives through a surge`);
+    // Each level's enemies really stand in the way, and they are beaten by
+    // stomping, not only by jumping past.
+    const met = (r, kinds) => kinds.every((k) => r.met.split(' ').includes(k));
+    assert.ok(met(one, ['crab', 'urchin']), `${where}: level 1 meets crabs and urchins`);
+    assert.ok(met(two, ['drip', 'monkey']), `${where}: level 2 passes falling stalactites and the monkey`);
+    assert.ok(met(three, ['crab', 'gull', 'monkey']), `${where}: level 3 meets crabs, gulls and the monkey`);
+    assert.ok(runs.reduce((n, r) => n + r.stomps, 0) > 0, `${where}: the campaign stomps an enemy`);
 }
+const proof = vm.runInNewContext(driver, { SnoGame: G, BOT: vm.runInNewContext(botFile) });
 console.log(JSON.stringify(proof));
-console.log('ok tropicale: unchanged world, combined warnings, input misses, fruit/collision cues, viewport drawing and idle failure');
+checkRuns(proof, 'node');
+console.log('ok tropicale: unchanged world, combined warnings, input misses, fruit/collision cues, viewport drawing, campaign bot wins 1/2/3 and idle failure');
 
 // node integrationtests/games/tropicale.mjs --browser [--touch] [--shots=/tmp/tropicale]
 if (process.argv.includes('--browser')) {
@@ -109,6 +128,7 @@ if (process.argv.includes('--browser')) {
     const layouts = process.argv.includes('--touch')
         ? [{ name: 'landscape', width: 844, height: 390 }, { name: 'portrait', width: 390, height: 844 }]
         : [{ name: 'desktop' }];
+    const inPage = `(function () { var BOT = ${botFile};\nreturn (${driver}); })()`;
     const { page, base, close } = await startSession();
     try {
         for (const layout of layouts) {
@@ -116,27 +136,18 @@ if (process.argv.includes('--browser')) {
             await page.goto(`${base}/index.html`);
             await page.eval("SnoGame.launch('tropicale')");
             await page.waitFor('SnoGame.debug.state() && SnoGame.debug.state().registered', 'tropicale registration');
-            const wins = await page.eval(botSource);
-            assert.deepEqual(wins.map(win => win.level), [1, 5, 10], `${layout.name}: replay covers all required levels`);
-            for (const win of wins) {
-                assert.equal(win.screen, win.level === 10 ? 'victory' : 'clear', `${layout.name} level ${win.level}: ordinary controls win`);
-                assert.equal(win.idle, 'over', `${layout.name} level ${win.level}: idle loses`);
-                assert.ok(win.fruit > 0, `${layout.name} level ${win.level}: route collects fruit`);
-            }
-            console.log(layout.name, JSON.stringify(wins));
-            const plans = JSON.parse(botSource.match(/var plans = (.+);/)[1]);
-            for (const level of [1, 5, 10]) {
-                const plan = plans[level];
-                await page.eval(`SnoGame.debug.start(${level}); SnoGame.debug.step(180, i => {
-                    var actions = [{right:true}, {right:true,a:true}, {}, {a:true}, {left:true}, {left:true,a:true}];
-                    return actions[Number(${JSON.stringify(plan)}[Math.floor(i / 12)])];
-                });`);
+            const runs = await page.eval(inPage);
+            checkRuns(runs, layout.name);
+            console.log(layout.name, JSON.stringify(runs));
+            for (const level of [1, 2, 3]) {
+                await page.eval(`(function () { var BOT = ${botFile}, mem = {}; SnoGame.debug.start(${level});
+                    SnoGame.debug.step(600, function (i, s) { return BOT.play(s, SnoGame, mem); }); return 1; })()`);
                 await sleep(80);
                 if (shotDir) await page.screenshot(join(shotDir, `tropicale-${layout.name}-L${level}.jpg`));
             }
             assert.deepEqual(await page.eval('SnoGame.debug.errors.slice()'), []);
             assert.deepEqual(page.problems, []);
-            console.log(`ok tropicale ${layout.name} rendered levels 1/5/10`);
+            console.log(`ok tropicale ${layout.name} rendered levels 1/2/3`);
         }
     } finally { await close(); }
 }
