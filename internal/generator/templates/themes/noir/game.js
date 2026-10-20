@@ -11,10 +11,12 @@
  * On a phone a tap on the alley aims and fires in one go, the pad's stick
  * moves the crosshair for those who prefer it (A fires) and B reloads.
  *
- * Each level adds something: back doors, runners crossing the street, the
- * informant and cover pop-ups, hostage shields, power cuts, drive-by cars,
- * two-hit heavies, a storm with everything, and the Kingpin behind a
- * barricade.
+ * Three levels: First Watch (windows and doors, gangsters and civilians),
+ * Drive-By (runners crossing the street, the informant, cover pop-ups,
+ * hostage shields and drive-by cars) and The Kingpin (a stormy night with
+ * power cuts and two-hit heavies while the Kingpin leans out of his
+ * barricade). Clearing him closes the case: the ending is the rainy alley
+ * with the file stamped CLOSED in red.
  */
 (function () {
     'use strict';
@@ -47,7 +49,7 @@
         { x: 300, y: 244, w: 78, h: 156, type: 'd', from: 'left' }, { x: 680, y: 244, w: 78, h: 156, type: 'd', from: 'right' },
         { x: 198, y: 356, w: 84, h: 80, type: 'c', from: 'bottom' }, { x: 818, y: 338, w: 84, h: 80, type: 'c', from: 'bottom' }
     ];
-    // The three places the Kingpin leans out of his barricade (level 10).
+    // The three places the Kingpin leans out of his barricade (level 3).
     var BOSS_SLOTS = [
         { x: 480, y: 338, w: 110, h: 66, type: 'b', from: 'bottom' },
         { x: 335, y: 392, w: 90, h: 112, type: 'b', from: 'right' },
@@ -71,29 +73,20 @@
     // quota: gangsters to bust; max: targets at once; draw: seconds before a
     // gangster fires; gap: seconds between spawns; mix: spawn weights.
     //
-    // The gap shrinks only a little from level to level, on purpose. Aiming
-    // and firing takes a player close to a second per target, so a gap near
-    // one second is already a queue that barely drains: measured with a bot
-    // of 0.3 s reaction, a gap of 0.7-0.9 s cost a quick player nothing and a
-    // slightly slower one every life in twenty seconds. So the gaps stay well
-    // above a casual player's second per target (1.3 s and more) and the
-    // draws near three seconds: a player who needs 0.9 s per target and
-    // misses now and then clears level 10 most of the time, and one a little
-    // slower still about every other time. The levels get harder through
-    // shorter draws, more targets at once and nastier kinds; levels 8 and 10
-    // get a longer gap than their neighbours because heavies and the Kingpin
-    // take extra shots. The quotas are sized for levels of about 60-90 s.
+    // Aiming and firing takes a player close to a second per target, so a
+    // gap near one second is already a queue that barely drains: measured
+    // with a bot of 0.3 s reaction, a gap of 0.7-0.9 s cost a quick player
+    // nothing and a slightly slower one every life in twenty seconds. So the
+    // gaps stay well above a casual player's second per target (1.35 s and
+    // more) and the draws near three seconds. The levels get harder through
+    // shorter draws, more targets at once and nastier kinds, not a faster
+    // queue; the Kingpin's level gets the longest gap because heavies and
+    // the Kingpin himself take extra shots. Quotas are sized for about a
+    // minute of play each.
     var LEVELS = [
-        { quota: 34, max: 1, draw: 3.4, gap: 1.5, slots: 'w', mix: { thug: 8, civ: 2 } },
-        { quota: 40, max: 2, draw: 3.2, gap: 1.45, slots: 'wd', mix: { thug: 8, civ: 3 } },
-        { quota: 44, max: 2, draw: 3.0, gap: 1.4, slots: 'wd', mix: { thug: 6, civ: 2, runner: 3 } },
-        { quota: 44, max: 2, draw: 2.9, gap: 1.4, slots: 'wdc', mix: { thug: 7, civ: 2, runner: 2, informant: 3 } },
-        { quota: 46, max: 3, draw: 2.9, gap: 1.35, slots: 'wdc', mix: { thug: 5, civ: 2, runner: 2, informant: 1, hostage: 4 } },
-        { quota: 46, max: 3, draw: 3.0, gap: 1.35, slots: 'wdc', dark: true, mix: { thug: 7, civ: 3, runner: 2, informant: 1, hostage: 2 } },
-        { quota: 48, max: 3, draw: 2.75, gap: 1.3, slots: 'wdc', mix: { thug: 6, civ: 2, runner: 2, informant: 1, hostage: 2, car: 3 } },
-        { quota: 48, max: 4, draw: 2.9, gap: 1.55, slots: 'wdc', mix: { thug: 5, civ: 2, runner: 2, informant: 1, hostage: 2, car: 2, heavy: 4 } },
-        { quota: 52, max: 4, draw: 2.8, gap: 1.45, slots: 'wdc', dark: true, mix: { thug: 5, civ: 2, runner: 2, informant: 1, hostage: 2, car: 2, heavy: 3, paperboy: 2 } },
-        { quota: 0, max: 2, draw: 2.9, gap: 1.75, slots: 'wd', boss: 24, mix: { thug: 6, civ: 2, runner: 2, hostage: 2 } }
+        { quota: 34, max: 2, draw: 3.4, gap: 1.5, slots: 'wd', mix: { thug: 8, civ: 3 } },
+        { quota: 40, max: 3, draw: 3.0, gap: 1.4, slots: 'wdc', mix: { thug: 5, civ: 2, runner: 3, informant: 2, hostage: 3, car: 2, paperboy: 1 } },
+        { quota: 0, max: 3, draw: 2.9, gap: 1.6, slots: 'wdc', dark: true, boss: 22, mix: { thug: 5, civ: 2, runner: 2, hostage: 2, heavy: 3 } }
     ];
 
     // ------------------------------------------------------------------
@@ -145,7 +138,8 @@
     function makeRain(level, mobile) {
         var drops = [];
         // At phone scale dense rain hides the gun and newspaper silhouettes.
-        var count = mobile ? 48 + level * 4 : 90 + level * 12;
+        // The rain thickens towards the Kingpin's storm.
+        var count = mobile ? 44 + level * 8 : 60 + level * 36;
         for (var i = 0; i < count; i++) {
             drops.push({ x: G.rnd(0, W), y: G.rnd(G.HUD, H), v: G.rnd(620, 900), land: G.rnd(GROUND + 4, H) });
         }
@@ -166,7 +160,7 @@
             boss: cfg.boss ? { hp: cfg.boss, max: cfg.boss, wait: 2.2, last: -1 } : null,
             cx: W / 2, cy: 250, vx: 0, vy: 0, steering: false, lock: null, lastMx: G.mouse.x, lastMy: G.mouse.y, hovered: false,
             ammo: CHAMBERS, reload: 0, cool: 0, kick: 0, muzzle: 0, spin: 0, reloadFull: RELOAD_TIME,
-            holes: [], rain: makeRain(level, mobile), splashes: makeSplashes(), splashI: 0, wind: -40 - level * 16,
+            holes: [], rain: makeRain(level, mobile), splashes: makeSplashes(), splashI: 0, wind: -30 - level * 30,
             boltIn: G.rnd(4, 9), bolt: 0, dim: 0, wasDark: false, stepT: 0
         };
     }
@@ -1105,6 +1099,79 @@
         drawCrosshair(ctx, s);
     }
 
+    // ------------------------------------------------------------------
+    // The ending: case closed
+    // ------------------------------------------------------------------
+
+    // Rain over the last frame of the alley, a case file on the left that
+    // gets stamped CLOSED in red, and the Kingpin's red-banded hat in a
+    // puddle on the right whose ripples keep spreading.
+    function endingRain(e) {
+        if (!e.data.rain) {
+            e.data.rain = [];
+            for (var i = 0; i < 70; i++) e.data.rain.push({ x: (i * 197) % W, y: (i * 89) % H, v: 560 + (i * 37) % 300 });
+        }
+        return e.data.rain;
+    }
+
+    function drawEndingRain(ctx, e) {
+        ctx.strokeStyle = 'rgba(216,209,196,0.35)'; ctx.lineWidth = 1;
+        ctx.beginPath();
+        endingRain(e).forEach(function (d) {
+            var y = G.HUD + 16 + (d.y + e.t * d.v) % (H - G.HUD - 16), x = (d.x - e.t * 90 % W + W) % W;
+            ctx.moveTo(x, y); ctx.lineTo(x + 2, y - 16);
+        });
+        ctx.stroke();
+    }
+
+    function drawCaseFile(ctx, e) {
+        ctx.save();
+        ctx.translate(120, 300); ctx.rotate(-0.12);
+        ctx.fillStyle = '#c9b993'; ctx.strokeStyle = FOG; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.rect(-80, -60, 160, 120); ctx.rect(-80, -74, 60, 16); ctx.fill(); ctx.stroke();
+        ctx.fillStyle = '#6e6450';
+        for (var i = 0; i < 4; i++) ctx.fillRect(-62, -36 + i * 14, i ? 100 : 60, 4);
+        // The stamp comes down hard half a second in, then stays.
+        var k = G.clamp((e.t - 0.5) / 0.15, 0, 1);
+        if (k > 0) {
+            ctx.globalAlpha = k;
+            ctx.rotate(-0.25); ctx.scale(2.2 - 1.2 * k, 2.2 - 1.2 * k);
+            ctx.strokeStyle = HOT; ctx.lineWidth = 4;
+            ctx.strokeRect(-70, 4, 140, 40);
+            G.text('CLOSED', 0, 36, { size: 32, bold: true, color: HOT, align: 'center' });
+        }
+        ctx.restore();
+    }
+
+    function drawPuddleHat(ctx, e) {
+        var x = 840, y = 330;
+        // A red glow pulses over the street, like the hotel sign coming back on.
+        var glow = ctx.createRadialGradient(x, y, 10, x, y, 110);
+        glow.addColorStop(0, BLOOD); glow.addColorStop(1, 'rgba(169,55,43,0)');
+        ctx.globalAlpha = 0.35 + 0.2 * Math.sin(e.t * 3);
+        ctx.fillStyle = glow;
+        ctx.fillRect(x - 110, y - 110, 220, 220);
+        ctx.globalAlpha = 1;
+        ctx.strokeStyle = 'rgba(216,209,196,0.45)'; ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        for (var i = 0; i < 3; i++) {
+            var r = ((e.t * 40 + i * 30) % 90) + 10;
+            ctx.moveTo(x + r, y + 14); ctx.ellipse(x, y + 14, r, r * 0.25, 0, 0, TAU);
+        }
+        ctx.stroke();
+        ctx.save();
+        ctx.translate(x - 4, y - 8); ctx.rotate(0.2); ctx.scale(1.6, 1.6);
+        setPaint(ctx, true);
+        drawHat(ctx, BLOOD);
+        ctx.restore();
+    }
+
+    function drawEnding(e, ctx) {
+        drawEndingRain(ctx, e);
+        drawCaseFile(ctx, e);
+        drawPuddleHat(ctx, e);
+    }
+
     function hud(s) {
         if (s.boss) return 'KINGPIN ' + s.boss.hp + '/' + s.boss.max;
         return 'BUSTS ' + s.busts + '/' + s.cfg.quota;
@@ -1119,7 +1186,7 @@
             'Keys or pad: let go of the arrows near a gangster to lock on',
             'Black with a red tie: shoot · pale: hold your fire · ' + LIFE_STREAK + ' busts in a row: extra life'
         ],
-        levelNames: ['First Watch', 'Back Doors', 'Runners', 'The Informant', 'Human Shields', 'Lights Out', 'Drive-By', 'Heavy Hitters', 'The Long Rain', 'The Kingpin'],
+        levelNames: ['First Watch', 'Drive-By', 'The Kingpin'],
         colors: { bg: FOG, fg: INK, accent: BLOOD, dim: SILVER },
         lives: 4,
         cursor: 'none',
@@ -1139,6 +1206,12 @@
             arp: '......2.......1.',
             drums: { k: 'x.......x.......', s: '....x.......x...', h: 'x...x..xx...x..x' },
             leadWave: 'triangle', bassWave: 'triangle', arpWave: 'sine', leadOct: 2
+        },
+        ending: {
+            title: 'CASE CLOSED',
+            text: 'The Kingpin is down. The rain washes the alley clean.',
+            colors: [BLOOD, HOT, LAMP, INK],
+            draw: drawEnding
         },
         init: init, update: update, draw: draw, hud: hud
     });

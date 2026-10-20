@@ -33,7 +33,7 @@ vm.runInNewContext(readFileSync(new URL('../../internal/generator/templates/them
     } }
 });
 function draw(s) { calls.length = 0; def.draw(s, context()); return calls.slice(); }
-for (let level = 1; level <= 10; level++) {
+for (let level = 1; level <= 3; level++) {
     mobile = false; const desktop = def.init(level);
     mobile = true; const phone = def.init(level);
     const rules = (s) => JSON.parse(JSON.stringify({ ...s, mobile: undefined }));
@@ -62,8 +62,8 @@ assert.ok(rendered.some((c) => c[0] === 'arc' && c[4] === 12.5), 'phone actor is
 assert.equal(rendered.filter((c) => c[0] === 'rect' && c[4] === 6 && c[5] === 6).length, s.left - 4, 'batch retains every ordinary dot');
 assert.equal(rendered.filter((c) => c[0] === 'fillRect' && c[4] === 6 && c[5] === 6).length, 0, 'dots no longer issue separate fills');
 const first = s.walls.pic; draw(s); assert.equal(s.walls.pic, first, 'static wall picture is reused');
-const next = def.init(5); draw(next); assert.notEqual(next.walls.pic, first, 'preview states own independent wall caches');
-s = def.init(10); s.shade = 1; s.fright = 0.5; s.gateT = 2.3;
+const next = def.init(2); draw(next); assert.notEqual(next.walls.pic, first, 'preview states own independent wall caches');
+s = def.init(3); s.shade = 1; s.fright = 0.5; s.gateT = 2.3;
 s.ghosts.forEach((g) => { g.scared = true; });
 for (const time of [0, 0.1]) {
     G.t = time; rendered = draw(s);

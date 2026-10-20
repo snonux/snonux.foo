@@ -7,10 +7,11 @@
  * hand-shaped chunks by a seeded generator, so a level is the same on every
  * visit but no two levels share a layout.
  *
- * Each level brings something new: turrets (2), drones (3), acid pools (4),
- * moving platforms and troopers that shoot back (5), lifts (6), hopping
- * mutants (7), laser gates (8), a blackout with only a torch (9) and the
- * Overlord, a mech that carries the keycard itself (10).
+ * Three levels: Rooftops (grunts, turrets, barrels, crates and gaps), Acid
+ * Works (drones, acid pools, moving platforms and troopers that shoot back)
+ * and The Overlord (lifts, hopping mutants and laser gates on the way to a
+ * mech that carries the keycard itself). Beating it ends the campaign with
+ * the wreck smoking under fireworks over the skyline.
  *
  * Two things keep the pressure on: when the clock runs out the warhead ends
  * the run outright, and whoever camps in one spot gets shelled (waiting for
@@ -32,14 +33,7 @@
 
     var THEMES = [
         { wall: '#3a3a3a', top: '#ffcc00', sky: '#140404', glow: '#5a0d0d' },
-        { wall: '#4a3a2a', top: '#ffd700', sky: '#0f0803', glow: '#5a300a' },
-        { wall: '#2e3440', top: '#e0e0e0', sky: '#07070f', glow: '#3a1030' },
         { wall: '#2f3a2a', top: '#7dff3a', sky: '#040a04', glow: '#12300f' },
-        { wall: '#4a2a1a', top: '#ff6a00', sky: '#120803', glow: '#5a2a0a' },
-        { wall: '#3a3a44', top: '#ffd700', sky: '#08080c', glow: '#2a2a3a' },
-        { wall: '#3a2a3a', top: '#ff3a8a', sky: '#0c050c', glow: '#3a0f3a' },
-        { wall: '#2a2a2a', top: '#ff0000', sky: '#0a0000', glow: '#4a0000' },
-        { wall: '#33332a', top: '#ffcc00', sky: '#000000', glow: '#1a1a0a' },
         { wall: '#3a1a1a', top: '#ffd700', sky: '#1a0000', glow: '#8a1010' }
     ];
 
@@ -72,7 +66,7 @@
     var KEYS = [
         { min: 1, rows: ['        K         ', '       ###        ', '     ##   ##   e  ', '  e               ', '##################'] },
         { min: 1, rows: ['           K        ', '          ###       ', '       ##     t     ', '    ##       ###    ', '  e      B        e ', '####################'] },
-        { min: 5, rows: ['                      ', '          K           ', '    M-------------    ', '####~~~~~~~~~~~~~~####'] }
+        { min: 2, rows: ['                      ', '          K           ', '    M-------------    ', '####~~~~~~~~~~~~~~####'] }
     ];
     var CHUNKS = [
         { min: 1, rows: ['                ', '     e    B  e  ', '################'] },
@@ -80,37 +74,37 @@
         { min: 1, rows: ['          t         ', '         ###    s   ', '      #######  e    ', '   ############## B ', '####################'] },
         { min: 1, rows: ['    e      r     ', '   ###    ###    ', '       c         ', ' B     c   B   e ', '#################'] },
         { min: 1, rows: ['                   ', '  e    B    B   e  ', '####  ##   ##  ####'] },
-        { min: 2, rows: ['            t     ', '     #    ####    ', '  e  #  e      h  ', '##################'] },
-        { min: 2, rows: ['        t           ', '      #####     n   ', '                    ', '   e         ####   ', '             ####  e', '####################'] },
-        { min: 3, rows: ['    d        d      ', '                    ', '       cc           ', '  e    cc    B   e  ', '####################'] },
-        { min: 3, rows: ['   d       d       d  ', '                      ', '      ##       ##     ', '  e        B       e  ', '######################'] },
-        { min: 4, rows: ['                     ', '          h          ', '  e               e  ', '####~~~##~~~##~~~####'] },
-        { min: 4, rows: ['     d          d     ', '                      ', '        ##    ##      ', '  B                 n ', '#####~~~~~~~~~~~~#####'] },
-        { min: 4, rows: ['                       ', '  e       t         e  ', '####~~~~#####~~~~######'] },
-        { min: 5, rows: ['          s             ', '                        ', '                      e ', '    M-------------      ', '####~~~~~~~~~~~~~~######'] },
-        { min: 5, rows: ['       d             h      ', '                            ', '                            ', '    M--------  W--------    ', '####                    ####'] },
-        { min: 5, rows: ['                          ', '             r         e  ', '     M------   W------    ', '####~~~~~~~~~~~~~~~~~~####'] },
-        { min: 6, rows: ['            e t          ', '    |   ##########  |    ', '    |   ##########  |    ', '    |   ##########  |    ', '    |   ##########  |    ', '    |   ##########  |    ', '    L   ##########  L    ', '#########################'] },
-        { min: 6, rows: ['                h           ', '       |      #####         ', '       |      ######        ', '       |      #######       ', '  ##   |      ########   e  ', '  ##   L      #########     ', '####~~~~~~~~~~##############'] },
-        { min: 7, rows: ['    ###      ###    ', '                    ', '  j   e  B   e   j  ', '####################'] },
-        { min: 7, rows: ['      j        j      ', '     ###      ###     ', '  e        B       e  ', '######################'] },
-        { min: 8, rows: ['      !     !       ', '      !     !    r  ', '      !  e  !       ', '      !     !       ', '####################'] },
-        { min: 8, rows: ['   !             !    ', '   !             !    ', '   !             !    ', ' e !             !  e ', '######~~~##~~~########'] }
+        { min: 1, rows: ['            t     ', '     #    ####    ', '  e  #  e      h  ', '##################'] },
+        { min: 1, rows: ['        t           ', '      #####     n   ', '                    ', '   e         ####   ', '             ####  e', '####################'] },
+        { min: 2, rows: ['    d        d      ', '                    ', '       cc           ', '  e    cc    B   e  ', '####################'] },
+        { min: 2, rows: ['   d       d       d  ', '                      ', '      ##       ##     ', '  e        B       e  ', '######################'] },
+        { min: 2, rows: ['                     ', '          h          ', '  e               e  ', '####~~~##~~~##~~~####'] },
+        { min: 2, rows: ['     d          d     ', '                      ', '        ##    ##      ', '  B                 n ', '#####~~~~~~~~~~~~#####'] },
+        { min: 2, rows: ['                       ', '  e       t         e  ', '####~~~~#####~~~~######'] },
+        { min: 2, rows: ['          s             ', '                        ', '                      e ', '    M-------------      ', '####~~~~~~~~~~~~~~######'] },
+        { min: 2, rows: ['       d             h      ', '                            ', '                            ', '    M--------  W--------    ', '####                    ####'] },
+        { min: 2, rows: ['                          ', '             r         e  ', '     M------   W------    ', '####~~~~~~~~~~~~~~~~~~####'] },
+        { min: 3, rows: ['            e t          ', '    |   ##########  |    ', '    |   ##########  |    ', '    |   ##########  |    ', '    |   ##########  |    ', '    |   ##########  |    ', '    L   ##########  L    ', '#########################'] },
+        { min: 3, rows: ['                h           ', '       |      #####         ', '       |      ######        ', '       |      #######       ', '  ##   |      ########   e  ', '  ##   L      #########     ', '####~~~~~~~~~~##############'] },
+        { min: 3, rows: ['    ###      ###    ', '                    ', '  j   e  B   e   j  ', '####################'] },
+        { min: 3, rows: ['      j        j      ', '     ###      ###     ', '  e        B       e  ', '######################'] },
+        { min: 3, rows: ['      !     !       ', '      !     !    r  ', '      !  e  !       ', '      !     !       ', '####################'] },
+        { min: 3, rows: ['   !             !    ', '   !             !    ', '   !             !    ', ' e !             !  e ', '######~~~##~~~########'] }
     ];
 
     var KINDS = {
         grunt: { w: 20, h: 26, hp: 2, score: 100 }, trooper: { w: 20, h: 26, hp: 3, score: 200 },
         hopper: { w: 22, h: 18, hp: 2, score: 150 }, turret: { w: 24, h: 20, hp: 4, score: 250 },
-        drone: { w: 28, h: 16, hp: 2, score: 200 }, boss: { w: 64, h: 72, hp: 150, score: 5000 }
+        drone: { w: 28, h: 16, hp: 2, score: 200 }, boss: { w: 64, h: 72, hp: 100, score: 5000 }
     };
 
     // x is the horizontal centre, feet the bottom edge. `seed` (0..1) spreads
     // out timers so a row of enemies does not act in lockstep. Enemies gain
-    // one hit point at level 5 and another at level 10: more than that and a
-    // casual player is still shooting when the next one arrives. The
-    // Overlord's 150 are a good half minute of steady fire.
+    // one hit point on the last level: more than that and a casual player is
+    // still shooting when the next one arrives. The Overlord's 100 are about half
+    // a minute of steady fire.
     function makeEnemy(kind, x, feet, level, seed) {
-        var k = KINDS[kind], hp = k.hp + (kind === 'boss' ? 0 : Math.floor(level / 5));
+        var k = KINDS[kind], hp = k.hp + (kind === 'boss' || level < 3 ? 0 : 1);
         return {
             kind: kind, x: x - k.w / 2, y: feet - k.h, w: k.w, h: k.h, vx: 0, vy: 0, hp: hp, max: hp,
             dir: -1, t: seed, cool: 0.8 + seed, flash: 0, ph: seed * 6, n: 0, burst: 0, bt: 0, air: false
@@ -118,7 +112,7 @@
     }
 
     function groundKind(L) {
-        var roster = L.level >= 7 ? ['grunt', 'trooper', 'hopper', 'hopper'] : (L.level >= 5 ? ['grunt', 'trooper'] : ['grunt']);
+        var roster = L.level >= 3 ? ['grunt', 'trooper', 'hopper', 'hopper'] : (L.level >= 2 ? ['grunt', 'trooper'] : ['grunt']);
         return roster[Math.floor(L.rnd() * roster.length)];
     }
 
@@ -162,11 +156,11 @@
     }
 
     var SPAWN = {
-        // Early levels thin the crowd out; by level 10 every marker is used.
-        e: function (L, c, r) { if (L.rnd() < 0.6 + L.level * 0.04) addEnemy(L, groundKind(L), c, r); },
-        t: function (L, c, r) { if (L.level >= 2) addEnemy(L, 'turret', c, r); },
+        // The first level thins the crowd out; the last uses every marker.
+        e: function (L, c, r) { if (L.rnd() < 0.6 + L.level * 0.13) addEnemy(L, groundKind(L), c, r); },
+        t: function (L, c, r) { addEnemy(L, 'turret', c, r); },
         // A drone patrols the stretch it was posted to (`home`); see aiDrone.
-        d: function (L, c, r) { if (L.level >= 3) addEnemy(L, 'drone', c, r).home = c * T; },
+        d: function (L, c, r) { addEnemy(L, 'drone', c, r).home = c * T; },
         j: function (L, c, r) { addEnemy(L, 'hopper', c, r); },
         X: function (L, c, r) { addEnemy(L, 'boss', c, r); L.arena = { x0: (c - 17) * T, x1: (c + 17) * T }; },
         B: function (L, c, r) { L.barrels.push({ x: c * T + 5, y: r * T + 4, w: 20, h: 26, fuse: -1 }); },
@@ -206,12 +200,13 @@
     }
 
     // Chunks that introduce this level's new feature are four times as
-    // likely, so "the acid level" really is full of acid.
+    // likely, so "the acid level" really is full of acid, and the second
+    // level's features stay twice as likely as the basics on the third.
     function pickChunk(L, last) {
         var pool = [];
         CHUNKS.forEach(function (c, i) {
             if (c.min > L.level || i === last) return;
-            var n = c.min === L.level ? 4 : (c.min > 1 && L.level - c.min <= 2 ? 2 : 1);
+            var n = c.min === L.level ? 4 : (c.min > 1 ? 2 : 1);
             while (n--) pool.push(i);
         });
         return pool[Math.floor(L.rnd() * pool.length)];
@@ -235,16 +230,20 @@
     // ridden, so each one buys a few seconds; the Overlord buys two minutes.
     function timeLimit(L, chunks) {
         var lifts = L.movers.filter(function (m) { return m.by !== m.ay; }).length;
-        return 45 + 8 * chunks + 4 * lifts + (L.level === 10 ? 120 : 0);
+        return 45 + 8 * chunks + 4 * lifts + (L.level === 3 ? 120 : 0);
     }
 
+    // Stage lengths in chunks: a short first run, a long second one, and a
+    // shorter run to the Overlord's arena on the last.
+    var STAGE = [8, 10, 7];
+
     function buildLevel(level) {
-        var L = newLevel(level), n = level === 10 ? 7 : 8 + level, keyAt = Math.floor(n * 0.6), last = -1;
+        var L = newLevel(level), n = STAGE[level - 1], keyAt = Math.floor(n * 0.6), last = -1;
         var debut = debutChunks(level), used = 0;
         placeChunk(L, START);
         for (var i = 0; i < n; i++) {
-            // On level 10 the Overlord carries the card, so no key chunk.
-            if (i === keyAt && level < 10) { placeChunk(L, pickKeyChunk(L)); continue; }
+            // On level 3 the Overlord carries the card, so no key chunk.
+            if (i === keyAt && level < 3) { placeChunk(L, pickKeyChunk(L)); continue; }
             if (debut.length && i % 3 === 1) {
                 // Never the same chunk twice in a row, feature slot or not.
                 if (debut[used % debut.length] === last) used++;
@@ -252,7 +251,7 @@
             } else last = pickChunk(L, last);
             placeChunk(L, CHUNKS[last].rows);
         }
-        if (level === 10) placeChunk(L, ARENA);
+        if (level === 3) placeChunk(L, ARENA);
         placeChunk(L, END);
         L.time = timeLimit(L, n + 2);
         return L;
@@ -290,7 +289,7 @@
             checks: L.checks, card: L.card, door: L.door, arena: L.arena, haveCard: false,
             boss: L.enemies.filter(function (e) { return e.kind === 'boss'; })[0] || null,
             p: newPlayer(), shots: [], nades: [], blasts: [], t: 0, clock: L.time, cam: 0,
-            msg: '', msgT: 0, gate: {}, finale: 0, dark: level === 9, anchor: 60, camp: 0, touch: coarse()
+            msg: '', msgT: 0, gate: {}, finale: 0, anchor: 60, camp: 0, touch: coarse()
         };
     }
 
@@ -601,7 +600,7 @@
         if (e.wall || (e.ground && !s.solid(ahead, below))) e.dir = -e.dir;
     }
 
-    function aiGrunt(s, e, dt) { walk(s, e, 55 + s.level * 4, dt); }
+    function aiGrunt(s, e, dt) { walk(s, e, 55 + s.level * 12, dt); }
 
     // Stops and fires level shots at chest height once the player is on its
     // floor; the lit muzzle is the tell to duck or jump.
@@ -638,7 +637,7 @@
         if (G.dist(cx, cy, px, py) > 440) { e.cool = Math.max(e.cool, 0.6); return; }
         e.cool -= dt;
         if (e.cool > 0) return;
-        e.cool = Math.max(1.1, 2.1 - s.level * 0.07);
+        e.cool = 2.1 - s.level * 0.2;
         foeShot(s, cx + Math.cos(e.aim) * 14, cy + Math.sin(e.aim) * 14, Math.cos(e.aim) * 250, Math.sin(e.aim) * 250, {});
         G.tone(520, 0.12, { type: 'sawtooth', slide: 160, vol: 0.12 });
     }
@@ -659,7 +658,7 @@
         e.y = Math.max(G.HUD + 6, e.y + e.vy * dt);
         e.cool -= dt;
         if (e.cool > 0 || Math.abs(p.x - e.x) > 60) return;
-        e.cool = 2.4;
+        e.cool = 3.2;
         foeShot(s, e.x + e.w / 2, e.y + e.h, e.vx * 0.5, 40, { g: 600, bomb: true, blast: 46, r: 6, life: 4 });
         G.tone(900, 0.2, { type: 'sine', slide: 300, vol: 0.1 });
     }
@@ -723,8 +722,10 @@
         BOSS_ACT[list[e.n++ % list.length]](s, e, phase);
     }
 
-    // The fight starts once the player is well inside: the doors shut, and
-    // from here on a lost life comes back inside the arena. The flag at the
+    // The fight starts once the player is well inside: the doors shut, the
+    // health bar is topped up (the finale should not hinge on scratches from
+    // the way in), and from here on a lost life comes back inside the arena.
+    // The flag at the
     // entrance now stands in the door, so it is retired along with every
     // earlier one; touching it late (after jumping in over it) must not move
     // the respawn point into the steel.
@@ -733,6 +734,7 @@
         sealArena(s, true);
         s.checks.forEach(function (c) { if (c.x < s.arena.x1) c.on = true; });
         s.p.cx = s.arena.x0 + T;
+        s.p.hp = 100;
         say(s, 'THE OVERLORD');
         G.tone(70, 0.9, { type: 'sawtooth', slide: 160, vol: 0.3 });
     }
@@ -1313,18 +1315,6 @@
     // Drawing: overlays
     // ------------------------------------------------------------------
 
-    // Level 9: only a torch-lit circle is visible, plus a red emergency
-    // strobe every four seconds that shows the room for a moment.
-    function drawDark(s, ctx) {
-        var p = s.p, x = p.x + p.w / 2 - G.cam.x, y = p.y + 10, r = 215 + Math.sin(s.t * 9) * 6;
-        var g = ctx.createRadialGradient(x, y, 50, x, y, r);
-        g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,0.95)');
-        ctx.globalAlpha = s.t % 4 < 0.3 ? 0.55 : 1;
-        ctx.fillStyle = g;
-        ctx.fillRect(0, G.HUD, G.W, G.H - G.HUD);
-        ctx.globalAlpha = 1;
-    }
-
     // An arrow at the screen edge towards the keycard (or its carrier), then
     // towards the exit, so "find the keycard" never means wandering blind.
     function drawCompass(s, ctx) {
@@ -1384,16 +1374,67 @@
         drawEnemies(s, ctx);
         drawPlayer(s, ctx);
         drawBlasts(s, ctx);
-        ctx.restore();
-        if (s.dark) drawDark(s, ctx);
-        // Shots and laser gates glow through the darkness: being hit by
-        // something that could not be seen would not be fair.
-        ctx.save();
-        ctx.translate(-G.cam.x, 0);
         drawLasers(s, ctx);
         drawShots(s, ctx);
         ctx.restore();
         drawStatus(s, ctx);
+    }
+
+    // ------------------------------------------------------------------
+    // The ending: the Overlord's wreck and fireworks over the skyline
+    // ------------------------------------------------------------------
+
+    // A black skyline along the bottom with windows lighting up one by one,
+    // the toppled mech smoking on the left and the hero on the right with
+    // the keycard held high. All of it is a pure function of e.t.
+    function drawEndSkyline(ctx, t) {
+        ctx.fillStyle = '#050505';
+        for (var i = 0; i < 16; i++) {
+            var h = 50 + hash(i * 3.3) * 80;
+            ctx.fillRect(i * 60, G.H - h, 56, h);
+        }
+        ctx.fillStyle = YEL;
+        for (var k = 0; k < 48; k++) {
+            if (hash(k * 7.1) * 4 > t) continue;   // windows come on as the party starts
+            var bx = (k % 16) * 60, top = G.H - 50 - hash((k % 16) * 3.3) * 80;
+            ctx.fillRect(bx + 10 + (k % 3) * 14, top + 10 + Math.floor(k / 16) * 14, 7, 8);
+        }
+    }
+
+    function drawWreck(ctx, t) {
+        ctx.save();
+        ctx.translate(150, 340); ctx.rotate(-0.45);
+        ctx.fillStyle = '#7a0d0d'; ctx.fillRect(-40, -20, 80, 40);
+        ctx.fillStyle = GOLD; ctx.fillRect(-40, -20, 80, 4); ctx.fillRect(-40, 16, 80, 4);
+        ctx.fillStyle = '#4a4a4a'; ctx.fillRect(-22, -38, 44, 18); ctx.fillRect(40, -6, 26, 9);
+        ctx.fillStyle = GREY; ctx.fillRect(-30, 20, 16, 22); ctx.fillRect(14, 20, 16, 14);
+        // Its eye flickers out.
+        ctx.fillStyle = Math.sin(t * 13) > 0.6 ? RED : '#2a0000';
+        ctx.fillRect(-7, -34, 14, 6);
+        ctx.restore();
+        for (var i = 0; i < 7; i++) {
+            var f = (t * 0.4 + i / 7) % 1;
+            ctx.fillStyle = 'rgba(90,90,90,' + (0.55 * (1 - f)).toFixed(2) + ')';
+            ctx.beginPath(); ctx.arc(160 + Math.sin(f * 6 + i) * 14, 300 - f * 120, 8 + f * 22, 0, Math.PI * 2); ctx.fill();
+        }
+    }
+
+    function drawVictor(ctx, t) {
+        var x = 806, y = 300, bob = Math.abs(Math.sin(t * 4)) * 6;
+        ctx.fillStyle = '#4a4a5a'; ctx.fillRect(x + 6, y + 34, 12, 18); ctx.fillRect(x + 22, y + 34, 12, 18);
+        ctx.fillStyle = RED; ctx.fillRect(x + 4, y + 16, 32, 20);
+        ctx.fillStyle = SKIN; ctx.fillRect(x + 8, y + 2, 22, 16);
+        ctx.fillStyle = GOLD; ctx.fillRect(x + 6, y - 4, 26, 7);
+        ctx.fillStyle = DARK; ctx.fillRect(x + 14, y + 7, 16, 4);
+        ctx.fillStyle = SKIN; ctx.fillRect(x + 34, y - 10 - bob, 7, 28);
+        ctx.fillStyle = GOLD; ctx.fillRect(x + 28, y - 30 - bob, 24, 16);
+        ctx.fillStyle = DARK; ctx.fillRect(x + 31, y - 26 - bob, 8, 6);
+    }
+
+    function drawEnding(e, ctx) {
+        drawEndSkyline(ctx, e.t);
+        drawWreck(ctx, e.t);
+        drawVictor(ctx, e.t);
     }
 
     function equipment(s) {
@@ -1414,7 +1455,7 @@
             'Run + ↑ + FIRE together to jump and shoot',
             'Barrels explode · crates hide supplies'
         ],
-        levelNames: ['Rooftops', 'Loading Dock', 'Sky Patrol', 'Acid Sewers', 'Factory Floor', 'Lift Shaft', 'Mutant Lab', 'Laser Grid', 'Blackout', 'The Overlord'],
+        levelNames: ['Rooftops', 'Acid Works', 'The Overlord'],
         colors: { bg: '#0a0a0a', fg: '#e0e0e0', accent: '#ffd700', dim: '#8a8a8a' },
         lives: 4,
         // A loud E-minor pentatonic rock riff: square lead, driving
@@ -1428,6 +1469,12 @@
             ],
             arp: '0.2.0.3.', drums: { k: 'x.....x.x.....x.', s: '....x.......x...', h: 'x.x.x.x.x.x.x.x.' },
             leadWave: 'square', bassWave: 'square', arpWave: 'sawtooth', leadOct: 2
+        },
+        ending: {
+            title: 'OVERLORD DOWN',
+            text: 'The warhead is defused. The city lights up for you.',
+            colors: [YEL, RED, GOLD, '#ff6a00', LIGHT],
+            draw: drawEnding
         },
         init: init, update: update, draw: draw, hud: hud,
         // The full pad: run, jump and duck on the stick (its corners give a

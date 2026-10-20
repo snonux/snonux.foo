@@ -580,48 +580,80 @@ A rainy alley front: windows, doors, a parked car. Gangsters pop out and take
 aim (a visible draw timer); shoot them before they fire. Civilians and the
 informant also appear — shooting one costs a life. Mouse moves the crosshair
 (keyboard: arrows move it, `SPACE` shoots), `X` or right click reloads the
-six-shot revolver. Hit the level's quota to clear it. Levels: faster draws,
-more simultaneous targets, runners crossing the street, hostage shields,
-drive-by cars, level 10 is the boss behind cover. Mostly black and white with
-one red accent, rain particles, slow blues music with a walking bass.
+six-shot revolver (an empty click reloads too, slower). Twelve busts in a row
+earn a life. Levels: 1 *First Watch* — windows and doors, gangsters and
+civilians, 34 busts; 2 *Drive-By* — runners and paperboys crossing the street, the
+informant, cover pop-ups, hostage shields and drive-by cars, 40 busts; 3 *The
+Kingpin* — a storm with power cuts and two-hit heavies while the Kingpin
+leans out of his barricade on three sides until 22 hits bring him down.
+Ending: *CASE CLOSED* — rain over the alley, the case file stamped CLOSED in
+red and the Kingpin's hat in a rippling puddle under red fireworks. Mostly
+black and white with one red accent, rain particles, slow blues music with a
+walking bass.
 
 ### nukem — Nukem Time (run'n'gun platformer)
 Side-scrolling tile levels (use `G.tileMove`). `← →` run, `↑` jump, `SPACE`
-shoot, `X` throws a grenade (limited). Find the keycard, reach the exit door. Enemies: walking
-grunts, turrets, flying drones. Exploding barrels chain-react. Health, ammo
-power-ups (spread, rapid). Levels: ten scrolling stages built from a seeded
-generator with hand-shaped chunks (gaps never wider than the jump), moving
-platforms, acid pools, lifts, more enemy types, and a boss at level 10.
-Player has a health bar inside each life. Loud square-wave rock riff.
+shoot, `X` throws a grenade (limited). Find the keycard, reach the exit door
+before the warhead's clock runs out; whoever camps in one spot gets shelled.
+Enemies: walking grunts, turrets, flying drones. Exploding barrels
+chain-react. Health, ammo power-ups (spread, rapid), crates that hide
+supplies. The stages are built from a seeded generator with hand-shaped
+chunks (gaps never wider than the jump), so each level is the same on every
+visit. Levels: 1 *Rooftops* — grunts, turrets, barrels, crates and gaps;
+2 *Acid Works* — drones, acid pools, moving platforms and troopers that shoot
+back; 3 *The Overlord* — lifts, hopping mutants and laser gates on the way to
+a sealed arena where the Overlord mech carries the keycard (100 hits, three
+attack phases; entering the arena tops up health). Player has a health bar
+inside each life. Ending: *OVERLORD DOWN* — the wreck smoking on the left,
+the hero holding up the keycard, a skyline whose windows light up under
+fireworks. Loud square-wave rock riff.
 
 ### ocean — Deep Channel (submarine cave scroller)
 The trench scrolls right to left. The sub has buoyancy and inertia: `↑ ↓`
 ballast, `← →` trim speed. `SPACE` fires torpedoes forward, `X` drops depth
-charges. Oxygen drains — collect bubble columns. Touching the cave or a
-creature costs hull. Reach the end of the trench. Levels: narrower caves,
-jellyfish fields, mines on chains, anglerfish that lunge, enemy subs, dark
-zones lit only by the headlight, currents, a kraken boss at level 10.
-Sonar pings, muffled noise, slow lydian music.
+charges. Oxygen drains — linger in bubble columns. Touching the cave or a
+creature costs hull; crates repair it. Reach the end of the trench. Levels:
+1 *Sunlit Shelf* — a wide cave with jellyfish, a jellyfish curtain that has
+to be torpedoed through, and chain mines; 2 *Angler Hollow* — a narrower
+cave with anglerfish that lunge, enemy subs and currents; 3 *Kraken's Maw* —
+the tightest cave, dark zones lit only by the headlight, vents, falling
+stalactites, and the kraken at the end (shoot an arm to make it recoil, then
+the eye; its air column is inside the arms' reach). Ending: *SURFACED* — the
+boat bobbing on the night sea while bioluminescent sparks rise and burst
+under fireworks. Sonar pings, muffled noise, slow lydian music.
 
 ### pacmaze — Neon Maze (maze chase)
 Grid maze, eat every pellet. Four ghosts with different behaviour (chaser,
 ambusher, flanker, wanderer), scatter/chase phases, power pellets that turn
-them vulnerable, side tunnels, bonus fruit. `arrows` steer with buffered
-turns. Levels: ten different mazes (hand-drawn as strings), faster ghosts,
-shorter power time, and extra twists late on (a fifth ghost, a dark level with
-limited sight). The classic wakka sound, siren that rises as pellets run out.
+them vulnerable, side tunnels, bonus fruit (the second one is an extra
+life). `arrows` steer with buffered turns. Levels: 1 *First Bite* — an open
+grid with one side tunnel and slow ghosts; 2 *Gatecrash* — two groups of
+timed shutters, turbo pads and side tunnels on two rows, faster ghosts that
+leave the house sooner; 3 *Neon Core* — dark (only a circle around Pac is
+lit, the lights come up while the ghosts are blue), a fifth ghost that never
+scatters, shutters, a pad, side tunnels and vertical warps, and eight power
+pellets. Ending: *MAZE CLEARED* — the core's walls light up ring by ring in
+cycling neon while Pac chases four blue ghosts along the top, under
+fireworks. The classic wakka sound, siren that rises as pellets run out.
 
 ### pinball — Electro Ball (pinball)
 A real table: gravity, two flippers that add momentum when they swing
 (`←` left, `→` right), `SPACE` plunger (hold to charge), pop bumpers,
-slingshots, drop targets, lanes, a spinner. Ball against line segments and
-circles with proper reflection and restitution; sub-step the ball so it never
-tunnels through a flipper. Each level is a mission on a changed table: score
-target plus a named goal (light all lanes, drop all targets, lock two balls
-for multiball …). Four balls per level; losing all is game over. `↓` nudges
-(too much tilts). Flipping again and again with no ball near the flippers
-heats the coils until the flippers rest for a moment, so flapping blindly
-does not keep a ball alive. Bells, chimes and knocker sounds; ragtime-ish major music.
+slingshots, drop targets, top lanes, saucers and a magnet. Ball against line
+segments and circles with proper reflection and restitution; sub-step the
+ball so it never tunnels through a flipper. Each level is a mission on a
+changed table: a named goal plus a points target. Levels: 1 *First Spark* —
+ring the pop bumpers; 2 *Drop Zone* — knock down both banks of drop targets,
+with top lanes (lit by flipped balls, shifted by the flippers) for points;
+3 *Overload* — drop the targets to light the locks (and earn an extra ball),
+lock two balls in the saucers to start multiball, then ring bumpers — every
+bumper is a jackpot during multiball — past a moving Rover bumper and a
+magnet. Four balls per level; losing all is game over. `↓` nudges (too much
+tilts). Flipping again and again with no ball near the flippers heats the
+coils until the flippers rest for a moment, so flapping blindly does not
+keep a ball alive. Ending: *JACKPOT!* — chase lamps running round the
+screen, searchlights sweeping and arcs crackling, under fireworks. Bells,
+chimes and knocker sounds; ragtime-ish major music.
 
 ### plasma — Plasma Storm (vertical bullet-hell shmup)
 `arrows` move in all directions, `SPACE` fire (hold; while firing the ship
