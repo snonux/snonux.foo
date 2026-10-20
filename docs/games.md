@@ -579,11 +579,17 @@ moves or shoots; standing still slows everything to a crawl, so bullets can be
 read and dodged. `WASD`/arrows move, mouse aims and clicks to shoot
 (keyboard: `SPACE` shoots toward the facing direction). One hit kills.
 Agents patrol, take cover and fire; picked-up guns have limited ammo; with no
-ammo, running into an agent from behind takes them down. Clear the room.
-Levels: ten rooms with more walls and agents, shotgun agents, agents that
-dodge, a sentinel drone that only moves in real time, level 10 is the lobby
-with pillars. `lives: 1`. Digital glitch sounds, dark minor music that slows
-down with time is a bonus, not a requirement.
+ammo, running into an agent from behind takes them down, and an operator's
+dead drop refills an empty-handed player. Clear the room. Levels: 1 *Wake
+Up*, pistol agents in a plain room with plenty of rounds; 2 *Glass Office*,
+see-through panes that stop people but shatter under fire, shotgun agents,
+dodgers and agents that duck into cover to reload; 3 *The Lobby*, the finale:
+rows of pillars, every kind of agent leading its shots, and a sentinel drone
+that moves in real time in each wave after the first. `lives: 1`. The ending
+slows the code rain to a halt and resolves it into the bullet-time tableau:
+the hero facing a frozen volley, the last agent coming apart into glyphs.
+Digital glitch sounds, dark minor music that slows down with time is a bonus,
+not a requirement.
 
 ### neon — Light Cycles (tron arena)
 Grid arena. Every cycle leaves a solid wall of light; hitting any wall

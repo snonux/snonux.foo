@@ -35,8 +35,8 @@ assert(countRain(phone) < countRain(desktop) / 2);
 assert(phone.labels.some(l => l.text === 'TIME' && l.opts.size === 30));
 assert(desktop.labels.some(l => l.text === 'TIME' && l.opts.size === 20));
 assert.equal(phone.def.hud(phone.s), 'P:8  FOES 11');
-const ten = game(true, 10); ten.s.ammo.shotgun = 6;
-assert.equal(ten.def.hud(ten.s), 'P:10 S:6  FOES 24');
+const lobby = game(true, 3); lobby.s.ammo.shotgun = 6;
+assert.equal(lobby.def.hud(lobby.s), 'P:10 S:6  FOES 15');
 
 // A tap on empty floor remains a deliberate shot there, without snapping to
 // the nearest distant enemy. FIRE locks a target and a tap snaps to it.
@@ -56,7 +56,7 @@ assert.equal(automatic.s.ammo.pistol, 7);
 
 // Layer several lethal warnings with target brackets and an ammo message.
 // The mobile treatment must retain red intent lasers and the hostile round.
-const danger = game(true, 10);
+const danger = game(true, 3);
 danger.s.agents[0].wind = .3;
 danger.s.bullets.push({ x: 160, y: 270, vx: -270, vy: 0, own: danger.s.agents[0] });
 danger.s.lock = danger.s.agents[0]; danger.s.msg = 'AMMO AT DROP MARKER'; danger.s.msgT = 2;
@@ -125,7 +125,7 @@ if (process.argv.includes('--browser')) {
             await page.goto(`${base}/index.html`);
             await page.eval("SnoGame.launch('matrix')");
             await page.waitFor('SnoGame.debug.state()?.registered', 'matrix register');
-            for (const level of [1, 5, 10]) {
+            for (const level of [1, 2, 3]) {
                 const run = await page.eval(`(function(){
                     var bot=${steer.toString()},attempts=[],success=false;
                     for(var attempt=0;attempt<12&&!success;attempt++){
