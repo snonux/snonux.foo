@@ -105,6 +105,13 @@ function checkRuns(runs, where) {
     assert.ok(one.rode.includes('raft') && one.springs > 0, `${where}: level 1 crosses its lagoon on a raft and uses a spring`);
     assert.ok(two.rode.includes('mover') && two.rode.includes('fall'), `${where}: level 2 rides planks and crumbling slabs`);
     assert.ok(three.rode.includes('lift') && three.surges > 0, `${where}: level 3 rides the lift and lives through a surge`);
+    // Each level's enemies really stand in the way, and they are beaten by
+    // stomping, not only by jumping past.
+    const met = (r, kinds) => kinds.every((k) => r.met.split(' ').includes(k));
+    assert.ok(met(one, ['crab', 'urchin']), `${where}: level 1 meets crabs and urchins`);
+    assert.ok(met(two, ['drip', 'monkey']), `${where}: level 2 passes falling stalactites and the monkey`);
+    assert.ok(met(three, ['crab', 'gull', 'monkey']), `${where}: level 3 meets crabs, gulls and the monkey`);
+    assert.ok(runs.reduce((n, r) => n + r.stomps, 0) > 0, `${where}: the campaign stomps an enemy`);
 }
 const proof = vm.runInNewContext(driver, { SnoGame: G, BOT: vm.runInNewContext(botFile) });
 console.log(JSON.stringify(proof));
