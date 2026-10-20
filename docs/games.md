@@ -510,10 +510,21 @@ turns and drops a row whenever it meets a node or a wall. The player's turret
 moves freely in the bottom quarter (`arrows`), `SPACE` rapid fire. A shot
 segment calcifies into a node and splits the worm in two. Clear every segment
 to win the level. Also: spore droppers that fall leaving nodes, parasites that
-zigzag through the player zone, a fast eye that poisons nodes. Levels: longer
-and faster worms, several worms at once, regenerating nodes, and at level 10 a
-Queen that spawns worms and must be shot in the head. Wet, fleshy noise-based
-sounds; phrygian music.
+zigzag through the player zone (eating nodes), a fast eye that poisons nodes (a
+worm touching one dives), and lone heads crawling in from the walls while a
+worm is loose in the zone. Levels:
+
+1. **First Vertebra** — three worms one after another and spore sacs: learn
+   how a hit splits a worm and leaves bone.
+2. **Twin Spines** — worms from both walls at once on a mirrored field,
+   faster, with parasites and the eye.
+3. **The Queen** — she sweeps along the top behind armour, breeds worms
+   (faster once wounded) over a regenerating field, with sacs and parasites;
+   only her head takes damage. Kill her and her brood to win.
+
+The ending: the Queen's carapace flakes apart and her head melts while rings
+of luminous spores burst across the field (**THE QUEEN DISSOLVES**). Wet,
+fleshy noise-based sounds; phrygian music.
 
 ### breakout — Brick Breaker (paddle and ball)
 The reference game. `← →` or the mouse move the paddle (on a phone ◀ ▶ or a

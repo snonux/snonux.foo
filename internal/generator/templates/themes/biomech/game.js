@@ -9,8 +9,9 @@
  *
  * Around the worm: spore sacs fall and seed nodes, parasites zigzag through
  * the turret's zone eating nodes, and a fast eye poisons nodes so that a worm
- * touching one dives straight down. Level 10 adds the Queen, who breeds worms
- * and only takes damage in the head.
+ * touching one dives straight down. Three levels: worms and spore sacs, then
+ * twin worms with parasites and the eye on a mirrored field, and finally the
+ * Queen, who breeds worms and only takes damage in the head.
  *
  * A turret that sits still is hunted down: unhurt worms speed up and finally
  * dive, a worm on the turret's own row chews through the bone in its way, and
@@ -35,9 +36,9 @@
     var DIVE_AGE = 15, DIVE_STEP = 2;                   // seconds unhurt before a worm dives on level 1; added per level
     var REINFORCE = 4, REINFORCE_STEP = 0.5;            // seconds between lone heads on level 1; added per level
     var LONE_WARN = 0.7;                                // seconds a lone head is announced at the wall before it enters
-    var QUEEN_BROOD_CAP = 14;                           // the Queen holds her brood back above this many
+    var QUEEN_BROOD_CAP = 12;                           // the Queen holds her brood back above this many
     var MAX_LIVE = 30;                                  // no lone heads while this many segments are alive
-    var BOLD_RATE = 0.08, BOLD_CAP = 12;                // unhurt worms speed up by 8 % a second
+    var BOLD_RATE = 0.08, BOLD_MAX = 1.5;               // unhurt worms speed up by 8 % a second, to half again their pace
     var BONE = '#d0c7bb', FLESH = '#803f5d', VEIN = '#f55b7d', ACID = '#93ffd8', STEEL = '#2d3642', BG = '#09070d';
 
     // ------------------------------------------------------------------
@@ -55,55 +56,24 @@
     function mirror(density) {
         return function (c, r, seed) { return hash(Math.min(c, COLS - 1 - c), r, seed) < density ? 1 : 0; };
     }
-    // Broken vertical ribs: lanes that hurry a worm downward, with gaps every
-    // third row so it can still slip sideways into the next lane.
-    function ribs(c, r, seed) {
-        if (c % 8 === 4 && r >= 2 && r <= 13 && r % 3 !== 0) return 1;
-        return hash(c, r, seed) < 0.02 ? 1 : 0;
-    }
-    // Diagonal seams of venom through an ordinary scatter.
-    function bands(c, r, seed) {
-        var h = hash(c, r, seed);
-        if ((c + r * 2) % 13 === 0 && r > 1 && r < 13 && h < 0.45) return 2;
-        return h < 0.06 ? 1 : 0;
-    }
 
     // side -1 enters from the left edge, +1 from the right; `at` is seconds
     // into the level (the next wave comes early when the field is empty).
     function wave(len, side, row, at) { return { len: len, side: side, row: row, at: at }; }
 
-    function swarm() {
-        var out = [];
-        // Three batches of six short worms, staggered over the top three rows.
-        for (var i = 0; i < 18; i++) out.push(wave(i < 6 ? 4 : 3, i % 2 ? 1 : -1, i % 3, Math.floor(i / 6) * 15));
-        return out;
-    }
-
     // speed is cells per second; top is the first row that may hold nodes (the
     // rows above it are where worms enter); spore / para / eye are spawn intervals in
     // seconds (absent = that creature does not appear); regen is the seconds
     // between healing-and-sprouting pulses; queen is her head's hit points.
-    // The pace tops out at ten cells a second: a worm that fast crosses the
-    // turret's zone in about the time a player needs to react, so the late
-    // levels are hard through what they field (swarm, ribs, venom, Queen),
-    // and parasites, the main killer down there, come a little less often.
+    // 1: three worms and spore sacs, to learn splitting; 2: twin worms from
+    // both walls on a mirrored field, with parasites and the venom eye; 3: the
+    // Queen, who breeds worms over a regenerating field among sacs and
+    // parasites. Her worms keep the twins' pace: she is the challenge.
     var LEVELS = [
-        { speed: 6, layout: scatter(0.045), waves: [wave(10, -1, 0, 0), wave(8, 1, 0, 16)] },
-        { speed: 6.5, layout: scatter(0.05), spore: 5, waves: [wave(12, 1, 0, 0), wave(10, -1, 0, 18), wave(8, 1, 0, 34)] },
-        { speed: 7, layout: scatter(0.055), spore: 8, para: 7, waves: [wave(12, -1, 0, 0), wave(11, 1, 0, 18), wave(9, -1, 0, 34)] },
-        { speed: 7.5, layout: mirror(0.06), spore: 8, para: 8,
-            waves: [wave(8, -1, 0, 0), wave(8, 1, 0, 0), wave(8, -1, 0, 18), wave(8, 1, 0, 18),
-                wave(6, -1, 0, 36), wave(6, 1, 0, 36)] },
-        { speed: 8, layout: scatter(0.06), top: 3, spore: 9, para: 8, eye: 8,
-            waves: [wave(14, -1, 0, 0), wave(1, 1, 0, 5), wave(1, -1, 2, 7), wave(12, 1, 0, 22), wave(10, -1, 0, 40)] },
-        { speed: 8.5, layout: scatter(0.09), regen: 2.5, spore: 10, para: 8, eye: 12,
-            waves: [wave(10, -1, 0, 0), wave(10, 1, 0, 0), wave(13, -1, 0, 22), wave(10, 1, 0, 40)] },
-        { speed: 9.5, layout: scatter(0.05), top: 3, spore: 8, para: 7.5, eye: 14, waves: swarm() },
-        { speed: 10, layout: ribs, spore: 7, para: 6, eye: 9, waves: [wave(18, -1, 0, 0), wave(14, 1, 0, 14), wave(12, -1, 0, 28), wave(10, 1, 0, 42)] },
-        { speed: 10, layout: bands, regen: 2.5, spore: 8, para: 8, eye: 7,
-            waves: [wave(12, -1, 0, 0), wave(12, 1, 0, 0), wave(12, -1, 0, 16), wave(12, 1, 0, 16),
-                wave(10, -1, 0, 32), wave(10, 1, 0, 32)] },
-        { speed: 9.5, layout: scatter(0.05), top: QROW + 1, queen: 60, regen: 4, spore: 8, para: 9, eye: 11,
+        { speed: 6, layout: scatter(0.045), spore: 7, waves: [wave(12, -1, 0, 0), wave(10, 1, 0, 16), wave(8, -1, 0, 32)] },
+        { speed: 7.5, layout: mirror(0.06), spore: 8, para: 8, eye: 10,
+            waves: [wave(10, -1, 0, 0), wave(10, 1, 0, 0), wave(8, -1, 0, 20), wave(8, 1, 0, 20)] },
+        { speed: 7.5, layout: scatter(0.05), top: QROW + 1, queen: 60, regen: 5, spore: 8, para: 12,
             waves: [wave(8, -1, QROW + 1, 0)] }
     ];
 
@@ -340,12 +310,9 @@
     }
 
     // A worm nobody is hurting grows bold and speeds up; every hit on it
-    // resets that, so only neglected worms get out of hand. The ceiling is
-    // half again the level's pace, but never beyond BOLD_CAP cells a second:
-    // the late levels are already so fast that their worms gain only a little.
+    // resets that, so only neglected worms get out of hand.
     function wormSpeed(w) {
-        var ceiling = Math.min(w.speed * 1.5, Math.max(BOLD_CAP, w.speed));
-        return Math.min(w.speed * (1 + BOLD_RATE * w.age), ceiling);
+        return w.speed * Math.min(1 + BOLD_RATE * w.age, BOLD_MAX);
     }
 
     function updateWorms(s, dt) {
@@ -404,12 +371,13 @@
     // Centipede's rule: while a worm from above is loose in the turret's zone, lone heads
     // keep crawling in from the side walls, so letting one through is never
     // a stable situation. They come fastest on the early levels, which have
-    // nothing else to punish a turret that sits still. A head starts far
-    // enough beyond the wall to be announced for LONE_WARN seconds (see
-    // drawLoneWarnings), because it comes in on a row the turret may be on.
+    // nothing else to punish a turret that sits still; the Queen sends none,
+    // her brood already does that job. A head starts far enough beyond the
+    // wall to be announced for LONE_WARN seconds (see drawLoneWarnings),
+    // because it comes in on a row the turret may be on.
     function reinforce(s, dt, loose) {
         var every = reinforceEvery(G.level);
-        if (!loose) { s.reinforce = every; return; }
+        if (!loose || s.cfg.queen) { s.reinforce = every; return; }
         s.reinforce -= dt;
         if (s.reinforce > 0 || liveSegments(s) >= MAX_LIVE) return;
         s.reinforce = every;
@@ -974,6 +942,58 @@
         return (s.queen ? 'QUEEN ' + s.queen.hp + '  ' : '') + (s.touch ? 'SEG ' : 'SEGMENTS ') + segmentsLeft(s);
     }
 
+    // ------------------------------------------------------------------
+    // The ending: the Queen dissolves and her spores burst into light
+    // ------------------------------------------------------------------
+
+    // Cheap repeatable noise: the scene is a pure function of e.t.
+    function noise(n) { var v = Math.sin(n * 127.1) * 43758.5453; return v - Math.floor(v); }
+
+    var END_X = G.W / 2, END_Y = 250, FLAKES = 70, BURST_EVERY = 0.7;
+
+    // Her carapace flakes apart from the rim inwards, each flake drifting up
+    // and away as it fades.
+    function drawDissolve(e, ctx) {
+        var colors = [STEEL, FLESH, BONE, VEIN];
+        for (var i = 0; i < FLAKES; i++) {
+            var a = noise(i) * Math.PI * 2, d = Math.sqrt(noise(i + 0.5));
+            var go = Math.max(0, e.t - 0.6 - (1 - d) * 2.4), life = 1 - go / 3;
+            if (life <= 0) continue;
+            ctx.globalAlpha = life * 0.8;
+            ctx.fillStyle = colors[i % 4];
+            var size = 4 + 8 * life;
+            ctx.fillRect(END_X + Math.cos(a) * (92 * d + go * 90) - size / 2, END_Y + Math.sin(a) * (36 * d + go * 40) - go * go * 30 - size / 2, size, size);
+        }
+        // The soft head goes last, pulsing as it melts.
+        var head = 1 - G.clamp((e.t - 3) / 2, 0, 1);
+        if (head <= 0) return;
+        ctx.globalAlpha = head;
+        ctx.fillStyle = VEIN;
+        circle(ctx, END_X, END_Y + 46, head * (16 + 2 * Math.sin(e.t * 9))); ctx.fill();
+    }
+
+    // Rings of glowing spores pop open one after another across the field.
+    function drawSporeBursts(e, ctx) {
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.fillStyle = ACID;
+        var newest = Math.floor(e.t / BURST_EVERY);
+        for (var k = Math.max(0, newest - 3); k <= newest; k++) {
+            var age = e.t - k * BURST_EVERY, x = 80 + noise(k + 0.3) * (G.W - 160), y = 90 + noise(k + 0.8) * 340;
+            ctx.globalAlpha = Math.max(0, 1 - age / (BURST_EVERY * 4)) * 0.9;
+            for (var j = 0; j < 14; j++) {
+                var a = j / 14 * Math.PI * 2 + k, r = 10 + age * 70;
+                circle(ctx, x + Math.cos(a) * r, y + Math.sin(a) * r, 3); ctx.fill();
+            }
+        }
+        ctx.globalCompositeOperation = 'source-over';
+    }
+
+    function drawEnding(e, ctx) {
+        drawDissolve(e, ctx);
+        drawSporeBursts(e, ctx);
+        ctx.globalAlpha = 1;
+    }
+
     G.register('biomech', {
         title: 'SPINE CRAWLER',
         blurb: 'Shoot every segment of the worm before it reaches you.',
@@ -981,10 +1001,9 @@
             'ARROWS / pad: move in the bottom zone',
             'SPACE / FIRE (hold): rapid fire',
             'Hits leave bone & split worms · green nodes cause dives',
-            'Level 10: shoot the Queen\'s head'
+            'Level 3: shoot the Queen\'s head'
         ],
-        levelNames: ['First Vertebra', 'Spore Fall', 'Parasites', 'Twin Spines', 'The Eye',
-            'Marrow Bloom', 'Swarm', 'Rib Cage', 'Venom Tide', 'The Queen'],
+        levelNames: ['First Vertebra', 'Twin Spines', 'The Queen'],
         colors: { bg: BG, fg: BONE, accent: ACID, dim: '#8c7f86' },
         lives: 3,
         music: {
@@ -995,6 +1014,12 @@
             arp: '0.1.2.1.',
             drums: { k: 'x..x..x.x..x..x.', s: '....x.......x..x', h: '..x...x...x...x.' },
             leadWave: 'sawtooth', bassWave: 'sawtooth', arpWave: 'triangle', leadOct: 2
+        },
+        ending: {
+            title: 'THE QUEEN DISSOLVES',
+            text: 'The spine goes still. Her spores drift free as light.',
+            colors: [ACID, VEIN, BONE, '#ffffff'],
+            draw: drawEnding
         },
         init: init, update: update, draw: draw, hud: hud,
         // The stick steers in eight directions and A is held to fire; B does nothing here.
