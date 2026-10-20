@@ -13,7 +13,7 @@
         }
         return best;
     }
-    [1, 5, 10].forEach(function (level) {
+    [1, 2, 3].forEach(function (level) {
         G.debug.start(level);
         for (var n = 0; n < 36000 && G.debug.state().screen === 'play'; n++) {
             G.debug.step(1, function (_, s) {

@@ -706,10 +706,17 @@ bottom moves by column (`← →`) and fires a block up its column (`SPACE`); th
 block sticks under the lowest block there. A row with no gaps clears (line
 clear), and everything above it drops. Lose a life when the wall reaches the
 launcher line. Clear the level's line quota. `↓` speeds the descent for bonus
-points. Levels: faster descent, wider gaps patterns, armoured blocks that
-need two hits, bomb blocks that clear neighbours, rows that shift sideways,
-level 10 has all. Tetromino colours, chunky clear effects, a brisk minor-key
-folk-dance style tune of your own.
+points. Levels: 1 *First Wall* — plain rows with one or two single gaps, 36
+lines; 2 *Steel and Bombs* — a faster wall with wide gaps, two-row wells,
+steel plates that need two hits and bombs that blast the neighbouring rows,
+40 lines; 3 *Block Blaster* — the last wall, fastest, with everything plus
+rows that slide sideways on a beat and surges that slam it down a cell, 44
+lines. Speeds and quotas are set so a player who takes 0.7 s per shot wins
+every level in one to one and a half minutes. The ending: a wall drops into
+the middle of the screen and clears from the bottom up in one long combo,
+each row bursting into flying blocks, under block-coloured fireworks.
+Tetromino colours, chunky clear effects, a brisk minor-key folk-dance style
+tune of your own.
 
 ### tropicale — Island Hopper (classic jump'n'run)
 Side-scrolling tile platformer (use `G.tileMove`). `← →` run with

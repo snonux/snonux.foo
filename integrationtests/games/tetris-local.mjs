@@ -9,7 +9,7 @@ function fixture(touch) {
         isTouch: () => touch, register: (_, d) => { def = d; },
         clamp: (v, a, b) => Math.max(a, Math.min(b, v)), pick: (a) => a[0],
         rng: (seed) => () => { seed = (seed + 0x6D2B79F5) >>> 0; let t = Math.imul(seed ^ seed >>> 15, seed | 1); t ^= t + Math.imul(t ^ t >>> 7, t | 61); return ((t ^ t >>> 14) >>> 0) / 4294967296; },
-        win: () => { screen = G.level === 10 ? 'victory' : 'clear'; },
+        win: () => { screen = G.level === 3 ? 'victory' : 'clear'; },
         loseLife: () => { if (--G.lives <= 0) screen = 'over'; return G.lives; },
         text: (value, x, y, opts) => labels.push({ value, x, y, ...opts }),
     };
@@ -32,7 +32,7 @@ function fixture(touch) {
     return { G, def, ctx, labels, effects, calls };
 }
 const phone = fixture(true), desktop = fixture(false);
-for (const level of [1, 5, 10]) {
+for (const level of [1, 2, 3]) {
     for (const f of [phone, desktop]) f.G.debug.start(level);
     for (let n = 0; n < 900; n++) {
         const input = { left: n % 180 < 60, right: n % 180 >= 120, a: n % 23 === 0, down: n % 120 < 10 };
@@ -77,7 +77,7 @@ phone.G.debug.start(1); phone.G.debug.step(1, { left: true, right: true });
 assert.equal(phone.G.debug.s().col, 5, 'opposite controls cancel');
 desktop.G.debug.start(1); desktop.G.debug.step(1, { mouse: { x: 400, y: 200, down: true } });
 assert.equal(desktop.G.debug.s().shots.length, 0, 'desktop mouse retains its behavior');
-phone.G.debug.start(10);
+phone.G.debug.start(3);
 const s = phone.G.debug.s(); s.combo = 4; s.comboT = 2; s.surgeT = 0.5; s.shiftT = 0.1;
 s.rows[0].shift = 1; phone.G.key = { down: true }; phone.def.draw(s, phone.ctx);
 for (const message of ['STEEL', 'HIT x2', 'BOMB', '3 ROWS', 'SLIDE', 'SURGE!', 'NOW', 'LINES', 'COMBO', 'RUSH +']) {
@@ -88,13 +88,13 @@ for (const message of ['STEEL', 'HIT x2', 'BOMB', '3 ROWS', 'SLIDE', 'SURGE!', '
 }
 assert.ok(phone.calls.some((c) => c.name === 'scale' && c.args[0] === 1.5 && c.args[1] === 1), 'phone enlarges columns without changing vertical cues');
 for (const f of [phone, desktop]) {
-    f.calls.length = 0; f.G.debug.start(10); f.def.draw(f.G.debug.s(), f.ctx);
+    f.calls.length = 0; f.G.debug.start(3); f.def.draw(f.G.debug.s(), f.ctx);
 }
 assert.ok(phone.calls.length < desktop.calls.length, 'phone omits decorative calls despite its larger cues');
 for (const f of [phone, desktop]) {
     const result = vm.runInNewContext(readFileSync(new URL('./tetris-bot.js', import.meta.url), 'utf8'), { SnoGame: f.G });
     console.log(JSON.stringify({ touch: f === phone, ...result }));
-    assert.ok(result.wins.every((v) => ['clear', 'victory'].includes(v.screen)), 'ordinary inputs win 1/5/10');
+    assert.ok(result.wins.every((v) => ['clear', 'victory'].includes(v.screen)), 'ordinary inputs win 1/2/3');
     assert.ok(result.idle.every((v) => v.screen === 'over'), 'idle fails');
 }
 console.log('ok tetris: phone targets, edge validation, combined cues, identical challenge, input wins and idle losses');
