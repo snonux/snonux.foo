@@ -1,6 +1,21 @@
-// Read-only steering: walls, visible threat locations, drive icons and EMP.
+// Blind Spot campaign bot: a burglar who reads the security console. Every
+// few steps it plans a route over the floor tiles to the nearest drive (the
+// exit once all are taken) with Dijkstra, where each tile costs one plus a
+// risk for every cone, drone ring, searchlight, live beam and live plate
+// that would see it; with the meter rising it heads for the nearest tile
+// nobody watches instead. It walks, never sprints, and fires the EMP once
+// when a live plate or beam stands in its way, or when it is being seen
+// with the meter nearly full. The pulse is one fresh press; holding the
+// button would not fire again.
+//
+// fail() is the same burglar in a hurry: it sprints the shortest way to
+// each drive as if nothing were watching, which is what the levels are
+// built to punish.
 (function () {
-    function steer(s, mem) {
+    function steer(s, G, mem, reckless) {
+        // Caught: back at the entrance with every drive returned, so the old
+        // plan is void.
+        if (G.lives !== mem.lives) { mem.next = null; mem.flee = 0; mem.lives = G.lives; }
         const p = s.player, tile = (x, y) => s.map[y - 1]?.[x] || '#';
         const blocked = (x, y) => '#<>^v'.includes(tile(x, y));
         const dist = (o, x, y) => Math.hypot(o.x - x, o.y - y);
@@ -40,6 +55,7 @@
             return cost;
         };
         const risk = (x, y) => {
+            if (reckless) return 0;
             let cost = guardRisk(x, y);
             for (const c of s.cams) if (c.off <= .7 && sees(c, x, y, 195, 1.1)) cost += 12;
             for (const d of s.drones) if (d.off <= .7 && dist(d, x, y) < 74 && clear(d, x, y)) cost += 18;
@@ -53,7 +69,7 @@
         if (!mem.next || Math.hypot(mem.next.x - p.cx, mem.next.y - p.cy) < 3 || mem.age++ > 10) {
             const start = Math.floor(p.cy / 30) * 32 + Math.floor(p.cx / 30), costs = { [start]: 0 }, prev = {}, queue = [start];
             let goals = s.open ? [s.exit] : s.drives.filter(d => !d.got);
-            if (s.det > .4 || mem.flee > 0) {
+            if (!reckless && (s.det > .4 || mem.flee > 0)) {
                 goals = [];
                 for (let y = 2; y < 17; y++) for (let x = 1; x < 31; x++)
                     if (!blocked(x, y) && risk(x * 30 + 15, y * 30 + 15) === 0) goals.push({ x: x * 30 + 15, y: y * 30 + 15 });
@@ -95,6 +111,7 @@
         // A step that walks into a guard's (coming) view waits instead, and
         // so does one through a shut door - unless a guard is coming to the
         // place where it waits: then it backs off to a quiet tile first.
+        if (reckless) return { right: dx > 2, left: dx < -2, down: dy > 2, up: dy < -2 };
         const here = guardRisk(p.cx, p.cy);
         if (beamShut || plateShut && !emp) {
             if (here <= 0 || mem.flee > 0 || s.det >= .4) return { a: press };
@@ -108,5 +125,9 @@
         const run = s.det > .25 && s.guards.some(g => g.sees) || inBeam;
         return { right: dx > 2, left: dx < -2, down: dy > 2, up: dy < -2, a: press, b: run };
     }
-    return steer;
+    return {
+        play: function (s, G, mem) { return steer(s, G, mem, false); },
+        fail: function (s, G, mem) { return steer(s, G, mem, true); },
+        budget: 360
+    };
 })()

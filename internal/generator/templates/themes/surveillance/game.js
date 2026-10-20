@@ -59,7 +59,7 @@
      * tip: the hint shown while the level starts.
      *
      * How the levels keep a blind dash from working (it must be stealth, not
-     * speed, that wins): on level 1 three cameras watch the open floor between
+     * speed, that wins): on level 1 four cameras watch the open floor between
      * the drives; on level 2 the start room's only doors are a tripwire and a
      * pressure plate, and drones hover over the drive rooms; on level 3 a
      * plate seals the exit's corner and searchlights cross every room. That
@@ -78,7 +78,7 @@
             '#......#.......................#',
             '####.###########........########',
             '#..............#...............#',
-            '#..............#...............#',
+            '#>.............#...............#',
             '#......o.......#...............#',
             '#..............#..............<#',
             '#..............................#',
