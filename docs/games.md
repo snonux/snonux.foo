@@ -490,11 +490,20 @@ skier descends. `← →` carve (turning bleeds speed, with inertia), `↓` tuck
 speed, `SPACE` jump (also off ramps, for airtime and points). Pass between
 slalom gate flags (a miss costs time), dodge pines, rocks and ice crevasses
 (crash = lose a life, short stun). Reach the finish line before the clock runs
-out. Levels: longer and denser courses; side wind gusts from level 3; a yeti
-that chases when you are slow from level 4; moguls and ice patches (no grip)
-from level 6; an avalanche wall closing from behind from level 8; level 10 is a
-storm run with everything. Draw aurora ribbons in the sky strip and snow
-spray particles. Music: airy lydian arpeggios.
+out; a missed gate costs three seconds. Levels:
+
+1. **Pine Forest** — pines, rocks and ramps (big air clears even a tree):
+   learn the line, the tuck and the jump.
+2. **Blue Crevasse** — a longer, tighter course with crevasses and chasms to
+   jump (half with a ramp), side wind gusts, and a yeti that chases when you
+   are slow.
+3. **Polar Storm** — the finale: storm fog and snow, moguls and ice patches
+   (no grip), a tree-lined chute in the middle third, the yeti, and an
+   avalanche wall closing in from behind.
+
+Aurora ribbons in the sky strip, snow spray particles. The ending: the aurora
+fills the whole sky and coloured snow glints down through the fireworks
+(**POLAR CHAMPION**). Music: airy lydian arpeggios.
 
 ### biomech — Spine Crawler (centipede-style shooter)
 A segmented biomechanical worm winds down through a field of bone nodes; it
@@ -502,10 +511,40 @@ turns and drops a row whenever it meets a node or a wall. The player's turret
 moves freely in the bottom quarter (`arrows`), `SPACE` rapid fire. A shot
 segment calcifies into a node and splits the worm in two. Clear every segment
 to win the level. Also: spore droppers that fall leaving nodes, parasites that
-zigzag through the player zone, a fast eye that poisons nodes. Levels: longer
-and faster worms, several worms at once, regenerating nodes, and at level 10 a
-Queen that spawns worms and must be shot in the head. Wet, fleshy noise-based
-sounds; phrygian music.
+zigzag through the player zone (eating nodes), a fast eye that poisons nodes (a
+worm touching one dives), and lone heads crawling in from the walls while a
+worm is loose in the zone. Levels:
+
+1. **First Vertebra** — three worms one after another and spore sacs: learn
+   how a hit splits a worm and leaves bone.
+2. **Twin Spines** — worms from both walls at once on a mirrored field,
+   faster, with parasites and the eye.
+3. **The Queen** — she sweeps along the top behind armour, breeds worms
+   (faster once wounded) over a regenerating field, with sacs and parasites;
+   only her head takes damage. Kill her and her brood to win.
+
+The ending: the Queen's carapace flakes apart and her head melts while rings
+of luminous spores burst across the field (**THE QUEEN DISSOLVES**). Wet,
+fleshy noise-based sounds; phrygian music.
+
+### breakout — Brick Breaker (paddle and ball)
+The reference game. `← →` or the mouse move the paddle (on a phone ◀ ▶ or a
+finger on the board), `SPACE` / **SERVE** or a click serves. Where the ball
+lands on the paddle sets the angle it leaves at, and each return speeds it up
+a little (capped). Bricks take one to three hits, steel never breaks, and
+about one brick in four drops a capsule: wide paddle, multiball, laser (fire
+with `SPACE`), slow ball, extra life. Clear every breakable brick to win;
+every ball lost costs a life. Levels:
+
+1. **Warm-up** — four open rows, mostly one hit.
+2. **Invader** — a space-invader sprite with two-hit rows on top, faster ball,
+   narrower paddle.
+3. **The Fortress** — a three-hit core inside steel walls whose floor has
+   three gates: aim through a gate (or up a side gutter) to get in, and the
+   ball then rattles around the core.
+
+The ending: a last wall drops into place row by row, a ball streaks into it
+and it shatters outwards into the fireworks (**THE WALL IS DOWN**).
 
 ### brutalist — Wrecking Ball (pendulum demolition)
 Side view. Drive a crane along the ground (`← →`); its ball hangs on a chain
@@ -513,9 +552,20 @@ and swings as a real pendulum (drive to build momentum, `↑ ↓` reel the chain
 in or out). Concrete towers are built from blocks with gravity: knock out
 support and what is above falls and breaks. Damage depends on impact speed;
 rebar blocks need a hard hit. Demolish the target percentage before the timer
-ends. Falling slabs that hit the cab cost a life. Levels: taller and wider
-structures, rebar cores, glass (bonus) floors, a second timer-fused charge
-block that explodes when hit, and at level 10 a megastructure. Heavy thuds,
+ends (a missed deadline costs a life and buys a short overtime). Falling
+slabs and debris that hit the cab cost a life. Levels:
+
+1. **Twin Stacks** — plain concrete stacks: learn to pump the swing, brake
+   to whip the ball and knock out the bottom row.
+2. **Arcade** — pillars carrying lintels (a slab holds only while both ends
+   stand), glass (bonus) floors and rebar that needs a fast hit.
+3. **Megastructure** — a podium, two towers with rebar cores, a glazed
+   skybridge and TNT charges that blow 1.6 s after they are struck (and set
+   off their neighbours), under side wind gusts and tremors that throw roof
+   blocks at the cab.
+
+The ending: two towers rise, their charges blink and they implode floor by
+floor into clouds of dust and coloured smoke (**SITE CLEARED**). Heavy thuds,
 dust particles, industrial dorian music.
 
 ### cathedral — Gargoyle (joust-style flapping combat)
@@ -523,10 +573,21 @@ A stone gargoyle in a cathedral nave. `SPACE` flaps against gravity, `← →`
 steer, the screen wraps left/right, stone ledges to land on. Collide with a
 demon: whoever is higher wins; the loser bursts into a soul orb. Collect the
 orb before it re-hatches into a tougher demon. Clear all demons in every wave
-of the level. Holy fire along the floor kills. Levels: more waves, faster
-demon tiers, bat swarms that push you, crumbling ledges, a swinging censer
-hazard, and at level 10 an archdemon that needs three strikes from above.
-Organ-like harmonic-minor music, bell sounds.
+of the level; a cleared wave blesses a lost life back. Holy fire along the
+floor kills. Levels:
+
+1. **Matins** — imps, then a fiend, in the open nave: learn to strike from
+   above and to catch the souls.
+2. **The Censer** — imps and fiends, then a wraith, under a swinging censer
+   whose burning bowl kills, bat swarms that shove the gargoyle, and two
+   high ledges that crumble underfoot.
+3. **Archdemon** — fiends and wraiths among the censer, bats and fire
+   geysers that open under the gargoyle, then the archdemon: three strikes
+   from above, each one calling reinforcements.
+
+The ending: two bells swing and ring out in golden rings while stained
+glass bursts across the nave (**THE NAVE IS HALLOWED**). Organ-like
+harmonic-minor music, bell sounds.
 
 ### cosmos — Gravity Well (asteroids with gravity)
 `← →` rotate, `↑` thrust, `SPACE` fire, `X` hyperspace (risky random jump
