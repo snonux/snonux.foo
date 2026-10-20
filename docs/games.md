@@ -770,20 +770,32 @@ alarm when spotted.
 Classic segment-projected road toward a striped sun. `← →` steer, `↑`
 accelerate, `↓` brake, `SPACE` nitro. Curves push the car outward; leaving the
 road slows you; hitting traffic or roadside objects costs speed. Reach the
-finish before the timer hits zero. Levels: ten stages with their own curve and
-hill profile, more traffic, tighter time, night/sunset palettes, oncoming
-lanes late on. Engine pitch follows speed. Driving synthwave music with a
-gated-snare beat.
+finish before the timer hits zero; every checkpoint adds time and nitro, and
+squeezing past traffic refills the tank. One life: the clock running out ends
+the race. Levels: 1 *Sunset Strip* — gentle S-bends along the coast with light
+traffic; 2 *Midnight Storm* — hills through a rainy night city, trucks, oil
+slicks and a road that pushes harder in the bends; 3 *Outrun the Sun* — the
+finale: hairpins and crests with oncoming lanes, roadworks, crosswind gusts,
+oil and trucks. Each level's clock is set from what a casual driver holds
+there. The ending: the car crosses the line as a striped sun sinks into a
+neon grid between palm silhouettes, under neon fireworks. Engine pitch
+follows speed. Driving synthwave music with a gated-snare beat.
 
 ### terminal — kill -9 (ASCII twin-stick arena shooter)
 Everything is drawn as monospace glyphs in terminal green. `WASD` moves the
 `@`, the arrow keys fire in eight directions (mouse aim and click also work).
-Rogue processes swarm: `Z` zombies shamble, `&` forks split when shot, `d`
-daemons keep distance and shoot, `>` pipes dash in lines, `#` root shells
+Rogue processes swarm: `Z` zombies shamble, `&` forks split when shot,
+`d` daemons keep distance and shoot, `>` pipes dash in lines, `#` root shells
 soak damage. Pickups: `$` score, `+` life, `!` spread shot, `*` bomb. Clear
-every wave in the level. Levels: bigger waves and mixes, spawners (`[fork]`)
-that must be destroyed, a fork bomb level, and `init` (pid 1) as the level 10
-boss. Bell and keyclick sounds, fast square-wave music.
+every wave in the level. Levels: 1 */bin/sh* — zombies, then splitting forks
+and the first daemons; 2 *| pipeline* — pipes dashing between solid
+directories, root shells, daemons, and two `[fork]` spawners that must be
+destroyed; 3 *init (pid 1)* — a fork bomb whose forks grow and replicate up
+to a full process table, then `init` itself, a boss that cycles rings, fans,
+adopted orphans and, at half health, spirals and pipes (it wakes at the end
+of the arena away from the player). The ending: a shell types out an empty
+process table and a zero load average while ASCII fireworks burst above.
+Bell and keyclick sounds, fast square-wave music.
 
 ### tetris — Block Blaster (quarth-style block shooter)
 A wall of block rows with gaps descends from the top. The launcher at the
@@ -791,27 +803,46 @@ bottom moves by column (`← →`) and fires a block up its column (`SPACE`); th
 block sticks under the lowest block there. A row with no gaps clears (line
 clear), and everything above it drops. Lose a life when the wall reaches the
 launcher line. Clear the level's line quota. `↓` speeds the descent for bonus
-points. Levels: faster descent, wider gaps patterns, armoured blocks that
-need two hits, bomb blocks that clear neighbours, rows that shift sideways,
-level 10 has all. Tetromino colours, chunky clear effects, a brisk minor-key
-folk-dance style tune of your own.
+points. Levels: 1 *First Wall* — plain rows with one or two single gaps, 36
+lines; 2 *Steel and Bombs* — a faster wall with wide gaps, two-row wells,
+steel plates that need two hits and bombs that blast the neighbouring rows,
+40 lines; 3 *Block Blaster* — the last wall, fastest, with everything plus
+rows that slide sideways on a beat and surges that slam it down a cell, 44
+lines. Speeds and quotas are set so a player who takes 0.7 s per shot wins
+every level in one to one and a half minutes. The ending: a wall drops into
+the middle of the screen and clears from the bottom up in one long combo,
+each row bursting into flying blocks, under block-coloured fireworks.
+Tetromino colours, chunky clear effects, a brisk minor-key folk-dance style
+tune of your own.
 
 ### tropicale — Island Hopper (classic jump'n'run)
 Side-scrolling tile platformer (use `G.tileMove`). `← →` run with
 acceleration, `SPACE` or `↑` jump (variable height, coyote time, jump
 buffering). Stomp crabs, avoid urchins (not stompable) and swooping gulls,
 bounce on springy palm leaves, ride rafts across water, collect pineapples
-(100 = extra life), touch checkpoint flags, reach the tiki totem. Falling in
-water or touching an enemy from the side costs a life. Levels: ten stages
-from a seeded chunk generator across beach, jungle, cave and ridge settings,
-with gaps always clearable; moving and falling platforms, coconut-throwing
-monkeys, rising tide on a late level. Bright major-pentatonic calypso tune.
+(100 = extra life), touch checkpoint flags (each adds time to the tide
+clock), reach the tiki totem. Falling in water or touching an enemy from the
+side costs a life. Each level is built from a seeded chunk generator whose
+chunks are clearable on their own, so gaps are always clearable. Levels:
+1 *Shell Beach* — crabs, gaps, islets, urchins, a spring and a raft across a
+lagoon; 2 *Glow Cave* — under a cave roof with falling stalactites, moving
+planks over wide water, crumbling slabs and a coconut-throwing monkey;
+3 *Totem Storm* — the finale: tide surges that flood the low beaches, gulls,
+fast red crabs, a lift up a cliff and the totem at the end. The ending: an
+island festival at the totem, torches, lanterns and dancing silhouettes
+between palms, under tropical fireworks. Bright major-pentatonic calypso
+tune.
 
 ### volcano — Magma Rising (vertical climber)
 The lava rises without pause. `← →` run, `SPACE` jump, wall-jump off the
-shaft walls. Climb ledges (solid, crumbling, moving), ride steam geysers,
+shaft walls. Climb ledges (solid, crumbling, drifting), ride steam geysers,
 dodge falling lava bombs and fire bats. Reach the crater rim (a height goal,
-shown as a meter). Touching lava is instant death. Levels: taller shafts,
-faster lava, more crumbling ledges, earthquakes that shake ledges loose,
-lava-fall columns that switch on and off, level 10 is an eruption with
-everything. Camera follows upward. Rumbling noise bed, urgent phrygian music.
+shown as a meter). Touching lava is instant death; bombs and bats only
+knock the climber about. Every ledge is reachable from the one below it.
+Levels: 1 *First Ascent* — slow lava, cracked ledges and one wall-kick gap;
+2 *Steam and Bats* — a taller shaft with drifting slabs, steam vents, lava
+bombs and fire bats; 3 *Eruption* — the finale: quakes that shake ledges
+loose, lava-fall columns to time, lava surges, on top of everything before.
+The ending: out of the crater as the mountain blows, two cones throwing
+lava up as fireworks while the climber waves from the ridge. Camera follows
+upward. Rumbling noise bed, urgent phrygian music.

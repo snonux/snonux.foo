@@ -38,30 +38,26 @@
 
     var SETS = {
         beach: { sky0: '#38c9d8', sky1: '#fef9e7', hill: '#8fdccb', soil: '#e8c97a', deep: '#cfa855', cap: '#fef9e7' },
-        jungle: { sky0: '#0e7490', sky1: '#a8e6c9', hill: '#1f7a5c', soil: '#8a6238', deep: '#6e4b28', cap: '#46b36b' },
         cave: { sky0: '#0a1e2e', sky1: '#123a52', hill: '#0d2c40', soil: '#4a6276', deep: '#384c5e', cap: '#8fb4c8' },
-        ridge: { sky0: '#f97316', sky1: '#fde9a8', hill: '#c2571a', soil: '#9a5a34', deep: '#7c4526', cap: '#e8c97a' },
-        storm: { sky0: '#2b4f66', sky1: '#a9c7cf', hill: '#3d6f80', soil: '#d6b96e', deep: '#b89a55', cap: '#f1e6c0' },
-        dusk: { sky0: '#0a1e2e', sky1: '#f97316', hill: '#3a2a4a', soil: '#6b4a5a', deep: '#523746', cap: '#fbbf24' }
+        storm: { sky0: '#2b4f66', sky1: '#a9c7cf', hill: '#3d6f80', soil: '#d6b96e', deep: '#b89a55', cap: '#f1e6c0' }
     };
 
     // lo/hi: highest and lowest ground row a level may use (the cave keeps
     // headroom under its ceiling; the storm level keeps ordinary ground above
     // the surge; no level goes above row 7, which leaves a gull room to
     // cruise out of jumping reach below the HUD). gap: widest plain water gap
-    // in tiles. Each level's chunk list adds something the levels before it
-    // did not have.
+    // in tiles. red: fast crabs among the slow ones; dense: two crabs to a
+    // long beach, longer urchin fields and a quicker monkey. Each level's
+    // chunk list adds something the levels before it did not have.
     var LEVELS = [
-        { set: 'beach', len: 190, lo: 8, hi: 13, gap: 3, gulls: 0, chunks: 'crabs crabs gap gap steps isles blocks' },
-        { set: 'beach', len: 210, lo: 7, hi: 13, gap: 3, gulls: 0, chunks: 'crabs gap steps isles blocks urchins urchins spring spring' },
-        { set: 'jungle', len: 230, lo: 7, hi: 13, gap: 4, gulls: 0, chunks: 'crabs gap steps isles urchins spring raft raft raft blocks' },
-        { set: 'ridge', len: 250, lo: 7, hi: 13, gap: 4, gulls: 4, chunks: 'crabs gap steps isles urchins spring raft mover mover mover' },
-        { set: 'jungle', len: 265, lo: 7, hi: 13, gap: 4, gulls: 3, chunks: 'crabs gap steps isles urchins spring raft mover monkey monkey monkey blocks' },
-        { set: 'cave', len: 280, lo: 9, hi: 13, gap: 4, gulls: 0, chunks: 'crabs gap steps isles urchins spring mover drips drips drips falls falls monkey' },
-        { set: 'ridge', len: 295, lo: 7, hi: 13, gap: 4, gulls: 5, red: true, chunks: 'crabs gap steps isles urchins spring lift lift lift falls falls mover monkey' },
-        { set: 'jungle', len: 310, lo: 7, hi: 13, gap: 4, gulls: 5, red: true, dense: true, chunks: 'crabs crabs gap isles urchins spring raft raft mover lift falls monkey monkey monkey' },
-        { set: 'storm', len: 325, lo: 7, hi: 12, gap: 4, gulls: 3, red: true, tide: true, chunks: 'tide tide tide tide crabs gap steps isles urchins spring falls mover' },
-        { set: 'dusk', len: 350, lo: 7, hi: 13, gap: 4, gulls: 6, red: true, dense: true, chunks: 'crabs crabs gap steps isles urchins urchins spring raft mover lift falls falls monkey monkey blocks' }
+        // Introduction: crabs, gaps, springs and a raft across a lagoon.
+        { set: 'beach', len: 220, lo: 8, hi: 13, gap: 3, gulls: 0, chunks: 'crabs crabs gap gap steps isles blocks urchins spring raft' },
+        // Development: a glow-worm cave with falling stalactites, moving
+        // planks over wide water, crumbling slabs and a coconut monkey.
+        { set: 'cave', len: 260, lo: 9, hi: 13, gap: 4, gulls: 0, chunks: 'crabs gap steps isles urchins spring mover mover drips drips falls monkey' },
+        // Finale: a storm whose surges flood the low beaches, swooping gulls,
+        // fast red crabs, a lift up a cliff and the tiki totem at the end.
+        { set: 'storm', len: 320, lo: 7, hi: 12, gap: 4, gulls: 4, red: true, dense: true, tide: true, chunks: 'tide tide tide crabs gap steps isles urchins spring falls lift mover monkey' }
     ];
 
     // ------------------------------------------------------------------
@@ -970,6 +966,48 @@
         }
     }
 
+    // ------------------------------------------------------------------
+    // The ending: the island festival at the totem
+    // ------------------------------------------------------------------
+
+    // The totem stands lit by two torches between palms, a string of paper
+    // lanterns sways above the title and the islanders dance in silhouette,
+    // under tropical fireworks. Everything follows from the scene's clock.
+    // The scene keeps to the strip under the score line (y 300-372) and the
+    // band over the title, so the ending text stays readable.
+    var LANTERNS = ['#fbbf24', '#f97316', '#38c9d8', '#46b36b', '#e11d48'];
+
+    function drawFestivalTotem(ctx, t) {
+        var x = G.W / 2 - 18, y = 372 - 66, k, flick;
+        ctx.fillStyle = '#8a5a2b'; ctx.fillRect(x, y, 36, 66);
+        ctx.fillStyle = '#fbbf24';
+        for (k = 0; k < 2; k++) { ctx.fillRect(x + 6, y + 10 + k * 28, 7, 7); ctx.fillRect(x + 23, y + 10 + k * 28, 7, 7); }
+        for (k = -1; k <= 1; k += 2) {
+            flick = 4 + Math.sin(t * 17 + k) * 2;
+            ctx.fillStyle = '#6e4b28'; ctx.fillRect(G.W / 2 + k * 70 - 3, 328, 6, 44);
+            disc(ctx, G.W / 2 + k * 70, 322, 7, 9 + flick, '#f97316');
+            disc(ctx, G.W / 2 + k * 70, 325, 4, 5 + flick / 2, '#fef9e7');
+        }
+    }
+
+    function drawFestival(e, ctx) {
+        var t = e.t, k, x, y, hop;
+        ctx.fillStyle = 'rgba(10,30,46,0.85)'; ctx.fillRect(0, 372, G.W, G.H - 372);
+        drawFestivalTotem(ctx, t);
+        for (k = 0; k < 4; k++) drawPalm(ctx, { x: k < 2 ? 60 + k * 110 : G.W - 60 - (k - 2) * 110, row: 372 / T, tall: 4 + (k % 2) });
+        // Lanterns hang on a sagging line across the top of the scene.
+        for (k = 0; k < 13; k++) {
+            x = 40 + k * 73; y = 34 + Math.sin(k / 12 * Math.PI) * 22 + Math.sin(t * 2 + k) * 3;
+            disc(ctx, x, y, 8, 10, LANTERNS[k % LANTERNS.length]);
+        }
+        // Dancers: bobbing silhouettes in a ring around the totem.
+        for (k = 0; k < 8; k++) {
+            x = G.W / 2 + Math.cos(t * 0.8 + k * Math.PI / 4) * 230; hop = Math.abs(Math.sin(t * 5 + k)) * 8;
+            disc(ctx, x, 346 - hop, 6, 6, '#0a1e2e');
+            ctx.fillStyle = '#0a1e2e'; ctx.fillRect(x - 5, 353 - hop, 10, 19);
+        }
+    }
+
     function hud(s) {
         var time = Math.max(0, Math.ceil(s.time));
         return s.touch ? 'PINE ' + (s.got % 100) + '/100 ' + time + 's' : 'PINEAPPLES ' + (s.got % 100) + '/100  TIDE ' + time;
@@ -984,8 +1022,7 @@
             'Ride rafts and lifts · palm leaves spring you up',
             'Flags save progress +45s · 100 pineapples = 1 life'
         ],
-        levelNames: ['Shell Beach', 'Palm Springs', 'Raft Lagoon', 'Gull Ridge', 'Monkey Jungle',
-            'Echo Cave', 'Crumble Cliffs', 'Coconut Canopy', 'Spring Tide', 'Tiki Summit'],
+        levelNames: ['Shell Beach', 'Glow Cave', 'Totem Storm'],
         colors: { bg: '#0a1e2e', fg: '#fef9e7', accent: '#fbbf24', dim: '#38c9d8' },
         lives: 4,
         // A syncopated steel-drum line over a 3-3-2 calypso bass, in C major pentatonic.
@@ -1000,6 +1037,12 @@
         },
         init: init, update: update, draw: draw, hud: hud,
         // Run and jump only: two big direction buttons and one action button.
-        touch: { a: 'JUMP', hide: ['up', 'down', 'b'] }
+        touch: { a: 'JUMP', hide: ['up', 'down', 'b'] },
+        ending: {
+            title: 'ISLAND FESTIVAL',
+            text: 'The totem is reached. The islands dance till dawn.',
+            colors: LANTERNS,
+            draw: drawFestival
+        }
     });
 })();

@@ -40,26 +40,21 @@
         slab: '#2c2a33', lava: '#ff4400', ember: '#ff8c00', hot: '#ffcc00', cream: '#ffe8cc', dim: '#a8744a'
     };
 
-    // One row per level: shaft height, lava speed (px/s), share of crumbling
-    // and drifting ledges, number of geysers / wall-kick gaps / bats /
+    // One row per level: shaft height, lava speed (px/s), narrowest ledge
+    // width (lw; ledges are up to 40 px wider), share of crumbling and
+    // drifting ledges, number of geysers / wall-kick gaps / bats /
     // lava-falls, seconds between bombs, quakes and lava surges (0 = none).
     // Every geyser, wall-kick gap and lava-fall listed is really built: the
     // upper shafts are crowded and end up to 10% higher than `h` for it.
-    // The lava stops getting faster at level 6: from there on the climb gets
-    // longer and busier instead, and a climber who hesitates on every other
-    // ledge and misjudges landings still gets up level 10 in about two
-    // tries of three with the four lives.
     var LEVELS = [
-        { h: 2800, lava: 32, cr: 0, mv: 0, gey: 0, wall: 0, bomb: 0, bats: 0, quake: 0, falls: 0, surge: 0 },
-        { h: 3000, lava: 35, cr: 0.28, mv: 0, gey: 0, wall: 2, bomb: 0, bats: 0, quake: 0, falls: 0, surge: 0 },
-        { h: 3200, lava: 38, cr: 0.25, mv: 0.22, gey: 0, wall: 2, bomb: 0, bats: 0, quake: 0, falls: 0, surge: 0 },
-        { h: 3400, lava: 41, cr: 0.3, mv: 0.2, gey: 3, wall: 2, bomb: 0, bats: 0, quake: 0, falls: 0, surge: 0 },
-        { h: 3600, lava: 41, cr: 0.3, mv: 0.2, gey: 3, wall: 3, bomb: 2.4, bats: 0, quake: 0, falls: 0, surge: 0 },
-        { h: 3800, lava: 42, cr: 0.3, mv: 0.22, gey: 3, wall: 3, bomb: 2.4, bats: 5, quake: 0, falls: 0, surge: 0 },
-        { h: 4000, lava: 42, cr: 0.32, mv: 0.22, gey: 4, wall: 3, bomb: 2.3, bats: 5, quake: 10, falls: 0, surge: 0 },
-        { h: 4300, lava: 42, cr: 0.34, mv: 0.25, gey: 3, wall: 3, bomb: 2.2, bats: 6, quake: 10, falls: 5, surge: 0 },
-        { h: 4600, lava: 42, cr: 0.34, mv: 0.25, gey: 4, wall: 3, bomb: 2.2, bats: 7, quake: 10, falls: 5, surge: 12 },
-        { h: 5200, lava: 42, cr: 0.36, mv: 0.25, gey: 4, wall: 3, bomb: 2.0, bats: 8, quake: 9, falls: 6, surge: 13 }
+        // Introduction: running, jumping, cracked ledges and one wall-kick
+        // gap, under slow lava.
+        { h: 2800, lava: 33, lw: 121, cr: 0.22, mv: 0, gey: 0, wall: 1, bomb: 0, bats: 0, quake: 0, falls: 0, surge: 0 },
+        // Development: drifting slabs, steam vents, lava bombs and bats.
+        { h: 3600, lava: 38, lw: 106, cr: 0.28, mv: 0.2, gey: 3, wall: 2, bomb: 2.6, bats: 4, quake: 0, falls: 0, surge: 0 },
+        // Finale, the eruption: quakes, lava-fall columns and lava surges on
+        // top of everything before.
+        { h: 4400, lava: 41, lw: 91, cr: 0.32, mv: 0.22, gey: 3, wall: 2, bomb: 2.2, bats: 5, quake: 10, falls: 5, surge: 12 }
     ];
 
     // Cheap repeatable noise for decoration that needs no stored state.
@@ -83,7 +78,7 @@
     }
 
     function ledgeWidth(b) {
-        return 126 - b.level * 5 + b.rnd() * 40;
+        return b.cfg.lw + b.rnd() * 40;
     }
 
     // A drifting ledge never follows another one or a special step: jumping
@@ -278,7 +273,7 @@
         var cfg = LEVELS[level - 1], rnd = G.rng(level * 7919 + 101);
         var floor = makeLedge(WL, 0, SHAFT, 'solid');
         floor.floor = true;
-        var b = { level: level, cfg: cfg, rnd: rnd, ledges: [floor], falls: [], gems: [], bats: [], dir: 1, since: 0, seek: 0, guard: null, guardN: 0, events: planEvents(cfg, rnd) };
+        var b = { cfg: cfg, rnd: rnd, ledges: [floor], falls: [], gems: [], bats: [], dir: 1, since: 0, seek: 0, guard: null, guardN: 0, events: planEvents(cfg, rnd) };
         while (!shaftDone(b)) addStep(b);
         var rim = push(b, makeLedge(WL, topLedge(b).y - 78, SHAFT, 'solid'));
         rim.rim = true;
@@ -964,6 +959,66 @@
         drawMeter(s, ctx);
     }
 
+    // ------------------------------------------------------------------
+    // The ending: out of the crater as the mountain blows
+    // ------------------------------------------------------------------
+
+    // Two cones at the sides throw lava up as fireworks while the climber
+    // waves from the ridge between them. Every blob's place is a function
+    // of the scene's clock (a parabola restarted by `% 1`), so the hook keeps
+    // no state. The cones stay at the sides and the climber under the score
+    // line, so the ending text stays readable.
+    var ENDING_COLORS = [C.hot, C.ember, C.lava, C.cream];
+    var RIDGE = 372;
+
+    function drawEndingCone(ctx, cx, t) {
+        var top = 250, k, f, x, y;
+        ctx.fillStyle = '#2a160a';
+        ctx.beginPath();
+        ctx.moveTo(cx - 140, RIDGE); ctx.lineTo(cx - 24, top); ctx.lineTo(cx + 24, top); ctx.lineTo(cx + 140, RIDGE);
+        ctx.fill();
+        // A glow over the crater, and a lava tongue tapering down the flank
+        // that grows and shrinks with the clock.
+        ctx.fillStyle = 'rgba(255,68,0,0.25)';
+        ctx.beginPath(); ctx.ellipse(cx, top, 46, 22, 0, 0, 6.3); ctx.fill();
+        ctx.fillStyle = C.lava;
+        ctx.beginPath();
+        ctx.moveTo(cx - 24, top); ctx.lineTo(cx + 24, top);
+        ctx.lineTo(cx + 3, top + 50 + Math.sin(t * 1.3 + cx) * 18); ctx.lineTo(cx - 6, top + 30);
+        ctx.fill();
+        ctx.fillStyle = C.hot; ctx.fillRect(cx - 20, top - 2, 40, 4);
+        for (k = 0; k < 18; k++) {
+            f = ((t * (0.55 + hash(k + cx) * 0.3) + hash(k + 9)) % 1) * 1.7;
+            x = cx + (hash(k + 3) - 0.5) * 180 * f;
+            y = top - (250 + hash(k + 5) * 110) * f + 200 * f * f;
+            if (y > RIDGE) continue;
+            ctx.globalAlpha = 1 - f / 2;
+            ctx.fillStyle = ENDING_COLORS[k % 3];
+            ctx.beginPath(); ctx.arc(x, y, 3 + hash(k + 7) * 3, 0, 6.3); ctx.fill();
+        }
+        ctx.globalAlpha = 1;
+    }
+
+    // The climber in cream suit and yellow helmet, arms up and hopping.
+    function drawEndingClimber(ctx, t) {
+        var x = G.W / 2 - PW / 2, hop = Math.abs(Math.sin(t * 4)) * 10, y = RIDGE - PH - hop, wave = Math.sin(t * 8) * 4;
+        ctx.fillStyle = '#000'; ctx.fillRect(x, y - 1, PW, PH + 1);
+        ctx.fillStyle = C.cream;
+        ctx.fillRect(x + 3, y + 10, PW - 6, 12);
+        ctx.fillRect(x + 4, y + 22, 5, 8); ctx.fillRect(x + PW - 9, y + 22, 5, 8);
+        ctx.fillRect(x - 5, y - 8 + wave, 4, 18); ctx.fillRect(x + PW + 1, y - 8 - wave, 4, 18);
+        ctx.fillStyle = C.hot; ctx.fillRect(x + 2, y, PW - 4, 10);
+    }
+
+    function drawEruption(e, ctx) {
+        var t = e.t;
+        ctx.fillStyle = 'rgba(13,8,2,0.9)'; ctx.fillRect(0, RIDGE, G.W, G.H - RIDGE);
+        ctx.fillStyle = C.ember; ctx.fillRect(0, RIDGE, G.W, 2);
+        drawEndingCone(ctx, 120, t);
+        drawEndingCone(ctx, G.W - 120, t + 0.4);
+        drawEndingClimber(ctx, t);
+    }
+
     function hud(s) {
         var feet = s.p.y + PH;
         return 'RIM ' + Math.max(0, Math.ceil((feet - s.rimY) / 20)) + 'm  LAVA ' + Math.max(0, Math.floor((s.lavaY - feet) / 20)) + 'm';
@@ -977,7 +1032,7 @@
             'Jump against a shaft wall and press JUMP again to kick off it',
             'Stand on a vent to ride the steam · cracked ledges fall · only lava kills'
         ],
-        levelNames: ['First Ascent', 'Brittle Rock', 'Drifting Slabs', 'Steam Vents', 'Lava Bombs', 'Fire Bats', 'Tremors', 'Lava Falls', 'Surge', 'Eruption'],
+        levelNames: ['First Ascent', 'Steam and Bats', 'Eruption'],
         colors: { bg: C.bg, fg: C.cream, accent: C.ember, dim: C.dim },
         lives: 4,
         music: {
@@ -990,6 +1045,12 @@
         },
         init: init, update: update, draw: draw, hud: hud,
         // Running and one jump button are all the game reads.
-        touch: { a: 'JUMP', hide: ['up', 'down', 'b'] }
+        touch: { a: 'JUMP', hide: ['up', 'down', 'b'] },
+        ending: {
+            title: 'ERUPTION ESCAPED',
+            text: 'You cleared the rim as the mountain blew. Now it is only fireworks.',
+            colors: ENDING_COLORS,
+            draw: drawEruption
+        }
     });
 })();

@@ -8,7 +8,8 @@
  * from the edge of the screen: `Z` zombies shamble, `&` forks split when shot,
  * `d` daemons keep their distance and shoot, `>` pipes dash in straight lines,
  * `#` root shells soak damage, `[fork]` spawners keep making more until they
- * are destroyed, and `init` (pid 1) waits on level ten. Kill every process.
+ * are destroyed, and `init` (pid 1) waits behind a fork bomb on the third
+ * and last level. Kill every process.
  */
 (function () {
     'use strict';
@@ -28,7 +29,7 @@
         '>': { hp: 2, r: 10, speed: 540, mass: 1.5, score: 30, drop: 0.14, name: 'pipe' },
         '#': { hp: 12, r: 16, speed: 40, mass: 5, score: 80, drop: 0.4, name: 'rootsh' },
         'S': { hp: 28, r: 26, speed: 0, mass: 1e6, score: 150, drop: 1, name: 'spawner' },
-        'I': { hp: 420, r: 38, speed: 40, mass: 40, score: 2000, drop: 0, name: 'init' }
+        'I': { hp: 360, r: 38, speed: 40, mass: 40, score: 2000, drop: 0, name: 'init' }
     };
     var DROPS = ['$', '$', '$', '$', '!', '!', '!', '*', '*', '+'];
 
@@ -40,30 +41,18 @@
     // forks grow up and replicate by themselves, and the process table holds
     // at most cap of them. supply: seconds between free pickups.
     var LEVELS = [
-        { waves: [{ Z: 5 }, { Z: 7 }, { Z: 9 }, { Z: 11 }, { Z: 13 }] },
-        { waves: [{ Z: 5, '&': 2 }, { Z: 6, '&': 3 }, { Z: 4, '&': 6 }, { Z: 8, '&': 5 }, { Z: 6, '&': 8 }, { Z: 9, '&': 9 }] },
-        { waves: [{ Z: 6, d: 2 }, { Z: 5, '&': 3, d: 2 }, { Z: 6, d: 4 }, { Z: 8, '&': 4, d: 3 }, { Z: 6, '&': 4, d: 5 }, { Z: 9, '&': 3, d: 6 }] },
+        // Introduction: zombies, then forks that split, then the first daemons.
+        { waves: [{ Z: 5 }, { Z: 6, '&': 2 }, { Z: 6, '&': 4 }, { Z: 6, '&': 3, d: 2 }, { Z: 8, '&': 4, d: 2 }, { Z: 8, '&': 5, d: 3 }] },
+        // Development: pipes dash between solid directories, root shells soak
+        // shots, and two [fork] nests keep making forks until destroyed.
         {
-            waves: [{ Z: 6, '>': 2 }, { '>': 4, d: 2 }, { Z: 6, '&': 3, '>': 3 }, { Z: 8, d: 3, '>': 4 }, { Z: 6, '&': 5, '>': 4 }, { Z: 9, d: 4, '>': 5 }],
-            blocks: [block(200, 150, 90, 56, '/tmp'), block(670, 150, 90, 56, '/var'), block(200, 350, 90, 56, '/etc'), block(670, 350, 90, 56, '/usr')]
+            waves: [{ Z: 6, '>': 2 }, { '>': 3, d: 2, '&': 3 }, { '#': 1, Z: 6, d: 2 }, { '#': 2, '>': 3, d: 3 }, { '#': 2, Z: 6, '&': 4, '>': 3 }],
+            blocks: [block(200, 150, 90, 56, '/tmp'), block(670, 150, 90, 56, '/var'), block(200, 350, 90, 56, '/etc'), block(670, 350, 90, 56, '/usr')],
+            spawners: [nest(150, 270, '&', 4.5, 8), nest(810, 270, '&', 4.5, 8)]
         },
-        {
-            waves: [{ Z: 6 }, { Z: 6, d: 2 }, { Z: 6, '>': 3 }, { Z: 8, d: 3, '&': 3 }, { Z: 8, '>': 4, d: 2 }, { Z: 9, d: 4, '>': 3 }],
-            spawners: [nest(150, 130, '&', 3.5, 10), nest(810, 420, '&', 3.5, 10)]
-        },
-        { waves: [{ '#': 1, Z: 6 }, { '#': 2, d: 3 }, { '#': 2, '&': 3, '>': 2 }, { '#': 3, Z: 8, d: 2 }, { '#': 3, '&': 4, d: 3, '>': 3 }, { '#': 3, Z: 8, d: 2, '>': 4 }, { '#': 4, '&': 4, d: 4, '>': 3 }], gen: 2 },
-        { waves: [{ '&': 8 }, { '&': 10 }, { '&': 10 }, { '&': 12 }, { '&': 14 }], gen: 2, forkBomb: true, cap: 40, supply: 7 },
-        {
-            waves: [{ '>': 5, Z: 4 }, { '>': 4, d: 3 }, { '>': 5, '#': 1, Z: 6 }, { '>': 6, d: 3, '&': 4, '#': 1 }, { '>': 6, Z: 6, '#': 1 }],
-            blocks: [block(300, 160, 360, 34, '/dev/null'), block(300, 350, 360, 34, '/dev/zero')],
-            spawners: [nest(110, 270, '>', 7, 8), nest(850, 270, '>', 7, 8)]
-        },
-        {
-            waves: [{ Z: 8, d: 3, '>': 3 }, { '#': 2, '&': 3, d: 3 }, { Z: 10, '>': 4, '#': 2, d: 4 }], gen: 2,
-            blocks: [block(440, 140, 80, 40, '/proc'), block(440, 370, 80, 40, '/sys'), block(250, 235, 40, 80, '/dev'), block(670, 235, 40, 80, '/run')],
-            spawners: [nest(120, 110, '&', 6, 10), nest(840, 110, '&', 6, 10), nest(480, 470, 'Z', 5, 10)]
-        },
-        { waves: [{ I: 1 }], gen: 1, supply: 13 }
+        // Finale: a fork bomb has to be contained before init (pid 1) wakes;
+        // free bombs and spread shots drop in while the table fills.
+        { waves: [{ '&': 8 }, { '&': 8 }, { I: 1 }], gen: 2, forkBomb: true, cap: 30, supply: 9 }
     ];
 
     // ---------------------------------------------------------------- setup
@@ -85,10 +74,10 @@
 
     function init(level) {
         var cfg = LEVELS[level - 1];
-        // speed: every process is 2% faster per level (18% on level ten); the
+        // speed: every process is 4% faster per level (8% on the finale); the
         // levels differ mainly in what comes at the player, not in how fast.
         var s = {
-            level: level, cfg: cfg, touch: G.isTouch(), rnd: G.rng(level * 7919), time: 0, speed: 1 + (level - 1) * 0.02,
+            level: level, cfg: cfg, touch: G.isTouch(), rnd: G.rng(level * 7919), time: 0, speed: 1 + (level - 1) * 0.04,
             p: { x: G.W / 2, y: (T + B) / 2, vx: 0, vy: 0, inv: 1.5, cool: 0, spread: 0, bombs: 1, ax: 1, ay: 0 },
             enemies: [], shots: [], ebul: [], picks: [], queue: [], blocks: cfg.blocks || [],
             wave: 0, waveT: 0, pid: 1000 + level * 311, blast: null, banner: 0, bellT: 0,
@@ -187,9 +176,16 @@
         return { x: x, y: y };
     }
 
+    // init wakes at the top or the bottom of the arena, whichever is
+    // farther from the player: it is too big to appear on top of the `@`.
+    function bossPoint(s) {
+        var top = { x: G.W / 2, y: T + 70 }, bottom = { x: G.W / 2, y: B - 70 };
+        return G.dist(top.x, top.y, s.p.x, s.p.y) > G.dist(bottom.x, bottom.y, s.p.x, s.p.y) ? top : bottom;
+    }
+
     function spawnAtEdge(s, kind) {
         if (s.enemies.length >= MAX_ENEMIES) return;
-        var pt = kind === 'I' ? { x: G.W / 2, y: T + 70 } : edgePoint(s);
+        var pt = kind === 'I' ? bossPoint(s) : edgePoint(s);
         s.enemies.push(makeEnemy(s, kind, pt.x, pt.y, s.cfg.gen || 1));
     }
 
@@ -847,9 +843,12 @@
         ctx.globalAlpha = 1;
     }
 
+    // The finale's last wave is init alone.
+    function bossAwake(s) { return s.wave > 0 && !!s.cfg.waves[s.wave - 1].I; }
+
     function drawBanner(s, ctx) {
         if (s.banner <= 0) return;
-        var text = s.cfg.forkBomb ? ':(){ :|:& };:' : (s.level === 10 ? 'pid 1 is awake' : 'wave ' + s.wave + '/' + s.cfg.waves.length);
+        var text = bossAwake(s) ? 'pid 1 is awake' : (s.cfg.forkBomb ? ':(){ :|:& };:' : 'wave ' + s.wave + '/' + s.cfg.waves.length);
         ctx.globalAlpha = Math.min(1, s.banner);
         G.text('>> ' + text + ' <<', G.W / 2, T + 46, { size: 20, color: GREEN, align: 'center', bold: true });
         ctx.globalAlpha = 1;
@@ -864,6 +863,49 @@
         drawPlayer(s);
         drawBlast(s, ctx);
         drawBanner(s, ctx);
+    }
+
+    // ---------------------------------------------------------------- ending
+
+    // After init falls the box is clean: a shell types out an empty process
+    // table on both sides of the score, and ASCII fireworks (the engine's
+    // own are switched off) burst above it. Everything is a pure function of
+    // the scene's clock, so the scene keeps no state of its own.
+    var END_LEFT = ['$ ps aux | grep rogue', '  PID S COMMAND', '  (none)'];
+    var END_RIGHT = ['$ uptime', ' load average: 0.00', '$ exit 0'];
+    var SPARK_GLYPHS = '*+o.';
+
+    function drawEndingShell(e) {
+        var shown = Math.floor(e.t * 22), used = 0, side, lines, i, line, n;
+        for (side = 0; side < 2; side++) {
+            lines = side ? END_RIGHT : END_LEFT;
+            for (i = 0; i < lines.length; i++) {
+                line = lines[i]; n = G.clamp(shown - used, 0, line.length); used += line.length;
+                if (n > 0) G.text(line.slice(0, n), side ? 740 : 30, 330 + i * 22, { size: 16, color: i === 2 && !side ? WHITE : GREEN });
+            }
+        }
+        if (Math.floor(e.t * 2) % 2) G.text('_', 740 + 8 * 10, 374, { size: 16, color: GREEN });
+    }
+
+    // Burst k goes off at k * 0.55 s at a seeded spot and lives 1.6 s: a ring
+    // of glyphs that grows, falls a little and fades from * to . as it dies.
+    function drawAsciiBurst(e, ctx, k) {
+        var age = e.t - k * 0.55, h = Math.sin(k * 91.7) * 43758.5453, rx = h - Math.floor(h);
+        if (age < 0 || age > 1.6) return;
+        var x = 120 + rx * 720, y = 70 + ((k * 37) % 5) * 26, r = 30 + age * 90, n = 12, i, a;
+        var ch = SPARK_GLYPHS.charAt(Math.min(3, Math.floor(age / 0.4)));
+        ctx.globalAlpha = 1 - age / 1.6;
+        for (i = 0; i < n; i++) {
+            a = i * Math.PI * 2 / n + k;
+            glyph(ch, x + Math.cos(a) * r, y + Math.sin(a) * r + age * age * 30, 20, i % 3 ? GREEN : (k % 2 ? AMBER : WHITE));
+        }
+        ctx.globalAlpha = 1;
+    }
+
+    function drawEnding(e, ctx) {
+        var k, last = Math.floor(e.t / 0.55);
+        for (k = Math.max(0, last - 3); k <= last; k++) drawAsciiBurst(e, ctx, k);
+        drawEndingShell(e);
     }
 
     function hud(s) {
@@ -881,7 +923,7 @@
             'SPACE / BOMB button / right click: bomb (kill -9 -1)',
             'Pickups: [$] score · [+] life · [!] spread shot · [*] bomb'
         ],
-        levelNames: ['/bin/sh', 'fork()', 'daemons', '| pipes', '[fork] nests', 'su root', ':(){ :|:& };:', 'pipeline', 'kernel panic', 'init (pid 1)'],
+        levelNames: ['/bin/sh', '| pipeline', 'init (pid 1)'],
         colors: { bg: BG, fg: GREEN, accent: WHITE, dim: DIM },
         lives: 4,
         music: {
@@ -897,6 +939,12 @@
         init: init, update: update, draw: draw, hud: hud, cursor: 'crosshair',
         // Twin-stick: W A S D on the left pad, the arrows on the right one,
         // and the bomb on A just above the firing thumb. B does nothing here.
-        touch: { twin: true, a: 'BOMB', hide: ['b'] }
+        touch: { twin: true, a: 'BOMB', hide: ['b'] },
+        ending: {
+            title: 'kill -9 1',
+            text: 'Every rogue process is gone. The box is yours.',
+            fireworks: false,
+            draw: drawEnding
+        }
     });
 })();

@@ -7,7 +7,22 @@ import { runInNewContext } from 'node:vm';
 import { startSession, sleep } from './lib.mjs';
 import { PHONES } from './touch.mjs';
 const source = readFileSync(new URL('../../internal/generator/templates/themes/volcano/game.js', import.meta.url), 'utf8');
-const bot = readFileSync(new URL('./volcano-bot.js', import.meta.url), 'utf8');
+// The campaign bot (ordinary pad input only) and the driver that runs it
+// through one level and records which mechanics the climb met.
+const botFile = readFileSync(new URL('./bots/volcano.js', import.meta.url), 'utf8');
+const driver = readFileSync(new URL('./volcano-bot.js', import.meta.url), 'utf8');
+const inPage = (level, limit) => `(function(){Math.random = ${rng.toString()}(9); SnoGame.debug.start(${level});
+    var BOT = ${botFile}, LIMIT = ${limit};\nreturn (${driver});})()`;
+// Each level's climb must win with at most one life lost and must really
+// have used what the level is about.
+function checkRun(level, result, where) {
+    const m = result.met;
+    assert.equal(result.state.screen, level === 3 ? 'victory' : 'clear', `${where}: normal controls win level ${level}`);
+    assert.ok(result.state.lives >= 3, `${where} level ${level}: at most one life lost`);
+    if (level === 1) assert.ok(m.kicks >= 1 && m.crumble >= 1, `${where}: level 1 kicks off a wall and stands on cracked ledges`);
+    if (level === 2) assert.ok(m.steam >= 1 && m.move >= 1 && m.bombs >= 1 && m.kicks >= 1, `${where}: level 2 rides steam and drifting slabs under bombs`);
+    if (level === 3) assert.ok(m.quakes >= 1 && m.surges >= 1 && m.columns === result.falls, `${where}: level 3 lives through quakes and surges and passes every lava-fall`);
+}
 function rng(a) { return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
 function game(touch, level) {
     let def, s, screen = 'play', lives = 4, score = 0, prev = {};
@@ -18,7 +33,7 @@ function game(touch, level) {
         aabb: (a, b) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y,
         circRect: (x, y, r, rx, ry, w, h) => Math.hypot(x - Math.max(rx, Math.min(rx + w, x)), y - Math.max(ry, Math.min(ry + h, y))) < r,
         get lives() { return lives; }, die: () => { if (--lives === 0) screen = 'over'; else s = def.init(level); },
-        win: () => screen = level === 10 ? 'victory' : 'clear', addScore: n => score += n,
+        win: () => screen = level === 3 ? 'victory' : 'clear', addScore: n => score += n,
         sfx() {}, tone() {}, noise() {}, burst: (x, y) => effects.push({x, y}), popup() {}, shake() {}, flash() {}, text() {} };
     runInNewContext(source, { window: { SnoGame: G } }); s = def.init(level);
     G.debug = {state: () => ({screen, lives, score}), s: () => s, step: (n, input) => {
@@ -29,16 +44,16 @@ function game(touch, level) {
         }
         return G.debug.state();
     }};
-    return {G, def, effects, get s() {return s;}, run: () => runInNewContext(bot, {SnoGame: G})};
+    return {G, def, effects, get s() {return s;}, run: () => runInNewContext(driver, {SnoGame: G, BOT: runInNewContext(botFile), LIMIT: 36000})};
 }
-for (const level of [1, 5, 10]) {
+for (const level of [1, 2, 3]) {
     const desktop = game(false, level), phone = game(true, level);
     const comparable = s => JSON.stringify({...s, touch: undefined});
     assert.equal(comparable(desktop.s), comparable(phone.s), 'phone uses the same shaft and physics');
     for (const g of [desktop, phone]) {
         const result = g.run();
-        assert.equal(result.state.screen, level === 10 ? 'victory' : 'clear', `normal controls win level ${level}`);
-        console.log(`ok volcano ${g.s.touch ? 'phone' : 'desktop'} level ${level}: ${result.ticks} ticks, ${result.state.lives} lives`);
+        checkRun(level, result, g.s.touch ? 'phone' : 'desktop');
+        console.log(`ok volcano ${g.s.touch ? 'phone' : 'desktop'} level ${level}: ${result.ticks} ticks, ${result.state.lives} lives, ${JSON.stringify(result.met)}`);
     }
     const idle = game(true, level); idle.G.debug.step(12000, {});
     assert.equal(idle.G.debug.state().screen, 'over', 'idle loses every life');
@@ -46,10 +61,10 @@ for (const level of [1, 5, 10]) {
 // Isolate failure hazards without turning the play bot into a state editor.
 const miss = game(true, 1); miss.s.p.y = 360; miss.G.debug.step(1, {});
 assert.equal(miss.G.debug.state().lives, 3, 'falling into rising lava costs a life');
-const fall = game(true, 10), column = fall.s.falls[0];
+const fall = game(true, 3), column = fall.s.falls[0];
 fall.s.time = column.period - column.ph; fall.s.p.x = column.x - 10; fall.s.p.y = column.y0 + 20;
 fall.G.debug.step(1, {}); assert.equal(fall.G.debug.state().lives, 3, 'active lava column kills');
-const crumble = game(true, 5), cracked = crumble.s.ledges.find(l => l.kind === 'crumble');
+const crumble = game(true, 2), cracked = crumble.s.ledges.find(l => l.kind === 'crumble');
 crumble.s.p.x = cracked.x + 10; crumble.s.p.y = cracked.y - 30; crumble.s.p.on = cracked;
 crumble.G.debug.step(1, {}); assert.equal(cracked.state, 'shake');
 crumble.G.debug.step(74, {}); assert.equal(cracked.state, 'gone', 'cracked ledge collapses');
@@ -82,13 +97,13 @@ if (process.argv.includes('--browser')) {
             if (layout.width) await page.emulatePhone(layout.width, layout.height);
             await page.goto(`${base}/index.html`); await page.eval("SnoGame.launch('volcano')");
             await page.waitFor('SnoGame.debug.state().registered', 'volcano registration');
-            for (const level of [1, 5, 10]) {
-                await page.eval(`(function(){Math.random = ${rng.toString()}(9); SnoGame.debug.start(${level}); return ${bot.replace('ticks < 36000', 'ticks < 240')};})()`);
+            for (const level of [1, 2, 3]) {
+                await page.eval(inPage(level, 240));
                 await sleep(80); await page.screenshot(`${shots}/${layout.name}-level${level}.jpg`);
                 // Engine particles consume randomness too; this seeded run exercises
                 // their normal behavior without depending on real-frame timing.
-                const result = await page.eval(`(function(){Math.random = ${rng.toString()}(9); SnoGame.debug.start(${level}); return ${bot};})()`);
-                assert.equal(result.state.screen, level === 10 ? 'victory' : 'clear', `${layout.name} level ${level} ordinary-input win`);
+                const result = await page.eval(inPage(level, 36000));
+                checkRun(level, result, layout.name);
                 assert.deepEqual(await page.eval('SnoGame.debug.errors.slice()'), []);
                 console.log(JSON.stringify({layout: layout.name, level, ...result}));
             }
