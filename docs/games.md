@@ -551,9 +551,20 @@ and swings as a real pendulum (drive to build momentum, `↑ ↓` reel the chain
 in or out). Concrete towers are built from blocks with gravity: knock out
 support and what is above falls and breaks. Damage depends on impact speed;
 rebar blocks need a hard hit. Demolish the target percentage before the timer
-ends. Falling slabs that hit the cab cost a life. Levels: taller and wider
-structures, rebar cores, glass (bonus) floors, a second timer-fused charge
-block that explodes when hit, and at level 10 a megastructure. Heavy thuds,
+ends (a missed deadline costs a life and buys a short overtime). Falling
+slabs and debris that hit the cab cost a life. Levels:
+
+1. **Twin Stacks** — plain concrete stacks: learn to pump the swing, brake
+   to whip the ball and knock out the bottom row.
+2. **Arcade** — pillars carrying lintels (a slab holds only while both ends
+   stand), glass (bonus) floors and rebar that needs a fast hit.
+3. **Megastructure** — a podium, two towers with rebar cores, a glazed
+   skybridge and TNT charges that blow 1.6 s after they are struck (and set
+   off their neighbours), under side wind gusts and tremors that throw roof
+   blocks at the cab.
+
+The ending: two towers rise, their charges blink and they implode floor by
+floor into clouds of dust and coloured smoke (**SITE CLEARED**). Heavy thuds,
 dust particles, industrial dorian music.
 
 ### cathedral — Gargoyle (joust-style flapping combat)
