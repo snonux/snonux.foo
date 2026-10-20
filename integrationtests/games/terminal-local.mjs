@@ -83,10 +83,18 @@ for (const f of [phone, desktop]) {
     assert.equal(state.ebul.length, 0, 'bomb clears enemy shots');
     assert.ok(state.shots.some((b) => b.vy < 0), 'firing stick works alongside bomb and movement');
 }
+const BOT = vm.runInNewContext(readFileSync(new URL('./bots/terminal.js', import.meta.url), 'utf8'));
+const driver = readFileSync(new URL('./terminal-bot.js', import.meta.url), 'utf8');
 for (const f of [phone, desktop]) {
-    const result = vm.runInNewContext(readFileSync(new URL('./terminal-bot.js', import.meta.url), 'utf8'), { SnoGame: f.G });
+    const result = vm.runInNewContext(driver, { SnoGame: f.G, BOT });
     console.log(JSON.stringify({ touch: f === phone, ...result }));
-    assert.ok(result.wins.every((v) => ['clear','victory'].includes(v.screen)), 'ordinary controls win levels 1/2/3');
+    assert.ok(result.wins.every((v) => v.screen === (v.level === 3 ? 'victory' : 'clear')), 'the campaign bot wins levels 1/2/3 with ordinary controls');
+    assert.ok(result.wins.every((v) => v.ticks < 180 * 60), 'every level takes under three minutes');
+    const [one, two, three] = result.wins;
+    assert.equal(one.kinds, '&Zd', 'level 1 brings zombies, forks and daemons');
+    assert.ok(['#', '>', 'S'].every((k) => two.kinds.includes(k)), 'level 2 brings root shells, pipes and [fork] nests');
+    assert.ok(three.kinds.includes('I') && three.kinds.includes('&'), 'level 3 is the fork bomb and init');
+    assert.ok(result.wins.some((v) => v.bombs > 0) && result.wins.some((v) => v.picks > 0), 'bombs and pickups come into play');
     assert.ok(result.idle.every((v) => v.screen === 'over'), 'idle fails');
 }
-console.log('ok terminal: unchanged challenge, independent sticks, combined threat cues, ordinary wins and idle failures');
+console.log('ok terminal: independent sticks, combined threat cues, campaign bot wins 1/2/3 meeting every process type, idle failures');

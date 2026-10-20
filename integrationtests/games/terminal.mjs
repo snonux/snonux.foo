@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { startSession, sleep } from './lib.mjs';
 import { PHONES } from './touch.mjs';
-const bot = readFileSync(new URL('./terminal-bot.js', import.meta.url), 'utf8');
+const bot = `(function () { var BOT = ${readFileSync(new URL('./bots/terminal.js', import.meta.url), 'utf8')};\nreturn (${readFileSync(new URL('./terminal-bot.js', import.meta.url), 'utf8')}); })()`;
 for (const phone of [null, ...PHONES]) {
     const { page, base, close } = await startSession();
     const mode = phone ? phone.name : 'desktop';
