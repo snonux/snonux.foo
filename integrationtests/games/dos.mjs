@@ -106,6 +106,35 @@ for (const level of [1, 2, 3]) {
     assert.equal(idle.state().screen, 'over', 'idle loses');
 }
 
+// Every emerald can be dug out: no rock wall shuts one off from the start.
+for (const level of [1, 2, 3]) {
+    const { s } = game(false, level), seen = new Set([s.pl.r * 20 + s.pl.c]), q = [[s.pl.c, s.pl.r]];
+    for (let head = 0; head < q.length; head++) {
+        for (const [dx, dy] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) {
+            const c = q[head][0] + dx, r = q[head][1] + dy, i = r * 20 + c;
+            if (c < 0 || c >= 20 || r < 0 || r >= 10 || seen.has(i) || s.rock[i]) continue;
+            seen.add(i); q.push([c, r]);
+        }
+    }
+    const gems = s.gem.map((g, i) => g ? i : -1).filter(i => i >= 0);
+    assert.ok(gems.length > 0 && gems.every(i => seen.has(i)), `level ${level}: every emerald reachable`);
+}
+// The finale brings the digging monsters: hobbins chew new tunnels and the
+// ghost drifts through soil, while the first two levels have nobbins only.
+{
+    const g = game(false, 3), kinds = new Set();
+    let chewed = false;
+    for (let t = 0; t < 3600 && g.state().screen === 'play'; t++) {
+        const dirt = g.s.dirt.slice();
+        g.step(steer(g.s, t));
+        g.s.enemies.forEach(e => kinds.add(e.kind));
+        chewed ||= g.s.enemies.some(e => e.kind === 'h' && dirt[(e.r + e.dr) * 20 + e.c + e.dc] && !g.s.dirt[(e.r + e.dr) * 20 + e.c + e.dc]);
+    }
+    assert.ok(kinds.has('h') && kinds.has('g') && chewed, `level 3 hobbins dig and the ghost appears: ${[...kinds]}`);
+    for (const level of [1, 2]) assert.equal(game(false, level).s.cfg.kinds.replace(/n/g, ''), '', `level ${level}: nobbins only`);
+    console.log('ok   dos emeralds reachable on every level; digging hobbins and the ghost in the finale');
+}
+
 const d = game(false, 1), p = game(true, 1);
 for (const g of [d, p]) for (let i = 0; i < 205; i++) g.step({ a: true });
 assert.ok(d.s.charge > .99, 'desktop held button still requires a new press');
