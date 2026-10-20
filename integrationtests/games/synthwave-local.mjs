@@ -80,20 +80,35 @@ const idleTicks = Math.ceil((s.time + 1) * 60);
 for (let i = 0; i < idleTicks; i++) phone.def.update(s, 1 / 60);
 assert.equal(s.pos, 0, 'idle cannot make progress');
 assert.ok(phone.deaths() > 0, 'idle runs still fail the clock');
+// The campaign bot (bots/synthwave.js) drives each level with ordinary
+// buttons. Besides the win, the run must have used what the level is about:
+// bends taken, traffic met, nitro burnt, every checkpoint crossed with a
+// clock that is fair (time left over) but not idle (it still runs low).
 const racer = fixture(true);
-let race, screen;
-racer.G.win = () => { screen = racer.G.level === 3 ? 'victory' : 'clear'; }; racer.G.die = () => { screen = 'over'; };
-racer.G.debug = {
-    errors: [], s: () => race, state: () => ({ screen }),
-    start(level) { racer.G.level = level; race = racer.def.init(level); screen = 'play'; },
-    step(n, input) {
-        for (let i = 0; i < n && screen === 'play'; i++) {
-            racer.G.key = typeof input === 'function' ? input(i, race) : input;
-            racer.def.update(race, 1 / 60);
-        }
-    },
-};
-const result = vm.runInNewContext(readFileSync(new URL('./synthwave-bot.js', import.meta.url), 'utf8'), { SnoGame: racer.G });
-assert.ok(result.wins.every((r) => r.screen === (r.level === 3 ? 'victory' : 'clear')), 'ordinary controls win levels 1, 2 and 3');
-assert.equal(result.idle, 'over');
-console.log('ok synthwave: matching physics and hazards, legible combined warnings, input wins 1/2/3, idle failure');
+const bot = vm.runInNewContext(readFileSync(new URL('./bots/synthwave.js', import.meta.url), 'utf8'));
+function race(level, strategy) {
+    let screen = 'play', ticks = 0, boost = 0, bends = 0, low = Infinity;
+    racer.G.level = level;
+    racer.G.win = () => { screen = 'won'; };
+    racer.G.die = () => { screen = 'over'; };
+    const s = racer.def.init(level), mem = {};
+    for (; ticks < 30000 && screen === 'play'; ticks++) {
+        racer.G.key = strategy(s, racer.G, mem);
+        racer.def.update(s, 1 / 60);
+        if (s.boost) boost++;
+        if (Math.abs(s.segs[Math.floor((s.pos + 1050) / 200)].curve) > 1.5 && s.speed > 6000) bends++;
+        low = Math.min(low, s.time);
+    }
+    const passed = s.cars.filter((c) => c.passed).length;
+    return { level, screen, seconds: ticks / 60, cp: s.cp, cps: s.L.cps, left: s.time, low, boost, bends, passed };
+}
+for (const level of [1, 2, 3]) {
+    const r = race(level, bot.play);
+    assert.equal(r.screen, 'won', `level ${level}: ordinary controls reach the finish (${JSON.stringify(r)})`);
+    assert.equal(r.cp, r.cps, `level ${level}: every checkpoint is crossed on the way`);
+    assert.ok(r.left > 5 && r.left < 60, `level ${level}: the clock is fair but tight (${r.left.toFixed(1)}s left)`);
+    assert.ok(r.seconds > 30 && r.seconds < 180, `level ${level}: a race of about one to three minutes (${r.seconds.toFixed(0)}s)`);
+    assert.ok(r.boost > 60 && r.bends > 60 && r.passed > 5, `level ${level}: nitro, bends and traffic all come up (${JSON.stringify(r)})`);
+}
+assert.equal(race(3, () => ({})).screen, 'over', 'idling on the finale still loses to the clock');
+console.log('ok synthwave: matching physics and hazards, legible combined warnings, campaign bot wins 1/2/3 with fair clocks, idle failure');
