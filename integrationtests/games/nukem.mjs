@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 // Rendering regressions without Chrome: keep phone status legible and bound
-// drawing to the viewport without discarding threats at either edge.
+// drawing to the viewport without discarding threats at either edge; then
+// the campaign bot wins all three levels by input on the real physics.
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
@@ -85,3 +86,47 @@ assert.equal(def.touch.a, 'FIRE');
 assert.equal(def.touch.b, 'NADE');
 assert(def.controls.some(line => line.includes('Run + ↑ + FIRE')), 'combined pad inputs are explained');
 console.log('nukem phone status, desktop HUD, offscreen culling and edge threats passed');
+
+// The campaign bot (bots/nukem.js, also run in Chrome by campaign.mjs)
+// plays every level here with the real tile physics and AI, by pad input
+// only, and must use what the level is about: the keycard and the exit,
+// moving platforms and lifts, grenades, and the Overlord on level 3. Idle
+// play must lose to the airstrikes. Math.random is seeded for repeatability.
+const bot = vm.runInNewContext(readFileSync(new URL('./bots/nukem.js', import.meta.url), 'utf8'), { Math });
+G.isTouch = () => false;
+function playLevel(level, strategy) {
+    let screen = 'play', held = {}, ticks = 0;
+    G.lives = 4; G.cam.x = 0; G.key = {}; G.hit = {};
+    G.win = () => { screen = 'won'; };
+    G.gameOver = () => { screen = 'over'; };
+    G.loseLife = () => { if (--G.lives <= 0) screen = 'over'; return G.lives; };
+    const s = def.init(level), mem = {}, seen = { ride: false, thrown: 0 };
+    for (; ticks < 60 * 400 && screen === 'play'; ticks++) {
+        const q = strategy(s, G, mem) || {};
+        G.hit = {};
+        for (const k of ['left', 'right', 'up', 'down', 'a', 'b']) G.hit[k] = !!q[k] && !held[k];
+        G.key = held = { left: !!q.left, right: !!q.right, up: !!q.up, down: !!q.down, a: !!q.a, b: !!q.b };
+        const before = s.p.nades;
+        def.update(s, 1 / 60);
+        if (s.p.nades < before) seen.thrown++;
+        if (s.p.ride) seen.ride = true;
+    }
+    return { level, screen, seconds: +(ticks / 60).toFixed(1), lives: G.lives, card: s.haveCard, boss: !!(s.boss && s.boss.dead), ...seen };
+}
+const random = Math.random;
+let seed = 7;
+Math.random = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+try {
+    for (const level of [1, 2, 3]) {
+        const run = playLevel(level, bot.play);
+        assert.equal(run.screen, 'won', `level ${level}: the bot must reach the exit (${JSON.stringify(run)})`);
+        assert(run.card, `level ${level}: won with the keycard`);
+        if (level >= 2) assert(run.ride, `level ${level}: the route needs a platform or lift`);
+        if (level === 3) assert(run.boss && run.thrown > 0, 'level 3: the Overlord falls, grenades thrown');
+        const idle = playLevel(level, () => ({}));
+        assert.equal(idle.screen, 'over', `level ${level}: idle play must lose`);
+        console.log(`ok   nukem level ${level}: won by input in ${run.seconds}s with ${run.lives} lives left, ${run.thrown} grenades; idle lost in ${idle.seconds}s`);
+    }
+} finally {
+    Math.random = random;
+}

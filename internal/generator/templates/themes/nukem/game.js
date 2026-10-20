@@ -658,7 +658,7 @@
         e.y = Math.max(G.HUD + 6, e.y + e.vy * dt);
         e.cool -= dt;
         if (e.cool > 0 || Math.abs(p.x - e.x) > 60) return;
-        e.cool = 2.4;
+        e.cool = 3.2;
         foeShot(s, e.x + e.w / 2, e.y + e.h, e.vx * 0.5, 40, { g: 600, bomb: true, blast: 46, r: 6, life: 4 });
         G.tone(900, 0.2, { type: 'sine', slide: 300, vol: 0.1 });
     }
