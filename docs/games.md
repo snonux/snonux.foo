@@ -611,11 +611,16 @@ fireworks. Loud square-wave rock riff.
 ### ocean — Deep Channel (submarine cave scroller)
 The trench scrolls right to left. The sub has buoyancy and inertia: `↑ ↓`
 ballast, `← →` trim speed. `SPACE` fires torpedoes forward, `X` drops depth
-charges. Oxygen drains — collect bubble columns. Touching the cave or a
-creature costs hull. Reach the end of the trench. Levels: narrower caves,
-jellyfish fields, mines on chains, anglerfish that lunge, enemy subs, dark
-zones lit only by the headlight, currents, a kraken boss at level 10.
-Sonar pings, muffled noise, slow lydian music.
+charges. Oxygen drains — linger in bubble columns. Touching the cave or a
+creature costs hull; crates repair it. Reach the end of the trench. Levels:
+1 *Sunlit Shelf* — a wide cave with jellyfish, a jellyfish curtain that has
+to be torpedoed through, and chain mines; 2 *Angler Hollow* — a narrower
+cave with anglerfish that lunge, enemy subs and currents; 3 *Kraken's Maw* —
+the tightest cave, dark zones lit only by the headlight, vents, falling
+stalactites, and the kraken at the end (shoot an arm to make it recoil, then
+the eye; its air column is inside the arms' reach). Ending: *SURFACED* — the
+boat bobbing on the night sea while bioluminescent sparks rise and burst
+under fireworks. Sonar pings, muffled noise, slow lydian music.
 
 ### pacmaze — Neon Maze (maze chase)
 Grid maze, eat every pellet. Four ghosts with different behaviour (chaser,

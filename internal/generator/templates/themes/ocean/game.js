@@ -6,7 +6,13 @@
  * and down, trim forward and back. Oxygen drains all the time and is topped
  * up by lingering in bubble columns; the cave and everything living in it
  * cost hull. Torpedoes clear the way ahead, depth charges deal with whatever
- * sits below. Reach the end of the trench — on level 10, kill the kraken.
+ * sits below. Reach the end of the trench — on level 3, kill the kraken.
+ *
+ * Three levels: Sunlit Shelf (jellyfish, a curtain to torpedo through,
+ * chain mines), Angler Hollow (anglers that lunge, enemy boats and
+ * currents) and Kraken's Maw (dark water, vents and falling stalactites on
+ * the way to the kraken). Killing it ends the campaign: the boat surfaces
+ * under fireworks while the bay glows below.
  *
  * Everything lives in world coordinates; s.cam is the left edge of the view.
  */
@@ -30,21 +36,13 @@
     // One entry per level. `mix` is what a slot of the trench may hold (a
     // feature listed twice is twice as likely); currents and dark are numbers
     // of zones; swarm adds jellyfish to each field; crates: N puts a repair
-    // crate in every Nth slot on top of its feature, because the tight late
-    // caves cost hull even when flown well. Speed and gap change in small
-    // steps: the late levels add hazards, so the cave itself stays flyable
-    // (level 8 is a little wider again, the vents need the room).
+    // crate in every Nth slot on top of its feature, because the tight last
+    // cave costs hull even when flown well. Speed and gap change in small
+    // steps: the later levels add hazards, so the cave itself stays flyable.
     var LEVELS = [
-        { len: 6400, speed: 105, gap: 300, slot: 560, mix: ['jelly', 'crate', 'rest', 'jelly'] },
-        { len: 7400, speed: 110, gap: 270, slot: 500, swarm: 2, mix: ['curtain', 'curtain', 'jelly', 'jelly', 'crate', 'rest'] },
-        { len: 8000, speed: 114, gap: 250, slot: 480, mix: ['mine', 'mine', 'mine', 'jelly', 'crate', 'rest'] },
-        { len: 8600, speed: 118, gap: 238, slot: 470, mix: ['angler', 'angler', 'angler', 'jelly', 'mine', 'crate', 'rest'] },
-        { len: 9200, speed: 122, gap: 228, slot: 460, currents: 6, mix: ['jelly', 'mine', 'angler', 'crate', 'rest', 'mine'] },
-        { len: 9600, speed: 126, gap: 220, slot: 450, currents: 1, mix: ['esub', 'esub', 'mine', 'jelly', 'angler', 'crate', 'rest'] },
-        { len: 10000, speed: 130, gap: 214, slot: 440, dark: 3, mix: ['angler', 'angler', 'jelly', 'jelly', 'mine', 'esub', 'crate'] },
-        { len: 10400, speed: 133, gap: 218, slot: 430, crates: 4, dark: 1, currents: 2, mix: ['vent', 'vent', 'vent', 'mine', 'angler', 'esub', 'jelly', 'crate'] },
-        { len: 10800, speed: 136, gap: 210, slot: 420, crates: 3, dark: 2, currents: 2, mix: ['stal', 'stal', 'stal', 'vent', 'mine', 'angler', 'jelly', 'esub', 'crate'] },
-        { len: 9600, speed: 138, gap: 212, slot: 420, crates: 3, dark: 2, currents: 2, boss: true, mix: ['stal', 'vent', 'mine', 'angler', 'jelly', 'esub', 'crate', 'mine'] }
+        { len: 6400, speed: 106, gap: 290, slot: 540, swarm: 1, mix: ['jelly', 'jelly', 'curtain', 'mine', 'mine', 'crate', 'rest'] },
+        { len: 8000, speed: 114, gap: 250, slot: 480, currents: 3, mix: ['angler', 'angler', 'angler', 'esub', 'mine', 'jelly', 'curtain', 'crate', 'rest'] },
+        { len: 8000, speed: 122, gap: 228, slot: 440, crates: 3, dark: 2, currents: 2, boss: true, mix: ['stal', 'stal', 'vent', 'vent', 'mine', 'angler', 'esub', 'jelly', 'crate'] }
     ];
     // Force of the three kinds of current: up-welling, down-draught, head-on.
     var FLOWS = [{ x: 0, y: -300 }, { x: 0, y: 300 }, { x: -330, y: 0 }];
@@ -1105,6 +1103,59 @@
         drawPhoneWarnings(s, ctx);
     }
 
+    // ------------------------------------------------------------------
+    // The ending: surfacing into the night
+    // ------------------------------------------------------------------
+
+    // The sea surface rolls across the lower part of the picture with the
+    // boat bobbing on it, and bioluminescent sparks rise from below and
+    // burst into small rings as they reach the top. Pure functions of e.t.
+    function drawSea(ctx, t) {
+        var y0 = 380;
+        ctx.fillStyle = 'rgba(2,62,138,0.85)';
+        ctx.beginPath();
+        ctx.moveTo(0, G.H);
+        for (var x = 0; x <= G.W; x += 40) ctx.lineTo(x, y0 + Math.sin(x / 70 + t * 2) * 6);
+        ctx.lineTo(G.W, G.H);
+        ctx.fill();
+        ctx.strokeStyle = C.foam; ctx.lineWidth = 2;
+        ctx.beginPath();
+        for (x = 0; x <= G.W; x += 40) ctx[x ? 'lineTo' : 'moveTo'](x, y0 + Math.sin(x / 70 + t * 2) * 6);
+        ctx.stroke();
+    }
+
+    function drawSurfaced(ctx, t) {
+        var x = 150, y = 372 + Math.sin(t * 2.2) * 4;
+        ctx.save();
+        ctx.translate(x, y); ctx.rotate(Math.sin(t * 1.6) * 0.05); ctx.scale(2, 2);
+        ctx.fillStyle = C.teal;
+        ctx.fillRect(-8, -19, 15, 11); ctx.fillRect(-1, -26, 3, 8); ctx.fillRect(-1, -26, 8, 3);
+        ctx.fillStyle = C.aqua;
+        ctx.beginPath(); ctx.ellipse(0, 0, 28, 11, 0, Math.PI, TAU); ctx.fill();
+        ctx.fillStyle = C.amber; disc(ctx, 12, -4, 3);
+        ctx.restore();
+    }
+
+    function drawGlowSparks(ctx, t) {
+        for (var i = 0; i < 26; i++) {
+            var f = (t * 0.35 + i * 0.137) % 1, x = (i * 173) % G.W, y = G.H - f * 170;
+            ctx.globalAlpha = 0.9 * (1 - f * 0.6);
+            ctx.fillStyle = i % 3 ? C.aqua : C.jelly;
+            disc(ctx, x + Math.sin(t * 2 + i) * 8, y, 3);
+            if (f > 0.85) {
+                ctx.strokeStyle = ctx.fillStyle; ctx.lineWidth = 1.5;
+                ctx.beginPath(); ctx.arc(x, 380, (f - 0.85) * 160, 0, TAU); ctx.stroke();
+            }
+        }
+        ctx.globalAlpha = 1;
+    }
+
+    function drawEnding(e, ctx) {
+        drawSea(ctx, e.t);
+        drawGlowSparks(ctx, e.t);
+        drawSurfaced(ctx, e.t);
+    }
+
     function hud(s) {
         return 'AIR ' + Math.ceil(s.o2) + '  HULL ' + Math.max(0, Math.ceil(s.hull));
     }
@@ -1118,8 +1169,7 @@
             'Linger in bubble columns for air · blow up crates to repair the hull',
             'Kraken: a hit arm recoils — shoot the eye, dash for its air'
         ],
-        levelNames: ['Sunlit Shelf', 'Jelly Bloom', 'Chain Mines', 'Angler Hollow', 'Rip Current',
-            'Wolf Pack', 'The Blackout', 'Vent Garden', 'Falling Teeth', 'Kraken\'s Maw'],
+        levelNames: ['Sunlit Shelf', 'Angler Hollow', 'Kraken\'s Maw'],
         colors: { bg: C.navy, fg: C.foam, accent: C.aqua, dim: '#7fb6cf' },
         lives: 3,
         // Slow and floating: long held lydian notes over a sparse pulse, with
@@ -1134,6 +1184,12 @@
             arp: '0.2.1.3.2.1.',
             drums: { k: 'x...............', h: '....x.......x.x.' },
             leadWave: 'sine', bassWave: 'sine', arpWave: 'triangle', leadOct: 2
+        },
+        ending: {
+            title: 'SURFACED',
+            text: 'The kraken sinks into the deep. Fresh air at last.',
+            colors: [C.aqua, C.foam, C.jelly, C.amber],
+            draw: drawEnding
         },
         init: init, update: update, draw: draw, hud: hud,
         // Everything is on the pad and all six buttons are used: the 8-way

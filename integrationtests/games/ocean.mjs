@@ -9,7 +9,7 @@ import { PHONES } from './touch.mjs';
 
 function localChecks() {
     let def, phone = false, labels = [], operations = [], rectangles = [];
-    const G = { W: 960, H: 540, HUD: 30, level: 10, lives: 3, key: {}, cam: {},
+    const G = { W: 960, H: 540, HUD: 30, level: 3, lives: 3, key: {}, cam: {},
         isTouch: () => phone, register: (_, d) => { def = d; },
         clamp: (n, a, b) => Math.min(b, Math.max(a, n)), lerp: (a, b, t) => a + (b - a) * t,
         rng: (seed) => () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; },
@@ -25,7 +25,7 @@ function localChecks() {
         if (name === 'fillRect') rectangles.push(args);
         operations.push(name === 'fill' && args[0] === 'evenodd' ? 'darkness' : name);
     }, set: () => true });
-    for (let level = 1; level <= 10; level++) {
+    for (let level = 1; level <= 3; level++) {
         phone = false; const desktop = def.init(level);
         phone = true; const mobile = def.init(level);
         assert.equal(desktop.cfg, mobile.cfg, 'phone must retain level rules');
@@ -37,7 +37,7 @@ function localChecks() {
         }
         assert.equal(rules(desktop), rules(mobile), 'phone must retain physics, damage and weapon rules');
     }
-    const s = def.init(10);
+    const s = def.init(3);
     s.dark = 1; s.o2 = 12; s.hull = 22; s.damage = .8; s.damageText = '-25 HULL';
     s.ents = [{ kind: 'angler', x: 980, y: 64, state: 'warn', t: 0 },
         { kind: 'vent', x: 500, y: 490, warn: true, on: false, h: 200, t: 0 },
@@ -93,7 +93,7 @@ if (!process.argv.includes('--local')) {
             const results = await page.eval(`(function(){
                 var G=SnoGame,out=[];
                 function sample(arr,x){var f=G.clamp(x/16,0,arr.length-1.001),i=Math.floor(f);return G.lerp(arr[i],arr[i+1],f-i);}
-                for(var level of [1,5,10]){
+                for(var level of [1,2,3]){
                     G.debug.start(level);var ticks=0;
                     while(ticks<24000&&G.debug.state().screen==='play'){
                         var s=G.debug.s(),b=s.sub,tx=220,ty=(sample(s.top,b.x+35)+sample(s.bot,b.x+35))/2;
@@ -109,11 +109,11 @@ if (!process.argv.includes('--local')) {
                 G.debug.start(1);G.debug.step(24000,{});
                 return {wins:out,idle:G.debug.state().screen,phone:G.debug.s().phone,errors:G.debug.errors.slice()};
             })()`);
-            for (const win of results.wins) assert.equal(win.screen, win.level === 10 ? 'victory' : 'clear', `${mode?.name || 'desktop'} level ${win.level}: ${JSON.stringify(win)}`);
+            for (const win of results.wins) assert.equal(win.screen, win.level === 3 ? 'victory' : 'clear', `${mode?.name || 'desktop'} level ${win.level}: ${JSON.stringify(win)}`);
             assert.equal(results.phone, !!mode, 'each run must initialize the intended desktop or phone variant');
             assert.equal(results.idle, 'over', 'idle play must lose');
             assert.deepEqual(results.errors, []);
-            console.log(`ok   ocean ${mode?.name || 'desktop'}: ordinary-input wins at 1/5/10 and idle loss`);
+            console.log(`ok   ocean ${mode?.name || 'desktop'}: ordinary-input wins at 1/2/3 and idle loss`);
         }
     } finally { await close(); }
 }
