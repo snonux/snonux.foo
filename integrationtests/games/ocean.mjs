@@ -79,6 +79,7 @@ function localChecks() {
 
 localChecks();
 if (!process.argv.includes('--local')) {
+    const botSrc = readFileSync(new URL('./bots/ocean.js', import.meta.url), 'utf8');
     const { page, base, close } = await startSession();
     try {
         await page.goto(`${base}/index.html`);
@@ -90,30 +91,38 @@ if (!process.argv.includes('--local')) {
                 await page.eval("SnoGame.quit();SnoGame.launch('ocean')");
                 await page.waitFor('SnoGame.debug.state() && SnoGame.debug.state().registered', 'ocean phone definition');
             }
+            // The campaign bot (bots/ocean.js) flies each level by input only;
+            // the run records what it had to use: air columns, currents,
+            // depth charges and, on level 3, the kraken's arms.
             const results = await page.eval(`(function(){
-                var G=SnoGame,out=[];
-                function sample(arr,x){var f=G.clamp(x/16,0,arr.length-1.001),i=Math.floor(f);return G.lerp(arr[i],arr[i+1],f-i);}
+                var G=SnoGame,out=[],bot=(0,eval)(${JSON.stringify(botSrc)});
                 for(var level of [1,2,3]){
-                    G.debug.start(level);var ticks=0;
+                    G.debug.start(level);var ticks=0,mem={},o2=100,breaths=0,currents=0,charges=0,stuns=0;
                     while(ticks<24000&&G.debug.state().screen==='play'){
-                        var s=G.debug.s(),b=s.sub,tx=220,ty=(sample(s.top,b.x+35)+sample(s.bot,b.x+35))/2;
-                        var col=s.cols.find(function(c){return c.x>b.x-45;});
-                        if(s.o2<65&&col)tx=G.clamp(col.x-s.cam,80,550);
-                        if(s.boss&&s.boss.awake){ty=s.boss.y-3;tx=s.o2<65?505:330;}
-                        var dx=tx-(b.x-s.cam),dy=ty-b.y;
-                        G.debug.step(1,{left:dx-b.vx*.35<-8,right:dx-b.vx*.35>8,
-                            up:dy-b.vy*.35<10,down:dy-b.vy*.35>22,a:true,b:true});ticks++;
+                        G.debug.step(1,function(i,s){return bot.play(s,G,mem);});ticks++;
+                        var s=G.debug.s();
+                        if(s.o2>o2+0.2)breaths++;
+                        o2=s.o2;
+                        if(s.flow)currents++;
+                        charges=Math.max(charges,s.charges.length);
+                        if(s.boss)stuns=Math.max(stuns,s.boss.arms.filter(function(a){return a.stun>0;}).length);
                     }
-                    out.push({level:level,screen:G.debug.state().screen,ticks:ticks,lives:G.lives});
+                    out.push({level:level,screen:G.debug.state().screen,ticks:ticks,lives:G.lives,breaths:breaths,currents:currents,charges:charges,stuns:stuns});
                 }
                 G.debug.start(1);G.debug.step(24000,{});
                 return {wins:out,idle:G.debug.state().screen,phone:G.debug.s().phone,errors:G.debug.errors.slice()};
             })()`);
+            for (const win of results.wins) {
+                assert.ok(win.breaths > 0, `level ${win.level}: the bot had to breathe in a column`);
+                if (win.level > 1) assert.ok(win.currents > 0, `level ${win.level}: the route crosses a current`);
+                if (win.level === 3) assert.ok(win.stuns > 0, 'level 3: an arm was made to recoil');
+            }
+            assert.ok(results.wins.some((w) => w.charges > 0), 'depth charges are used');
             for (const win of results.wins) assert.equal(win.screen, win.level === 3 ? 'victory' : 'clear', `${mode?.name || 'desktop'} level ${win.level}: ${JSON.stringify(win)}`);
             assert.equal(results.phone, !!mode, 'each run must initialize the intended desktop or phone variant');
             assert.equal(results.idle, 'over', 'idle play must lose');
             assert.deepEqual(results.errors, []);
-            console.log(`ok   ocean ${mode?.name || 'desktop'}: ordinary-input wins at 1/2/3 and idle loss`);
+            console.log(`ok   ocean ${mode?.name || 'desktop'}: bot wins 1/2/3 (${results.wins.map((w) => (w.ticks / 60).toFixed(0) + 's').join(' ')}) and idle loss`);
         }
     } finally { await close(); }
 }
