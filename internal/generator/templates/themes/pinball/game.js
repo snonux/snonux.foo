@@ -50,9 +50,9 @@
     // up to three short lines of briefing (short, so that they fit the card in
     // type a phone can show), and the fixtures bolted onto the bare table.
     var LEVELS = [
-        { goal: 'bumper', need: 12, target: 1500, brief: ['Wake the table up:', 'ring the pop bumpers.'],
+        { goal: 'bumper', need: 20, target: 2400, brief: ['Wake the table up:', 'ring the pop bumpers.'],
             bumpers: [[416, 170], [516, 170], [466, 236]] },
-        { goal: 'target', need: 6, target: 2700, brief: ['Knock down both banks', 'of drop targets.'],
+        { goal: 'target', need: 6, target: 5500, brief: ['Knock down both banks', 'of drop targets.'],
             banks: true, lanes: true, bumpers: [[466, 175]] },
         { goal: 'wizard', need: 20, target: 15500, brief: ['Drop the targets, lock', 'two balls, then ring', 'bumpers in multiball.'],
             banks: true, saucers: [[317, 170], [615, 170]], rover: 135, magnets: [[466, 305]],

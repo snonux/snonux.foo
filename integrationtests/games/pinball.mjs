@@ -4,7 +4,9 @@ import { readFileSync } from 'node:fs';
 import { startSession } from './lib.mjs';
 import { PHONES } from './touch.mjs';
 
-const bot = readFileSync(new URL('./pinball-bot.js', import.meta.url), 'utf8');
+// The campaign bot (bots/pinball.js) plays every level by plunger, flipper
+// and nudge input; each run records the nudges, tilts and multiball time.
+const bot = readFileSync(new URL('./bots/pinball.js', import.meta.url), 'utf8');
 const { page, base, close } = await startSession();
 try {
     for (const mode of [null, ...PHONES]) {
@@ -21,15 +23,27 @@ try {
             try {
                 for(var level of [1,2,3]){
                     var rng=G.rng(12345);Math.random=rng;
-                    G.debug.start(level);var input=${bot},ticks=0;
-                    while(G.debug.state().screen==='play'&&ticks<108000){G.debug.step(1,input);ticks++;}
-                    results.push({level:level,screen:G.debug.state().screen,ticks:ticks,done:G.debug.s().done,points:G.debug.s().pts});
+                    G.debug.start(level);var b=(0,eval)(${JSON.stringify(bot)}),mem={},ticks=0,nudges=0,tilts=0,multiball=0;
+                    while(G.debug.state().screen==='play'&&ticks<108000){
+                        var before=G.debug.s(),nudge=before.nudgeT,tilted=before.tilted;
+                        G.debug.step(1,function(i,s){return b.play(s,G,mem);});ticks++;
+                        var s=G.debug.s();
+                        if(s.nudgeT>nudge)nudges++;
+                        if(s.tilted&&!tilted)tilts++;
+                        if(s.multiball)multiball++;
+                    }
+                    results.push({level:level,screen:G.debug.state().screen,ticks:ticks,done:G.debug.s().done,points:G.debug.s().pts,nudges:nudges,tilts:tilts,multiball:multiball});
                 }
                 Math.random=G.rng(12345);G.debug.start(1);G.debug.step(108000,{});
                 return {wins:results,idle:G.debug.state().screen,errors:G.debug.errors.slice()};
             }finally{Math.random=originalRandom;}
         })()`);
-        for (const win of results.wins) assert.equal(win.screen, win.level === 3 ? 'victory' : 'clear', `${mode?.name || 'desktop'} level ${win.level}: ${JSON.stringify(win)}`);
+        for (const win of results.wins) {
+            assert.equal(win.screen, win.level === 3 ? 'victory' : 'clear', `${mode?.name || 'desktop'} level ${win.level}: ${JSON.stringify(win)}`);
+            assert.equal(win.tilts, 0, 'nudging with an eye on the tilt meter never tilts');
+        }
+        assert.ok(results.wins[2].multiball > 0, 'level 3 is finished in multiball');
+        assert.ok(results.wins.some((w) => w.nudges > 0), 'the bot nudges');
         assert.equal(results.idle, 'over', 'doing nothing must lose');
         assert.deepEqual(results.errors, []);
         if (mode) {
