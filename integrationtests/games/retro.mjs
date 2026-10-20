@@ -69,14 +69,38 @@ G.debug = { start: reset, state: () => ({ screen }), s: () => s, errors: [], ste
         G.t += 1 / 60; def.update(s, 1 / 60);
     }
 } };
-const bot = readFileSync(new URL('./retro-bot.js', import.meta.url), 'utf8');
+// The relay is the checkpoint: past it a crash respawns there with a life
+// handed back first; reaching the end of the line wins.
+reset(); G.lives = 2; s.x = s.prevX = s.cpX - 1; def.update(s, 1 / 60);
+assert.ok(s.cp && G.lives === 3, 'the relay locks and hands back a life');
+s.y = 600; def.update(s, 1 / 60); assert.equal(G.lives, 2, 'falling out of the line crashes');
+while (s.redial > 0) def.update(s, 1 / 60);
+assert.equal(s.x, s.cpX, 'the respawn is at the relay');
+reset(2); s.x = s.prevX = s.len - 1; s.haz = []; def.update(s, 1 / 60);
+assert.equal(screen, 'clear', 'the end of the line clears the level');
+const lens = [1, 2, 3].map((l) => def.init(l).len);
+assert.ok(lens[0] < lens[1] && lens[1] < lens[2], 'each line is longer than the last');
+
+// The campaign bot (bots/retro.js) plays each level with FLIP alone.
+const BOT = readFileSync(new URL('./bots/retro.js', import.meta.url), 'utf8');
+const bot = `(function (bot) {
+    var G = SnoGame, results = [];
+    for (var level = 1; level <= 3; level++) {
+        var mem = {}, ticks = 0;
+        G.debug.start(level);
+        while (ticks++ < 14000 && G.debug.state().screen === 'play') G.debug.step(1, bot.play(G.debug.s(), G, mem));
+        results.push({ level: level, screen: G.debug.state().screen, ticks: ticks });
+    }
+    G.debug.start(1); G.debug.step(14000, {});
+    return { wins: results, idle: G.debug.state().screen, errors: G.debug.errors.slice() };
+})(${BOT})`;
 for (const touch of [false, true]) {
     phone = touch;
-    const result = vm.runInNewContext(bot, { SnoGame: G });
+    const result = vm.runInNewContext(bot, { SnoGame: G, Math });
     for (const win of result.wins) assert.equal(win.screen, win.level === 3 ? 'victory' : 'clear', JSON.stringify(win));
     assert.equal(result.idle, 'over', 'idle must lose');
 }
-console.log('ok   retro local: same layouts, tap/pad/midair/jam paths, persistent combined cues, less phone drawing, FLIP wins and idle loss');
+console.log('ok   retro local: same layouts, tap/pad/midair/jam paths, persistent combined cues, less phone drawing, relay checkpoint, finish line, FLIP wins and idle loss');
 if (!process.argv.includes('--local')) {
     const { page, base, close } = await startSession();
     try {
