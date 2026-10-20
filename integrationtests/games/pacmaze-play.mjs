@@ -62,7 +62,7 @@ try {
             ctx.setTransform(scale,0,0,scale,0,0);def.draw(s,ctx);
             return ctx.getImageData(0,0,pic.width,pic.height).data;
         }
-        for(var level of [1,5,10]){
+        for(var level of [1,2,3]){
             var s=def.init(level);
             for(var scale of [1,.40625,1.37,2,1]){
                 var cached=pixels(s,scale),fresh=pixels(def.init(level),scale);
@@ -75,12 +75,12 @@ try {
     async function win(level, orientation) {
         await page.eval(`SnoGame.debug.start(${level})`);
         const result = await page.eval(BOT);
-        assert.equal(result.screen, level === 10 ? 'victory' : 'clear', `${orientation} level ${level} is winnable`);
+        assert.equal(result.screen, level === 3 ? 'victory' : 'clear', `${orientation} level ${level} is winnable`);
         assert.equal(result.level, level);
         assert.equal(result.left, 0);
         console.log('ok  ', orientation, level, result.lives, 'lives left');
     }
-    for (const level of [1,5,10]) await win(level, 'desktop');
+    for (const level of [1,2,3]) await win(level, 'desktop');
     await page.eval('SnoGame.debug.start(1)');
     const idle = await page.eval('SnoGame.debug.step(60*150,{})');
     assert.equal(idle.screen, 'over', 'idle player loses');
@@ -89,7 +89,7 @@ try {
         await page.goto(`${base}/index.html`);
         await page.eval("SnoGame.launch('pacmaze')");
         await page.waitFor('SnoGame.debug.state().registered', 'phone registration');
-        for (const level of [1,5,10]) {
+        for (const level of [1,2,3]) {
             if (shots) {
                 await page.eval(`SnoGame.debug.start(${level});SnoGame.debug.step(180,{left:true})`);
                 await page.screenshot(join(shots, `${name}-${level}.jpg`));

@@ -5,8 +5,13 @@
  * the chaser heads straight for you, the ambusher aims ahead of you, the
  * flanker pincers you against the chaser and the wanderer drifts. They take
  * turns scattering to their corners and chasing. A power pellet turns them
- * blue and edible for a while. Later mazes add vertical warps, timed
- * shutters, turbo pads, a fifth ghost that never scatters, and darkness.
+ * blue and edible for a while.
+ *
+ * Three mazes: First Bite (an open grid with one side tunnel), Gatecrash
+ * (timed shutters, turbo pads and side tunnels on two rows) and Neon Core
+ * (dark, a fifth ghost that never scatters, every kind of tunnel). Clearing
+ * the core ends the campaign: the maze lights up ring by ring while Pac
+ * chases blue ghosts along the top.
  *
  * Everything moves on a tile grid but is integrated with dt: an actor is
  * "p" of the way from tile (cx, cy) to its neighbour in direction (dx, dy).
@@ -25,8 +30,8 @@
         scared: '#3a55ff', red: '#ff5a6e', fright: '#777dff'
     };
     // Wall outline per level: all from the theme palette, so every maze has
-    // its own mood without leaving the theme.
-    var WALL_HUES = ['#168cff', '#57b8ff', '#168cff', '#8ff0d2', '#c7a7ff', '#57b8ff', '#ffad88', '#168cff', '#ff9fcf', '#c7a7ff'];
+    // its own mood without leaving the theme. The ending cycles through them.
+    var WALL_HUES = ['#168cff', '#ff9fcf', '#c7a7ff', '#8ff0d2'];
     // Up, left, down, right: also the tie-break order when a ghost has two
     // equally good ways to go.
     var DIRS = [{ x: 0, y: -1 }, { x: -1, y: 0 }, { x: 0, y: 1 }, { x: 1, y: 0 }];
@@ -41,20 +46,23 @@
         // The fifth ghost never scatters, so it has no home corner.
         { kind: 'stalker', color: C.red, slot: 17 }
     ];
-    // What a level adds beyond its own maze (gates, pads and warps are drawn
-    // into the maze strings themselves). `five` is the fifth ghost's share of
-    // the ghost speed: it never scatters, so it is slower than the others,
-    // except on level 9, whose short maze would otherwise be easier than the
-    // levels around it. `dark` is the radius of the lit circle in pixels.
-    var TWISTS = { 7: { five: 0.74 }, 8: { dark: 190 }, 9: { five: 1 }, 10: { five: 0.7, dark: 175 } };
+    // One entry per level. ps and gs are the player's and the ghosts' speed
+    // in tiles per second, power how long a power pellet lasts, scatter and
+    // chase the lengths of the two ghost phases, gap the seconds between
+    // ghosts leaving the house. `five` adds the fifth ghost at that share of
+    // the ghost speed (it never scatters, so it is slower than the others);
+    // `dark` is the radius of the lit circle in pixels.
+    var LEVELS = [
+        { ps: 6.3, gs: 3.4, power: 8.6, scatter: 6.7, chase: 14.5, gap: 3 },
+        { ps: 6.6, gs: 4.1, power: 7.4, scatter: 6, chase: 16, gap: 2.4 },
+        { ps: 6.9, gs: 4.6, power: 6.4, scatter: 5.4, chase: 17, gap: 1.8, five: 0.72, dark: 175 }
+    ];
 
     // The left half of each maze; the right half is its mirror image.
     //   # wall   . dot   o power pellet   P start (and fruit spot)   space: empty floor
     //   = ghost door   H ghost house   g / j shutters (two alternating groups)   b turbo pad
     // An opening in column 0 is a side tunnel, one in row 0 and 16 a vertical warp.
-    // Every maze has the four corner power pellets. 4 and 5 (long lanes with
-    // few ways out, shutters), 7 (the first fifth ghost) and 8 (the first
-    // dark one) have two more in the middle, and 10 has eight.
+    // Every maze has the four corner power pellets; the dark core has eight.
     var MAZES = [
         [   // 1 First Bite: open grid, one side tunnel
             '################', '#o......#.......', '#.###.#.#.###.##', '#.....#.#.......', '#.#.###.#.#.####',
@@ -62,55 +70,13 @@
             '#.#.###.#.#.####', '#.....#.#......P', '#.###.#.#.###.##', '#.....#.........', '#.###.###.###.##',
             '#o..............', '################'
         ],
-        [   // 2 Twin Tunnels: two tunnel rows, none in the middle
-            '################', '#o....#.........', '#.#.#.#.#.#.####', ' ...#.....#.....', '###.#.###.###.##',
-            '#.....#.........', '#.###.#.#.#.###=', '#.#...#.#...##HH', '#.#.#.#.#.#.####', '#...#...#.......',
-            '###.#.###.###.##', ' ...#.....#....P', '#.#.#.#.#.#.####', '#.#...#...#.....', '#.###.#.###.#.##',
-            '#o..............', '################'
-        ],
-        [   // 3 Long Halls: long straights with few ways out
-            '################', '#o..............', '#.#########.####', '#...............', '#####.#####.####',
-            '#...............', '#.#.#####.#.###=', ' .#.......#.##HH', '#.###.#####.####', '#...............',
-            '###.#######.####', '#..............P', '#.#####.###.####', '#...............', '#.###.###.######',
-            '#o..............', '################'
-        ],
-        [   // 4 Elevator: warps through the top and bottom edge
-            '##### ##########', '#o..............', '#.#.#.###.#.####', '#.#.#.....#.....', '#.#.#.#.###.####',
-            '#.....#.#.......', '###.#.#.#.#.###=', ' ...#...#...##HH', '###.#.#.#.#.####', '#....o#.#.......',
-            '#.#.#.#.###.####', '#.#.#.....#....P', '#.#.#.###.#.####', '#...............', '#.###.###.###.##',
-            '#o..............', '##### ##########'
-        ],
-        [   // 5 Shutters: two groups of timed gates, one always open
-            '################', '#o....#.........', '#.###.#.###g####', '#...#.....#.....', '#.#.#.###.###.##',
-            '#.#...#.j.......', '#.#####.#.#.###=', ' ...g...#.#.##HH', '#.#####.#.#.####', '#.#..o#.j.......',
-            '#.#.#.###.###.##', '#...#.....#....P', '#.###.#.###g####', '#.....#.........', '#.###.###.#.####',
-            '#o..............', '################'
-        ],
-        [   // 6 Turbo Lanes: speed pads on long lanes, tunnels top and bottom
-            '################', ' o..b...........', '#.#####.#####.##', '#.#.....#.......', '#.#.###.#.###.##',
-            '#...#...#.......', '###.#.###.#.###=', '#...#..b..#.##HH', '#.###.###.#.####', '#...#...#.......',
-            '#.#.###.#.###.##', '#.#.....#......P', '#.#####.#####.##', '#......b........', '#.###########.##',
-            ' o..b...........', '################'
-        ],
-        [   // 7 Fifth Wheel: many junctions, because there are five ghosts
-            '################', '#o..#.....#.....', '#.#.#.#.#.#.#.##', '#...#.#...#.....', '#.###.#.###.####',
-            '#.....#.........', '#.#.###.#.#.###=', ' .#.....#.#.##HH', '#.#.###.#.#.####', '#.....#o........',
-            '#.###.#.###.####', '#...#.#...#....P', '#.#.#.#.#.#.#.##', '#.#...#.#.......', '#.###.#.#.###.##',
-            '#o..............', '################'
-        ],
-        [   // 8 Blackout: a plain maze, because you only see a small circle
-            '################', '#o......#.......', '#.#.###.#.###.##', '#.#...#.........', '#.###.#.###.####',
-            '#...#...#.......', '###.###.#.#.###=', ' .........#.##HH', '###.###.#.#.####', '#...#..o#.......',
-            '#.###.#.###.####', '#.#...#........P', '#.#.###.#.###.##', '#.......#.......', '#.###.###.#.####',
-            '#o..............', '################'
-        ],
-        [   // 9 Gatecrash: shutters, pads and five ghosts
+        [   // 2 Gatecrash: shutters, pads and side tunnels on two rows
             '################', '#o......#.......', '#.###.#.#.#g####', ' ...#.#...#.....', '###.#.###.#.####',
             '#...j...#.......', '#.###.#.#.#.###=', '#.###b#.g.#.##HH', '#.###.#.#.#.####', '#...j...#.......',
             '###.#.###.#.####', '#...#.#...#....P', '#.###.#.#.#g####', ' .......#.......', '#.#####.###.####',
             '#o......b.......', '################'
         ],
-        [   // 10 Neon Core: dark, five ghosts, shutters, a pad, every kind of tunnel;
+        [   // 3 Neon Core: dark, five ghosts, shutters, a pad, every kind of tunnel;
             // eight power pellets instead of four make that fair
             '### ############', '#o......#.......', '#.#.###.#.###.##', '#...#...j.......', '#.#.#.###.#.####',
             '#.....#o........', '###.#.#.#.#.###=', ' ...g..b..#.##HH', '###.#.#.#.#.####', '#.....#o........',
@@ -185,7 +151,7 @@
         var d = GHOSTS[i], outside = i === 0;
         // Only the chaser starts outside; the others leave the house one by
         // one, sooner on later levels.
-        var gap = Math.max(1.5, 3.2 - s.level * 0.2);
+        var gap = LEVELS[s.level - 1].gap;
         return {
             kind: d.kind, color: d.color, home: d.home, slot: d.slot, door: d.slot <= 15.5 ? 15 : 16,
             state: outside ? 'roam' : 'house', wait: i * gap, scared: false, bob: i,
@@ -206,23 +172,18 @@
 
     // Scatter and chase take turns for as long as the level lasts (see
     // tickPhase): the breather keeps coming, which is what lets a player
-    // fetch the last dots next to the ghost house. Scatter gets shorter and
-    // chase longer with the level.
-    function phaseList(level) {
-        return [7 - level * 0.3, 14 + level * 0.5];
-    }
-
+    // fetch the last dots next to the ghost house.
     function init(level) {
-        var tw = TWISTS[level] || {};
-        // Ghosts run at about half the player's speed on level 1 and at 70%
-        // from level 9 on; a power pellet lasts 8.6 s at first, 5 s at the end.
+        var cfg = LEVELS[level - 1];
+        // Ghosts run at about half the player's speed on level 1 and at two
+        // thirds in the core.
         var s = {
             level: level, mobile: G.isTouch(), walls: null, grid: buildGrid(level), gates: [], gateAt: {}, gateT: 0, edges: [], start: null,
             total: 0, left: 0, eaten: 0,
-            ps: 6.2 + level * 0.1, gs: Math.min(5, 3.2 + level * 0.2), powerTime: 9 - level * 0.4,
-            five: tw.five || 0, sight: tw.dark || 0, shade: tw.dark ? 1 : 0,
+            ps: cfg.ps, gs: cfg.gs, powerTime: cfg.power,
+            five: cfg.five || 0, sight: cfg.dark || 0, shade: cfg.dark ? 1 : 0,
             fright: 0, combo: 0, boost: 0, hold: 0, dying: 0, ready: 1,
-            phases: phaseList(level), phaseI: 0, phaseT: 0,
+            phases: [cfg.scatter, cfg.chase], phaseI: 0, phaseT: 0,
             fruit: 0, fruitsOut: 0, sirenT: 0, wak: false
         };
         scanGrid(s);
@@ -400,10 +361,10 @@
     function ghostSpeed(s, g) {
         var v = s.gs;
         if (g.scared) return v * 0.6;
-        // The stalker never rests, so it is slower to stay fair (see TWISTS).
+        // The stalker never rests, so it is slower to stay fair (see LEVELS).
         if (g.kind === 'stalker') v *= s.five;
-        // From level 3 the chaser gets a little angry once the maze is nearly empty.
-        if (g.kind === 'chaser' && s.level >= 3 && s.left < s.total * 0.25) v *= 1.06;
+        // From level 2 the chaser gets a little angry once the maze is nearly empty.
+        if (g.kind === 'chaser' && s.level >= 2 && s.left < s.total * 0.25) v *= 1.06;
         // Side tunnels slow ghosts down: they are the player's escape route.
         if (s.grid[g.cy][0] !== '#' && (g.cx < 2 || g.cx > COLS - 3)) v *= 0.65;
         return Math.min(v, s.ps * 0.97);
@@ -536,7 +497,7 @@
     }
 
     // The fruit waits on the start tile. The second one of a level is a
-    // heart: an extra life, which the late levels need.
+    // heart: an extra life, which the dark core needs.
     function tickFruit(s, dt) {
         if (s.fruit <= 0) return;
         s.fruit -= dt;
@@ -849,6 +810,53 @@
         }
     }
 
+    // ------------------------------------------------------------------
+    // The ending: the core lights up
+    // ------------------------------------------------------------------
+
+    // The wall outlines of the last maze, built once into the scene's data.
+    // A ring of light spreads from the ghost house and keeps returning, each
+    // ring in the next wall colour, so the maze pulses like a neon sign.
+    function drawLitMaze(e, ctx) {
+        if (!e.data.edges) {
+            var m = { grid: buildGrid(LEVELS.length), edges: [] };
+            buildEdges(m);
+            e.data.edges = m.edges;
+        }
+        var ed = e.data.edges, cx = G.W / 2, cy = py(7);
+        ctx.lineWidth = 3; ctx.lineCap = 'round';
+        for (var i = 0; i < ed.length; i += 4) {
+            var d = Math.hypot(ed[i] - cx, ed[i + 1] - cy), wave = e.t * 260 - d;
+            if (wave < 0) continue;
+            var ring = Math.floor(wave / 180);
+            ctx.globalAlpha = 0.35 + 0.5 * Math.max(0, 1 - (wave % 180) / 120);
+            ctx.strokeStyle = WALL_HUES[ring % WALL_HUES.length];
+            ctx.beginPath(); ctx.moveTo(ed[i], ed[i + 1]); ctx.lineTo(ed[i + 2], ed[i + 3]); ctx.stroke();
+        }
+        ctx.globalAlpha = 1;
+    }
+
+    // Pac runs along the top eating a line of dots, four blue ghosts
+    // fleeing just ahead of him; the run loops across the screen.
+    function drawChase(e, ctx) {
+        var y = 70, x = (e.t * 170) % (G.W + 360) - 60, m = 0.06 + 0.3 * Math.abs(Math.sin(e.t * 14));
+        ctx.fillStyle = C.dot;
+        for (var d = 30; d < G.W; d += 40) if (d > x) disc(ctx, d, y, 3);
+        for (var k = 0; k < 4; k++) {
+            var gx = x + 70 + k * 40;
+            ghostBody(ctx, gx, y, C.scared, false);
+            scaredFace(ctx, gx, y, false);
+        }
+        ctx.fillStyle = C.dot; ctx.shadowColor = C.dot; ctx.shadowBlur = 12;
+        ctx.beginPath(); ctx.moveTo(x, y); ctx.arc(x, y, 13, m, Math.PI * 2 - m); ctx.closePath(); ctx.fill();
+        ctx.shadowBlur = 0;
+    }
+
+    function drawEnding(e, ctx) {
+        drawLitMaze(e, ctx);
+        drawChase(e, ctx);
+    }
+
     function hud(s) {
         return 'DOTS ' + s.left + (s.fright > 0 ? '  POWER ' + s.fright.toFixed(1) : '');
     }
@@ -862,7 +870,7 @@
             'Tunnels wrap round · fruit appears on your start tile, the second is an extra life',
             'Later: red shutters open and close, lightning pads give a burst of speed'
         ],
-        levelNames: ['First Bite', 'Twin Tunnels', 'Long Halls', 'Elevator', 'Shutters', 'Turbo Lanes', 'Fifth Wheel', 'Blackout', 'Gatecrash', 'Neon Core'],
+        levelNames: ['First Bite', 'Gatecrash', 'Neon Core'],
         colors: { bg: C.night, fg: C.ink, accent: C.dot, dim: C.muted },
         lives: 4,
         // A bouncy C-major arcade tune: eight bars over I I IV V I vi IV V,
@@ -876,6 +884,12 @@
             ],
             arp: '0.2.1.3.', drums: { k: 'x.....x.x.......', s: '....x.......x...', h: '..x...x...x...x.' },
             leadWave: 'square', bassWave: 'triangle', arpWave: 'triangle', leadOct: 1
+        },
+        ending: {
+            title: 'MAZE CLEARED',
+            text: 'The core is dark no more. Every ghost runs blue.',
+            colors: [C.dot, C.pink, C.mint, C.lilac, '#168cff'],
+            draw: drawEnding
         },
         init: init, update: update, draw: draw, hud: hud,
         // Steering is all there is: one direction at a time (a thumb a little

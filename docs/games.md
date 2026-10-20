@@ -625,10 +625,16 @@ under fireworks. Sonar pings, muffled noise, slow lydian music.
 ### pacmaze — Neon Maze (maze chase)
 Grid maze, eat every pellet. Four ghosts with different behaviour (chaser,
 ambusher, flanker, wanderer), scatter/chase phases, power pellets that turn
-them vulnerable, side tunnels, bonus fruit. `arrows` steer with buffered
-turns. Levels: ten different mazes (hand-drawn as strings), faster ghosts,
-shorter power time, and extra twists late on (a fifth ghost, a dark level with
-limited sight). The classic wakka sound, siren that rises as pellets run out.
+them vulnerable, side tunnels, bonus fruit (the second one is an extra
+life). `arrows` steer with buffered turns. Levels: 1 *First Bite* — an open
+grid with one side tunnel and slow ghosts; 2 *Gatecrash* — two groups of
+timed shutters, turbo pads and side tunnels on two rows, faster ghosts that
+leave the house sooner; 3 *Neon Core* — dark (only a circle around Pac is
+lit, the lights come up while the ghosts are blue), a fifth ghost that never
+scatters, shutters, a pad, side tunnels and vertical warps, and eight power
+pellets. Ending: *MAZE CLEARED* — the core's walls light up ring by ring in
+cycling neon while Pac chases four blue ghosts along the top, under
+fireworks. The classic wakka sound, siren that rises as pellets run out.
 
 ### pinball — Electro Ball (pinball)
 A real table: gravity, two flippers that add momentum when they swing
