@@ -529,32 +529,50 @@ hazard, and at level 10 an archdemon that needs three strikes from above.
 Organ-like harmonic-minor music, bell sounds.
 
 ### cosmos — Gravity Well (asteroids with gravity)
-`← →` rotate, `↑` thrust, `SPACE` fire, `X` hyperspace (risky random jump).
-Ship, rocks and bullets all feel the pull of black holes and stars, so shots
-curve and rocks slingshot; the screen wraps. Rocks split twice. Destroy every
-rock to clear the level; falling into a well kills. Levels: more wells, a
-binary pair that orbits, saucers that shoot back from level 4, a pulsar that
-sweeps a deadly beam from level 7, level 10 circles a giant hole. Spacey
+`← →` rotate, `↑` thrust, `SPACE` fire, `X` hyperspace (risky random jump
+that keeps the ship's momentum). Ship, rocks and bullets all feel the pull of
+black holes and stars, so shots curve and rocks slingshot; the screen wraps.
+Rocks split twice; iron rocks (purple) take two hits. Destroy every rock of
+every wave to clear the level; falling into a core kills, rocks bounce off.
+Four ships per level. Levels: 1 *First Light*, one star and two small waves
+to learn the pull; 2 *Binary Waltz*, a pair of black holes orbiting each
+other, iron rocks and saucers that shoot curving shots back; 3 *Event
+Horizon*, the gravity finale: three waves on circular orbits around a giant
+hole, with an orbiting pulsar that sweeps a deadly beam and sniper saucers.
+The ending is a supernova: the giant flares out in shock rings while a new
+constellation is drawn star by star, under gold and blue fireworks. Spacey
 dorian pads and arps.
 
 ### dos — DIGGER.EXE (CGA tunnel digger)
 Grid-based digging in the CGA palette (black, cyan, magenta, white) with the
 DOS font. `arrows` dig through dirt, `SPACE` fires a shot down the tunnel
-(slow recharge). Collect every emerald to clear the level. Enemies come out of
-a corner nest and chase through tunnels; later ones dig too. Gold bags fall
-when undermined (they wobble first): they crush enemies and the player, and
-burst into gold if they fall far. Levels: ten maps, more and faster enemies,
-more bags, digging enemies from level 5, a bonus cherry that turns the tables
-for a few seconds. PC-speaker style square-wave sounds and music.
+(slow recharge). Collect every emerald to clear the level; every emerald can
+be dug out (rocks never touch, and an emerald a bag lands on is ground to
+dust). Enemies come out of a corner nest and chase through tunnels. Gold bags
+fall when undermined (they wobble first): they crush enemies and the player,
+and burst into gold if they fall far. A bonus cherry turns the tables for a
+few seconds. Levels: 1 *AUTOEXEC.BAT*, one nobbin at a time and a few bags to
+learn digging and dropping; 2 *CHERRY.COM*, rocks, two nobbins and the
+cherry; 3 *FORMAT C:*, the finale: two nests, hobbins that dig their own
+tunnels, the TSR ghost that drifts through soil, and tunnels that silt up
+behind you. The ending is a victory session at the DOS prompt (`FORMAT C:
+/EMERALDS` … `Format complete.`) under CGA fireworks and a marquee border.
+PC-speaker style square-wave sounds and music.
 
 ### invaders — Formation (fixed shooter)
 A marching formation that speeds up as it thins, bunkers that erode where
 they are hit, a bonus saucer across the top. `← →` move, `SPACE` fire (one or
-two shots on screen). Destroy the formation before it lands. Levels: different
-formation shapes, divers that peel off and swoop from level 3, shielded
-invaders, splitting invaders, capsules (rapid, double, shield), a mothership
-boss at levels 5 and 10. Classic four-note march that speeds up with the
-formation, layered over the sequencer.
+two shots on screen). Destroy the formation before it lands. Levels: 1 *First
+Contact*, the classic block of five rows to learn the march and the bunkers;
+2 *Crossfire*, two groups marching against each other with shielded invaders,
+divers that peel off and swoop, weaving bombs and capsules (rapid, double,
+shield) from kills and the saucer; 3 *Mothership*, the finale: the mothership
+boss fires aimed fans and launches minis, escorted by lancers that charge
+beams and splitters that burst into minis; its core glows open now and then
+for triple damage. The ending blows the mothership apart: the hull shudders,
+flashes and bursts into spinning plates and shock rings under mint and amber
+fireworks. Classic four-note march that speeds up with the formation, layered
+over the sequencer.
 
 ### matrix — Bullet Time (time moves when you move)
 Top-down rooms in green code. Time runs at full speed only while the player
@@ -562,19 +580,29 @@ moves or shoots; standing still slows everything to a crawl, so bullets can be
 read and dodged. `WASD`/arrows move, mouse aims and clicks to shoot
 (keyboard: `SPACE` shoots toward the facing direction). One hit kills.
 Agents patrol, take cover and fire; picked-up guns have limited ammo; with no
-ammo, running into an agent from behind takes them down. Clear the room.
-Levels: ten rooms with more walls and agents, shotgun agents, agents that
-dodge, a sentinel drone that only moves in real time, level 10 is the lobby
-with pillars. `lives: 1`. Digital glitch sounds, dark minor music that slows
-down with time is a bonus, not a requirement.
+ammo, running into an agent from behind takes them down, and an operator's
+dead drop refills an empty-handed player. Clear the room. Levels: 1 *Wake
+Up*, pistol agents in a plain room with plenty of rounds; 2 *Glass Office*,
+see-through panes that stop people but shatter under fire, shotgun agents,
+dodgers and agents that duck into cover to reload; 3 *The Lobby*, the finale:
+rows of pillars, every kind of agent leading its shots, and a sentinel drone
+that moves in real time in each wave after the first. `lives: 1`. The ending
+slows the code rain to a halt and resolves it into the bullet-time tableau:
+the hero facing a frozen volley, the last agent coming apart into glyphs.
+Digital glitch sounds, dark minor music that slows down with time is a bonus,
+not a requirement.
 
 ### neon — Light Cycles (tron arena)
 Grid arena. Every cycle leaves a solid wall of light; hitting any wall
-destroys you. `arrows` turn, `SPACE` boost (limited charge). Outlast every AI
-rider; win the required number of rounds to clear the level. Levels: more and
-smarter riders (they look ahead and cut you off), faster cycles, arena
-obstacles, trails that decay, a shrinking arena from level 8, level 10 is a
-duel series against an expert. Neon glow, pentatonic synth lead.
+destroys you. `arrows` turn, `SPACE` boost (limited charge, refilled by
+yellow pods and by riding beside a rival's wall). Outlast every AI rider; win
+the required number of rounds to clear the level. Levels: 1 *Grid Zero*, two
+easy riders and the first energy pods; 2 *Fading Light*, three riders
+including a hunter that boosts and cuts you off, bars to ride around, and
+trails that fade until they lock; 3 *The Expert*, the finale: a first-to-three
+duel series against an expert rider in an arena that collapses ring by ring.
+The ending, *End of Line*, sends light cycles racing up out of the grid until
+their trails burst into neon fireworks. Neon glow, pentatonic synth lead.
 
 ### noir — Midnight Alley (crosshair gallery shooter)
 A rainy alley front: windows, doors, a parked car. Gangsters pop out and take
