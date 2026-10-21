@@ -770,6 +770,205 @@ body.sno-wild-active[data-sno-theme="biomech"] header,
 body.sno-wild-active[data-sno-theme="biomech"] .nav-hints,
 body.sno-wild-active[data-sno-theme="biomech"] .post:not(.post-active),
 body.sno-wild-active[data-sno-theme="biomech"] .page-nav-footer { animation:sno-wild-collapse 3.6s ease-in-out infinite, sno-wild-jitter 0.22s steps(2) infinite; }
+body[data-sno-theme="bauhaus"] {
+  --sno-wild-colorwash:
+    radial-gradient(circle at 18% 22%, rgba(214,45,32,0.26) 0%, transparent 22%),
+    radial-gradient(circle at 82% 70%, rgba(31,78,156,0.26) 0%, transparent 24%),
+    linear-gradient(118deg, transparent 0 62%, rgba(242,183,5,0.2) 62% 70%, transparent 70%);
+  --sno-wild-rain:
+    linear-gradient(90deg, transparent 0 46%, rgba(20,18,16,0.9) 46% 54%, transparent 54%),
+    linear-gradient(90deg, transparent 0 40%, rgba(214,45,32,0.85) 40% 60%, transparent 60%),
+    linear-gradient(90deg, transparent 0 44%, rgba(31,78,156,0.8) 44% 56%, transparent 56%);
+  --sno-wild-rain-size:160px 120px, 260px 220px, 340px 300px;
+  --sno-wild-rain-opacity:0.3;
+  --sno-wild-rain-speed:0.6s;
+  --sno-wild-wave:linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(242,183,5,0.08) 44%, rgba(20,18,16,0.9) 100%);
+  --sno-wild-accent:#f2b705;
+  --sno-wild-banner-bg:rgba(20,18,16,0.88);
+  --sno-wild-banner-color:#f8f3e8;
+  --sno-wild-banner-glow:rgba(242,183,5,0.36);
+  --sno-wild-scrap-color:rgba(242,183,5,0.9);
+}
+body.sno-wild-active[data-sno-theme="bauhaus"] header,
+body.sno-wild-active[data-sno-theme="bauhaus"] .nav-hints,
+body.sno-wild-active[data-sno-theme="bauhaus"] .post:not(.post-active),
+body.sno-wild-active[data-sno-theme="bauhaus"] .page-nav-footer { animation:sno-wild-jitter 0.28s steps(2) infinite, sno-wild-compress 1.2s ease-in-out infinite; }
+/* The active post keeps its paper and black ink: the shared dark glass would hide the text. */
+body.sno-wild-active[data-sno-theme="bauhaus"] .post.post-active {
+  background:#f8f3e8 !important;
+  color:#141210 !important;
+  box-shadow:0 0 0 4px #141210, 14px 14px 0 #d62d20 !important;
+  backdrop-filter:none;
+  -webkit-backdrop-filter:none;
+}
+body[data-sno-theme="blueprint"] {
+  --sno-wild-colorwash:
+    linear-gradient(180deg, rgba(127,214,255,0.14) 0%, transparent 26%, rgba(11,39,72,0.2) 60%, rgba(255,90,78,0.1) 100%),
+    linear-gradient(90deg, rgba(127,214,255,0.1) 0 1px, transparent 1px 10%),
+    linear-gradient(0deg, rgba(127,214,255,0.1) 0 1px, transparent 1px 10%);
+  --sno-wild-rain:
+    linear-gradient(90deg, transparent 0 48%, rgba(234,246,255,0.92) 49% 51%, transparent 52%),
+    linear-gradient(180deg, transparent 0 46%, rgba(127,214,255,0.8) 48% 50%, transparent 52%),
+    linear-gradient(135deg, transparent 0 56%, rgba(255,90,78,0.6) 58% 60%, transparent 62%);
+  --sno-wild-rain-size:140px 220px, 220px 160px, 300px 300px;
+  --sno-wild-rain-opacity:0.32;
+  --sno-wild-rain-speed:0.55s;
+  --sno-wild-wave:radial-gradient(circle at 50% 60%, rgba(127,214,255,0.16) 0%, rgba(11,39,72,0.5) 40%, rgba(4,16,31,0.94) 80%);
+  --sno-wild-accent:#eaf6ff;
+  --sno-wild-banner-bg:rgba(7,29,56,0.86);
+  --sno-wild-banner-color:#eaf6ff;
+  --sno-wild-banner-glow:rgba(127,214,255,0.4);
+  --sno-wild-scrap-color:rgba(255,138,122,0.9);
+}
+body.sno-wild-active[data-sno-theme="blueprint"] header,
+body.sno-wild-active[data-sno-theme="blueprint"] .nav-hints,
+body.sno-wild-active[data-sno-theme="blueprint"] .post:not(.post-active),
+body.sno-wild-active[data-sno-theme="blueprint"] .page-nav-footer { animation:sno-wild-jitter 0.28s steps(2) infinite; }
+body[data-sno-theme="deco"] {
+  --sno-wild-colorwash:
+    repeating-conic-gradient(from 0deg at 50% 100%, rgba(212,175,55,0.16) 0deg 4deg, transparent 4deg 10deg),
+    radial-gradient(circle at 50% 100%, rgba(241,215,138,0.24) 0%, rgba(31,122,90,0.14) 34%, transparent 62%),
+    linear-gradient(180deg, rgba(11,10,8,0.1) 0%, transparent 40%, rgba(31,122,90,0.12) 100%);
+  --sno-wild-rain:
+    linear-gradient(180deg, transparent 0 62%, rgba(241,215,138,0.95) 68% 72%, transparent 78%),
+    linear-gradient(180deg, transparent 0 54%, rgba(63,180,136,0.8) 60% 64%, transparent 70%),
+    linear-gradient(180deg, transparent 0 70%, rgba(244,236,216,0.8) 76% 80%, transparent 86%);
+  --sno-wild-rain-size:120px 200px, 190px 280px, 260px 360px;
+  --sno-wild-rain-opacity:0.34;
+  --sno-wild-rain-speed:0.9s;
+  --sno-wild-wave:linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(212,175,55,0.08) 46%, rgba(11,10,8,0.94) 100%);
+  --sno-wild-beacon:conic-gradient(from 200deg at 50% 100%, transparent 0deg, rgba(241,215,138,0.3) 8deg, transparent 18deg, transparent 60deg, rgba(63,180,136,0.26) 70deg, transparent 80deg, transparent 120deg, rgba(244,236,216,0.26) 130deg, transparent 140deg);
+  --sno-wild-accent:#f1d78a;
+  --sno-wild-banner-bg:rgba(11,10,8,0.86);
+  --sno-wild-banner-color:#f7e3a1;
+  --sno-wild-banner-glow:rgba(212,175,55,0.42);
+  --sno-wild-scrap-color:rgba(247,227,161,0.9);
+}
+body.sno-wild-active[data-sno-theme="deco"] header,
+body.sno-wild-active[data-sno-theme="deco"] .nav-hints,
+body.sno-wild-active[data-sno-theme="deco"] .post:not(.post-active),
+body.sno-wild-active[data-sno-theme="deco"] .page-nav-footer { animation:sno-wild-deco-charleston 0.62s ease-in-out infinite, sno-wild-pulse 1.24s steps(2) infinite; }
+@keyframes sno-wild-deco-charleston {
+  0%,100% { transform:translateX(0) skewX(0deg); }
+  25% { transform:translateX(-5px) skewX(-2deg); }
+  75% { transform:translateX(5px) skewX(2deg); }
+}
+body[data-sno-theme="dmg"] {
+  --sno-wild-colorwash:
+    linear-gradient(180deg, rgba(155,188,15,0.22) 0%, rgba(139,172,15,0.12) 30%, transparent 52%, rgba(48,98,48,0.22) 78%, rgba(15,56,15,0.36) 100%),
+    repeating-linear-gradient(0deg, rgba(15,56,15,0.16) 0 2px, transparent 2px 6px);
+  --sno-wild-rain:
+    linear-gradient(90deg, transparent 0 38%, rgba(15,56,15,0.92) 38% 62%, transparent 62%),
+    linear-gradient(90deg, transparent 0 20%, rgba(48,98,48,0.8) 20% 80%, transparent 80%),
+    linear-gradient(90deg, transparent 0 44%, rgba(155,188,15,0.7) 44% 56%, transparent 56%);
+  --sno-wild-rain-size:120px 9px, 260px 6px, 340px 12px;
+  --sno-wild-rain-opacity:0.42;
+  --sno-wild-rain-speed:0.42s;
+  --sno-wild-wave:linear-gradient(180deg, rgba(155,188,15,0.08) 0%, rgba(48,98,48,0.3) 46%, rgba(15,56,15,0.92) 100%);
+  --sno-wild-accent:#9bbc0f;
+  --sno-wild-banner-bg:rgba(15,56,15,0.9);
+  --sno-wild-banner-color:#9bbc0f;
+  --sno-wild-banner-glow:rgba(139,172,15,0.4);
+  --sno-wild-scrap-color:rgba(155,188,15,0.9);
+}
+body.sno-wild-active[data-sno-theme="dmg"] header,
+body.sno-wild-active[data-sno-theme="dmg"] .nav-hints,
+body.sno-wild-active[data-sno-theme="dmg"] .page-nav-footer { animation:sno-wild-jitter 0.2s steps(2) infinite; }
+/* dmgInvert (theme.css) flips the post LCDs between paper and ink. */
+body.sno-wild-active[data-sno-theme="dmg"] .post:not(.post-active) { animation:sno-wild-jitter 0.2s steps(2) infinite, dmgInvert 0.9s steps(1) infinite; }
+body[data-sno-theme="greenhouse"] {
+  --sno-wild-colorwash:
+    radial-gradient(circle at 20% 15%, rgba(242,155,181,0.2) 0%, transparent 28%),
+    radial-gradient(circle at 80% 30%, rgba(242,193,78,0.16) 0%, transparent 26%),
+    linear-gradient(180deg, rgba(255,240,200,0.1) 0%, transparent 30%, rgba(40,90,45,0.2) 70%, rgba(14,34,25,0.4) 100%);
+  --sno-wild-rain:
+    linear-gradient(176deg, transparent 0 50%, rgba(220,245,235,0.9) 56% 60%, transparent 66%),
+    linear-gradient(172deg, transparent 0 40%, rgba(170,230,190,0.6) 46% 50%, transparent 56%),
+    linear-gradient(178deg, transparent 0 62%, rgba(255,230,200,0.45) 68% 72%, transparent 78%);
+  --sno-wild-rain-size:140px 240px, 210px 300px, 300px 380px;
+  --sno-wild-rain-opacity:0.4;
+  --sno-wild-rain-speed:0.55s;
+  --sno-wild-wave:radial-gradient(circle at 50% 100%, rgba(124,191,106,0.3) 0%, rgba(63,138,79,0.32) 28%, rgba(9,23,17,0.92) 76%);
+  --sno-wild-wave-opacity:0.85;
+  --sno-wild-accent:#f29bb5;
+  --sno-wild-banner-bg:rgba(9,23,17,0.84);
+  --sno-wild-banner-color:#f4efdc;
+  --sno-wild-banner-glow:rgba(124,191,106,0.4);
+  --sno-wild-scrap-color:rgba(242,193,78,0.88);
+}
+body.sno-wild-active[data-sno-theme="greenhouse"] header,
+body.sno-wild-active[data-sno-theme="greenhouse"] .nav-hints,
+body.sno-wild-active[data-sno-theme="greenhouse"] .post:not(.post-active),
+body.sno-wild-active[data-sno-theme="greenhouse"] .page-nav-footer { animation:sno-wild-jitter 0.32s steps(2) infinite; }
+body[data-sno-theme="pharaoh"] {
+  --sno-wild-colorwash:
+    radial-gradient(circle at 50% 12%, rgba(242,193,78,0.26) 0%, transparent 28%),
+    linear-gradient(180deg, rgba(31,63,143,0.22) 0%, transparent 34%, rgba(200,140,60,0.2) 70%, rgba(217,185,124,0.3) 100%),
+    linear-gradient(90deg, rgba(60,200,180,0.08), transparent 30%, transparent 70%, rgba(200,68,44,0.1));
+  --sno-wild-rain:
+    linear-gradient(100deg, transparent 0 56%, rgba(234,210,160,0.92) 62% 66%, transparent 72%),
+    linear-gradient(104deg, transparent 0 46%, rgba(217,185,124,0.78) 52% 56%, transparent 62%),
+    linear-gradient(98deg, transparent 0 64%, rgba(242,193,78,0.6) 70% 73%, transparent 79%);
+  --sno-wild-rain-size:220px 120px, 300px 160px, 380px 200px;
+  --sno-wild-rain-opacity:0.42;
+  --sno-wild-rain-speed:0.42s;
+  --sno-wild-wave:linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(200,150,80,0.16) 44%, rgba(40,26,10,0.92) 100%);
+  --sno-wild-beacon:radial-gradient(ellipse 18% 70% at 50% 0%, rgba(255,241,184,0.36) 0%, rgba(242,193,78,0.14) 40%, transparent 70%);
+  --sno-wild-accent:#f2c14e;
+  --sno-wild-banner-bg:rgba(11,20,52,0.86);
+  --sno-wild-banner-color:#fff1b8;
+  --sno-wild-banner-glow:rgba(242,193,78,0.4);
+  --sno-wild-scrap-color:rgba(255,236,190,0.88);
+}
+body.sno-wild-active[data-sno-theme="pharaoh"] header,
+body.sno-wild-active[data-sno-theme="pharaoh"] .nav-hints,
+body.sno-wild-active[data-sno-theme="pharaoh"] .post:not(.post-active),
+body.sno-wild-active[data-sno-theme="pharaoh"] .page-nav-footer { animation:sno-wild-jitter 0.26s steps(2) infinite, sno-wild-text-burn 2.1s steps(1) infinite; }
+body[data-sno-theme="ukiyoe"] {
+  --sno-wild-colorwash:
+    linear-gradient(180deg, rgba(31,58,95,0.32) 0%, rgba(47,93,134,0.16) 30%, transparent 52%, rgba(247,241,225,0.12) 74%, rgba(31,58,95,0.3) 100%),
+    radial-gradient(circle at 18% 70%, rgba(247,241,225,0.26) 0%, transparent 34%);
+  --sno-wild-rain:
+    linear-gradient(160deg, transparent 0 54%, rgba(247,241,225,0.96) 60% 64%, transparent 70%),
+    linear-gradient(168deg, transparent 0 44%, rgba(240,179,189,0.8) 50% 54%, transparent 60%),
+    linear-gradient(164deg, transparent 0 64%, rgba(31,58,95,0.6) 70% 74%, transparent 80%);
+  --sno-wild-rain-size:160px 240px, 230px 320px, 330px 400px;
+  --sno-wild-rain-opacity:0.42;
+  --sno-wild-rain-speed:0.56s;
+  --sno-wild-wave:radial-gradient(ellipse 120% 80% at 0% 100%, rgba(247,241,225,0.3) 0%, rgba(47,93,134,0.42) 30%, rgba(20,36,61,0.92) 72%);
+  --sno-wild-wave-opacity:0.86;
+  --sno-wild-accent:#e0553a;
+  --sno-wild-banner-bg:rgba(20,36,61,0.86);
+  --sno-wild-banner-color:#f7f1e1;
+  --sno-wild-banner-glow:rgba(224,85,58,0.4);
+  --sno-wild-scrap-color:rgba(247,241,225,0.88);
+}
+body.sno-wild-active[data-sno-theme="ukiyoe"] header,
+body.sno-wild-active[data-sno-theme="ukiyoe"] .nav-hints,
+body.sno-wild-active[data-sno-theme="ukiyoe"] .post:not(.post-active),
+body.sno-wild-active[data-sno-theme="ukiyoe"] .page-nav-footer { animation:sno-wild-jitter 0.32s steps(2) infinite; }
+body[data-sno-theme="western"] {
+  --sno-wild-colorwash:
+    linear-gradient(180deg, rgba(90,10,4,0.32) 0%, rgba(168,40,31,0.2) 34%, transparent 56%, rgba(201,164,106,0.24) 80%, rgba(120,70,20,0.34) 100%),
+    radial-gradient(circle at 50% 78%, rgba(246,207,115,0.26) 0%, rgba(200,80,30,0.12) 22%, transparent 46%);
+  --sno-wild-rain:
+    linear-gradient(98deg, transparent 0 46%, rgba(222,196,150,0.9) 52% 56%, transparent 62%),
+    linear-gradient(94deg, transparent 0 56%, rgba(201,164,106,0.72) 62% 66%, transparent 72%),
+    linear-gradient(100deg, transparent 0 64%, rgba(168,40,31,0.5) 70% 73%, transparent 79%);
+  --sno-wild-rain-size:260px 120px, 340px 160px, 420px 200px;
+  --sno-wild-rain-opacity:0.4;
+  --sno-wild-rain-speed:0.55s;
+  --sno-wild-wave:linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(168,40,31,0.14) 40%, rgba(40,14,4,0.9) 100%);
+  --sno-wild-accent:#e3b448;
+  --sno-wild-banner-bg:rgba(36,21,10,0.88);
+  --sno-wild-banner-color:#f3e5c4;
+  --sno-wild-banner-glow:rgba(227,180,72,0.36);
+  --sno-wild-scrap-color:rgba(243,229,196,0.86);
+}
+body.sno-wild-active[data-sno-theme="western"] header,
+body.sno-wild-active[data-sno-theme="western"] .nav-hints,
+body.sno-wild-active[data-sno-theme="western"] .post:not(.post-active),
+body.sno-wild-active[data-sno-theme="western"] .page-nav-footer { animation:sno-wild-jitter 0.26s steps(2) infinite; }
 body[data-sno-theme="paper"] {
   --sno-wild-colorwash:
     linear-gradient(180deg, rgba(184,58,46,0.1) 0%, transparent 18%, rgba(62,93,138,0.06) 52%, rgba(0,0,0,0.04) 100%),

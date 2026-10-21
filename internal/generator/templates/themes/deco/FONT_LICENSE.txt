@@ -1,0 +1,53 @@
+Deco theme fonts
+================
+
+This directory bundles the web fonts:
+
+    limelight-v21-latin-400.woff2     (Limelight, weight 400)
+    poiret-one-v18-latin-400.woff2    (Poiret One, weight 400)
+    josefin-sans-v34-latin-var.woff2  (Josefin Sans, variable weight 400-600)
+
+Subset: latin.
+
+Source / version
+----------------
+- Limelight family page      : https://fonts.google.com/specimen/Limelight
+- Limelight designer         : Nicole Fally (Sorkin Type)
+- Limelight webfont set      : limelight-v21 (latin, woff2)
+- Limelight file URL         : https://fonts.gstatic.com/s/limelight/v21/XLYkIZL7aopJVbZJHDuoOulH.woff2
+- Poiret One family page     : https://fonts.google.com/specimen/Poiret+One
+- Poiret One designer        : Denis Masharov
+- Poiret One webfont set     : poiret-one-v18 (latin, woff2)
+- Poiret One file URL        : https://fonts.gstatic.com/s/poiretone/v18/UqyVK80NJXN4zfRgbdfbo55cVw.woff2
+- Josefin Sans family page   : https://fonts.google.com/specimen/Josefin+Sans
+- Josefin Sans designer      : Santiago Orozco (Typemade)
+- Josefin Sans webfont set   : josefin-sans-v34 (latin, woff2, variable wght 400-600)
+- Josefin Sans file URL      : https://fonts.gstatic.com/s/josefinsans/v34/Qw3aZQNVED7rKGKxtqIqX5EUDXx4.woff2
+- Fetched via                : fonts.googleapis.com css2 API
+- Fetched on                 : 2026-10-21
+
+License
+-------
+SIL Open Font License, Version 1.1.
+
+  - Summary   : https://scripts.sil.org/cms/scripts/page.php?item_id=OFL_web
+  - Full text : https://openfontlicense.org/open-font-license-official-text/
+
+The OFL allows free use, modification, and redistribution of the font,
+including embedding in commercial products. Any standalone modified
+version of the font itself must be released under the same license and
+must not use the Reserved Font Names of the fonts.
+
+Required attribution
+--------------------
+Font: "Limelight" by Nicole Fally (Sorkin Type)
+      https://fonts.google.com/specimen/Limelight
+      Licensed under the SIL Open Font License 1.1.
+
+Font: "Poiret One" by Denis Masharov
+      https://fonts.google.com/specimen/Poiret+One
+      Licensed under the SIL Open Font License 1.1.
+
+Font: "Josefin Sans" by Santiago Orozco (Typemade)
+      https://fonts.google.com/specimen/Josefin+Sans
+      Licensed under the SIL Open Font License 1.1.

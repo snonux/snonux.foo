@@ -1,0 +1,171 @@
+        /* Self-hosted web fonts: Architects Daughter by Kimberly Geswein and
+           IBM Plex Mono by Mike Abbink / Bold Monday for IBM (SIL OFL 1.1).
+           Sources: https://fonts.google.com/specimen/Architects+Daughter and
+           https://fonts.google.com/specimen/IBM+Plex+Mono
+           See FONT_LICENSE.txt in this directory. */
+        @font-face {
+            font-family: 'Architects Daughter';
+            src: url('architects-daughter-v20-latin-400.woff2') format('woff2');
+            font-weight: 400;
+            font-style: normal;
+            font-display: swap;
+        }
+        @font-face {
+            font-family: 'IBM Plex Mono';
+            src: url('ibm-plex-mono-v20-latin-400.woff2') format('woff2');
+            font-weight: 400;
+            font-style: normal;
+            font-display: swap;
+        }
+        @font-face {
+            font-family: 'IBM Plex Mono';
+            src: url('ibm-plex-mono-v20-latin-600.woff2') format('woff2');
+            font-weight: 600;
+            font-style: normal;
+            font-display: swap;
+        }
+        /* Drafting sheet: prussian paper, cyan-white ink, red pencil for revisions. */
+        :root { --paper:#0b2748; --paper-deep:#071d38; --ink:#eaf6ff; --cyan:#7fd6ff; --line:rgba(127,214,255,0.42);
+                --faint:rgba(127,214,255,0.14); --red:#ff5a4e; --pencil:#ff8a7a; --muted:#a9c8e4; }
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { font-family:'IBM Plex Mono',ui-monospace,'SFMono-Regular',Menlo,monospace; background:var(--paper-deep);
+               color:var(--ink); overflow:hidden; height:100vh; height:100dvh; }
+        h1, h2, h3, h4, h5, h6 { font-family:'Architects Daughter','Comic Sans MS',cursive; font-weight:400; letter-spacing:0.04em; }
+        #three-canvas { position:fixed; inset:0; width:100%; height:100%; z-index:1; }
+        /* The fine and coarse drafting grid sits over the 3D backdrop. */
+        body::before { content:''; position:fixed; inset:0; z-index:2; pointer-events:none;
+            background:
+                linear-gradient(var(--faint) 1px, transparent 1px) 0 0 / 100px 100px,
+                linear-gradient(90deg, var(--faint) 1px, transparent 1px) 0 0 / 100px 100px,
+                linear-gradient(rgba(127,214,255,0.05) 1px, transparent 1px) 0 0 / 20px 20px,
+                linear-gradient(90deg, rgba(127,214,255,0.05) 1px, transparent 1px) 0 0 / 20px 20px; }
+        .overlay { position:relative; z-index:10; height:100vh; height:100dvh; display:flex; flex-direction:column; }
+        header { position:relative; padding:14px 28px; background:rgba(7,29,56,0.88); backdrop-filter:blur(8px);
+                 border-bottom:3px double var(--line); display:flex; align-items:center; justify-content:space-between; }
+        .logo { display:flex; align-items:center; gap:14px; }
+        /* Section mark: a circle split by a line, like the A/01 bubbles on a plan. */
+        .logo-mark { font-family:'Architects Daughter',cursive; font-size:1.05rem; font-weight:400; color:var(--ink);
+            width:52px; height:52px; border:2px solid var(--cyan); border-radius:50%; display:flex; align-items:center; justify-content:center;
+            background:linear-gradient(transparent calc(50% - 1px), var(--cyan) calc(50% - 1px), var(--cyan) calc(50% + 1px), transparent calc(50% + 1px));
+            line-height:1; padding-bottom:22px; position:relative; }
+        .logo-mark::after { content:'01'; position:absolute; bottom:6px; left:0; right:0; text-align:center; font-family:'IBM Plex Mono',monospace;
+            font-size:0.62rem; color:var(--cyan); }
+        .logo-title h1 { font-size:1.6rem; color:var(--ink); letter-spacing:0.06em; }
+        .logo-title .subtitle { font-size:0.74rem; color:var(--muted); margin-top:2px; }
+        .logo-title .subtitle a { color:var(--cyan); text-decoration:none; border-bottom:1px dashed rgba(127,214,255,0.5); }
+        .logo-title .subtitle a:hover { color:var(--ink); border-bottom-style:solid; }
+        .logo-host { color:var(--muted); }
+        .transmit-btn { border:1.5px solid var(--cyan); color:var(--ink); padding:8px 18px; text-decoration:none;
+            font-family:'Architects Daughter',cursive; font-size:0.95rem; letter-spacing:0.08em; transition:all 0.18s;
+            box-shadow:3px 3px 0 rgba(127,214,255,0.25); }
+        .transmit-btn:hover { background:var(--cyan); color:var(--paper-deep); box-shadow:1px 1px 0 rgba(127,214,255,0.25); }
+        a.header-feed-link { color:var(--cyan); }
+        a.header-feed-link:hover { color:var(--ink); }
+        /* Legend alpha keeps it above 4.5:1 under the shared 0.86 button opacity. */
+        .nav-hints { background:rgba(7,29,56,0.8); border-bottom:1px solid var(--faint); color:rgba(234,246,255,0.82);
+            padding:7px 28px 5px; display:flex; gap:18px; font-size:0.68rem; letter-spacing:0.04em; flex-wrap:wrap; }
+        .nav-hints kbd { background:rgba(127,214,255,0.1); border:1px solid var(--line); color:var(--cyan); padding:0 5px; margin:0 2px;
+            font-family:'IBM Plex Mono',monospace; }
+        .content { flex:1; overflow-y:auto; padding:22px 28px; scrollbar-width:thin; scrollbar-color:var(--cyan) var(--paper-deep); }
+        .content::-webkit-scrollbar { width:10px; }
+        .content::-webkit-scrollbar-track { background:var(--paper-deep); border-left:1px solid var(--faint); }
+        .content::-webkit-scrollbar-thumb { background:repeating-linear-gradient(0deg, var(--cyan) 0 2px, transparent 2px 6px); border:1px solid var(--cyan); }
+        .page-nav { display:flex; justify-content:center; margin:14px 0; }
+        .page-nav a { border:1.5px solid var(--cyan); color:var(--ink); padding:8px 18px; text-decoration:none;
+            font-family:'Architects Daughter',cursive; font-size:0.9rem; letter-spacing:0.06em; }
+        .page-nav a:hover { background:var(--cyan); color:var(--paper-deep); }
+        .page-nav-footer { flex-shrink:0; padding:8px 28px; display:flex; justify-content:center; background:rgba(7,29,56,0.88);
+            backdrop-filter:blur(8px); border-top:3px double var(--line); }
+        /* A post is a detail sheet: thin ink frame, corner registration ticks. */
+        .post { position:relative; background:rgba(9,36,66,0.86); border:1px solid var(--line); padding:20px 22px; margin-bottom:18px;
+            cursor:pointer; transition:border-color 0.2s, box-shadow 0.2s, transform 0.2s;
+            box-shadow:inset 0 0 0 4px rgba(7,29,56,0.6), inset 0 0 0 5px var(--faint); }
+        .post::before { content:''; position:absolute; inset:-6px; pointer-events:none;
+            background:
+                linear-gradient(var(--cyan), var(--cyan)) 0 0 / 14px 1px no-repeat,
+                linear-gradient(var(--cyan), var(--cyan)) 0 0 / 1px 14px no-repeat,
+                linear-gradient(var(--cyan), var(--cyan)) 100% 100% / 14px 1px no-repeat,
+                linear-gradient(var(--cyan), var(--cyan)) 100% 100% / 1px 14px no-repeat; opacity:0.75; }
+        .post:hover { border-color:var(--cyan); transform:translateY(-1px); box-shadow:inset 0 0 0 4px rgba(7,29,56,0.6), inset 0 0 0 5px var(--line), 0 8px 24px rgba(0,0,0,0.35); }
+        /* The active post gets a red-pencil revision cloud and a delta tag. */
+        .post-active { border-color:transparent !important; background:rgba(12,44,80,0.94) !important; }
+        .post-active::after { content:''; position:absolute; inset:-9px; pointer-events:none;
+            background:
+                radial-gradient(circle at 9px 10px, transparent 6.5px, var(--red) 7px 8.6px, transparent 9px) 0 0 / 18px 10px repeat-x,
+                radial-gradient(circle at 9px 0, transparent 6.5px, var(--red) 7px 8.6px, transparent 9px) 0 100% / 18px 10px repeat-x,
+                radial-gradient(circle at 10px 9px, transparent 6.5px, var(--red) 7px 8.6px, transparent 9px) 0 0 / 10px 18px repeat-y,
+                radial-gradient(circle at 0 9px, transparent 6.5px, var(--red) 7px 8.6px, transparent 9px) 100% 0 / 10px 18px repeat-y;
+            filter:drop-shadow(0 0 3px rgba(255,90,78,0.35)); }
+        .post-active .post-header::after { content:'\25B3 REV'; position:absolute; top:-13px; right:18px; padding:0 6px;
+            font-family:'Architects Daughter',cursive; font-size:0.78rem; color:var(--red); background:var(--paper-deep); letter-spacing:0.08em; }
+        .post-header { display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:12px; font-size:0.86rem; }
+        .post-header strong { color:var(--cyan); font-family:'Architects Daughter',cursive; font-weight:400; font-size:1rem; letter-spacing:0.05em; }
+        .post-time { color:var(--muted); font-size:0.74rem; letter-spacing:0.06em; }
+        .post-time::before { content:'\2190 '; color:var(--line); }
+        .post-time::after { content:' \2192'; color:var(--line); }
+        .post-share-btn { color:var(--cyan); }
+        .post-text { line-height:1.7; font-size:0.9rem; }
+        .post-text strong { font-weight:600; color:#fff; }
+        .post-text a { color:var(--cyan); text-decoration:none; border-bottom:1px dashed rgba(127,214,255,0.55); }
+        .post-text a:hover { color:var(--ink); border-bottom-style:solid; }
+        .post-text code { background:rgba(127,214,255,0.1); border:1px solid var(--faint); padding:0 4px; }
+        .post-image { margin-top:10px; border:1px solid var(--line); filter:saturate(0.85) contrast(1.05); }
+        .post-audio { width:100%; margin-top:10px; filter:hue-rotate(170deg) saturate(0.6); }
+        .post-modal { display:none; position:fixed; inset:0; z-index:100; overflow-y:auto; padding:40px 20px; }
+        .post-modal.active { display:block; }
+        .modal-inner { position:relative; max-width:780px; margin:0 auto; background:rgba(9,34,62,0.97); border:2px solid var(--cyan);
+            padding:40px 38px 54px; box-shadow:0 26px 70px rgba(0,0,0,0.7), inset 0 0 0 6px rgba(7,29,56,0.9), inset 0 0 0 7px var(--line); }
+        /* A miniature title block in the modal's corner. */
+        .modal-inner::after { content:'DWG SNX \00B7 SCALE 1:1 \00B7 DRAWN snonux'; position:absolute; right:8px; bottom:8px;
+            border:1px solid var(--line); padding:3px 8px; font-size:0.6rem; letter-spacing:0.12em; color:var(--muted); }
+        .modal-close { float:right; background:none; border:1px solid var(--line); color:var(--cyan); font-family:'Architects Daughter',cursive;
+            font-size:0.85rem; padding:3px 10px; cursor:pointer; letter-spacing:0.1em; }
+        .modal-close:hover { border-color:var(--red); color:var(--red); }
+        @media(max-width:640px) { .nav-hints{padding:6px 16px} .nav-hints .nav-hints-row{padding:6px 0;gap:8px} .nav-hints kbd{display:none} .nav-hints-label,.nav-hints-spacer{display:none} .nav-fx-button{padding:10px 0;min-height:44px;flex:1 1 auto;justify-content:center;gap:0.2rem} header{padding:12px 16px;} .logo-mark{width:44px;height:44px;font-size:0.9rem;padding-bottom:18px;} .logo-mark::after{bottom:4px;} .content{padding:16px 16px;} .post{padding:16px 14px;} .modal-inner{padding:24px 14px 48px;} .transmit-btn{padding-top:11px;padding-bottom:11px;min-height:44px} .modal-close{padding:10px 14px;min-width:44px;min-height:44px;text-align:center} }
+        [data-sno-theme="blueprint"] .splash-overlay {
+            background:
+                radial-gradient(ellipse 70% 60% at 50% 45%, rgba(127,214,255,0.12) 0%, transparent 60%),
+                linear-gradient(rgba(127,214,255,0.1) 1px, transparent 1px) 0 0 / 80px 80px,
+                linear-gradient(90deg, rgba(127,214,255,0.1) 1px, transparent 1px) 0 0 / 80px 80px,
+                var(--paper);
+        }
+        [data-sno-theme="blueprint"] .splash-inner { background:rgba(7,29,56,0.8); border:1.5px solid var(--cyan); border-radius:0;
+            box-shadow:inset 0 0 0 5px rgba(7,29,56,0.8), inset 0 0 0 6px var(--line), 0 18px 50px rgba(0,0,0,0.55); text-shadow:0 2px 14px rgba(0,0,0,0.8); }
+        [data-sno-theme="blueprint"] .splash-section { width:46px; height:46px; margin:0 auto 0.8rem; border:2px solid var(--red); border-radius:50%;
+            font-family:'Architects Daughter',cursive; color:var(--red); font-size:1rem; line-height:22px; position:relative;
+            background:linear-gradient(transparent calc(50% - 1px), var(--red) calc(50% - 1px), var(--red) calc(50% + 1px), transparent calc(50% + 1px));
+            animation:bpSectionSpin 6s ease-in-out infinite; }
+        [data-sno-theme="blueprint"] .splash-section span { position:absolute; left:0; right:0; bottom:1px; font-size:0.7rem; font-family:'IBM Plex Mono',monospace; }
+        @keyframes bpSectionSpin { 0%,70% { transform:rotate(0); } 85% { transform:rotate(-12deg); } 100% { transform:rotate(0); } }
+        [data-sno-theme="blueprint"] .splash-title { font-family:'Architects Daughter',cursive; font-size:clamp(1.8rem,5.5vw,2.7rem); font-weight:400; color:var(--ink); letter-spacing:0.06em; }
+        [data-sno-theme="blueprint"] .splash-tag { color:var(--cyan); letter-spacing:0.18em; }
+        [data-sno-theme="blueprint"] .splash-hint { color:rgba(234,246,255,0.86); }
+        [data-sno-theme="blueprint"] .splash-dim { position:absolute; z-index:1; left:6vw; right:6vw; top:9vh; height:16px; pointer-events:none;
+            border-left:1px solid var(--line); border-right:1px solid var(--line);
+            background:linear-gradient(var(--line), var(--line)) 0 50% / 100% 1px no-repeat;
+            animation:bpDimDraw 2.4s ease-out both; transform-origin:left center; }
+        [data-sno-theme="blueprint"] .splash-dim::before, [data-sno-theme="blueprint"] .splash-dim::after { content:''; position:absolute; top:3px; width:0; height:0;
+            border-top:5px solid transparent; border-bottom:5px solid transparent; }
+        [data-sno-theme="blueprint"] .splash-dim::before { left:0; border-right:12px solid var(--cyan); }
+        [data-sno-theme="blueprint"] .splash-dim::after { right:0; border-left:12px solid var(--cyan); }
+        [data-sno-theme="blueprint"] .splash-dim span { position:absolute; left:50%; top:-14px; transform:translateX(-50%); padding:0 8px;
+            background:var(--paper); color:var(--muted); font-size:0.7rem; letter-spacing:0.2em; }
+        @keyframes bpDimDraw { from { transform:scaleX(0); } to { transform:scaleX(1); } }
+        [data-sno-theme="blueprint"] .splash-titleblock { position:absolute; z-index:2; right:max(14px,3vw); bottom:max(14px,3vh); pointer-events:none;
+            border:1.5px solid var(--cyan); background:rgba(7,29,56,0.82); font-size:0.62rem; letter-spacing:0.08em; color:var(--muted); text-align:left; }
+        [data-sno-theme="blueprint"] .splash-titleblock div { padding:4px 10px; border-top:1px solid var(--line); }
+        [data-sno-theme="blueprint"] .splash-titleblock div:first-child { border-top:none; }
+        [data-sno-theme="blueprint"] .splash-titleblock b { color:var(--cyan); font-weight:600; margin-right:4px; }
+        @media(max-width:640px) { [data-sno-theme="blueprint"] .splash-titleblock { font-size:0.55rem; } [data-sno-theme="blueprint"] .splash-dim { top:6vh; } }
+        /* Page effects (theme.js): plotter sweeps, drawn outlines, stamps, crumbs. */
+        .bp-fx { position:fixed; pointer-events:none; z-index:9000; }
+        .bp-sweep { left:0; right:0; height:2px; background:var(--cyan); box-shadow:0 0 10px var(--cyan), 0 0 2px #fff; transition:transform 0.42s cubic-bezier(.5,0,.3,1), opacity 0.42s; }
+        .bp-sweep::after { content:''; position:absolute; top:-5px; width:12px; height:12px; border:2px solid #fff; border-radius:50%; left:var(--head,50%); background:var(--red); }
+        .bp-stamp { left:50%; top:42%; padding:10px 26px; border:5px double var(--red); color:var(--red); font-family:'Architects Daughter',cursive;
+            font-size:clamp(2rem,7vw,3.6rem); letter-spacing:0.12em; background:rgba(255,90,78,0.06); opacity:0;
+            transform:translate(-50%,-50%) rotate(-11deg) scale(2.6); transition:transform 0.16s cubic-bezier(.2,.7,.4,1.3), opacity 0.16s; }
+        .bp-stamp.bp-in { opacity:0.9; transform:translate(-50%,-50%) rotate(-11deg) scale(1); }
+        .bp-stamp.bp-out { opacity:0; transition:opacity 0.5s; }
+        .bp-crumb { width:6px; height:4px; background:var(--pencil); border-radius:1px; transition:transform 0.7s cubic-bezier(.3,.1,.6,1), opacity 0.7s; }
+        .overlay.bp-wobble { animation:bpWobble 0.35s ease-out; }
+        @keyframes bpWobble { 0% { transform:translate(0,0); } 30% { transform:translate(-3px,1px) rotate(-0.15deg); } 60% { transform:translate(2px,-1px) rotate(0.1deg); } 100% { transform:none; } }

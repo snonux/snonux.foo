@@ -1,0 +1,7 @@
+{
+  "title": "snonux.foo \u2740 GREENHOUSE",
+  "header_html": "<div class=\"logo\">\n                <span class=\"logo-mark\">SN</span>\n                <div class=\"logo-title\">\n                    <h1>snonux.foo</h1>\n                    <p class=\"subtitle\">microblog &mdash; <a href=\"https://foo.zone\">foo.zone</a> is the real blog</p>\n                    <p class=\"logo-host\">Served by NetBSD on a Raspberry Pi 3</p>\n                </div>\n            </div>\n            <div class=\"nav\">\n                <a href=\"atom.xml\" class=\"header-feed-link\" rel=\"alternate\" title=\"Atom feed\" type=\"application/atom+xml\">Atom feed</a>\n                <a href=\"https://foo.zone/about\" class=\"transmit-btn\">Transmit</a>\n            </div>",
+  "splash_inner_html": "<canvas class=\"splash-gl-canvas\" id=\"splash-gl-canvas\" aria-hidden=\"true\"></canvas>\n        <div class=\"splash-inner\">\n            <div class=\"splash-sprig\" aria-hidden=\"true\"><span></span><span></span><span></span><span></span><span></span></div>\n            <div class=\"splash-title\">snonux.foo</div>\n            <div class=\"splash-tag\">Hortus conclusus</div>\n            <div class=\"splash-hint\">Step into the glasshouse \u2014 click or Enter</div>\n        </div>",
+  "prev_page_text": "&larr; Newer leaves",
+  "next_page_text": "Older leaves &rarr;"
+}

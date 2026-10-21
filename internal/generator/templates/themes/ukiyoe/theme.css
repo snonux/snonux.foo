@@ -1,0 +1,156 @@
+        /* Self-hosted web fonts: Zen Antique and Zen Old Mincho by Yoshimichi
+           Ohira (SIL OFL 1.1). Sources:
+           https://fonts.google.com/specimen/Zen+Antique and
+           https://fonts.google.com/specimen/Zen+Old+Mincho
+           See FONT_LICENSE.txt in this directory. */
+        @font-face {
+            font-family: 'Zen Antique';
+            src: url('zen-antique-v15-latin-400.woff2') format('woff2');
+            font-weight: 400;
+            font-style: normal;
+            font-display: swap;
+        }
+        @font-face {
+            font-family: 'Zen Old Mincho';
+            src: url('zen-old-mincho-v14-latin-400.woff2') format('woff2');
+            font-weight: 400;
+            font-style: normal;
+            font-display: swap;
+        }
+        @font-face {
+            font-family: 'Zen Old Mincho';
+            src: url('zen-old-mincho-v14-latin-700.woff2') format('woff2');
+            font-weight: 700;
+            font-style: normal;
+            font-display: swap;
+        }
+        /* Washi cream, sumi ink, Prussian blue and vermilion: the woodblock
+           palette. --ver-ink is the darker vermilion used for text (5.5:1 on
+           washi); the bright one is kept for shapes and seals. */
+        :root { --washi:#f3e9d2; --washi2:#e9dcbf; --ink:#2b2420; --sumi:#5b524a; --prussian:#1f3a5f;
+                --indigo:#14243d; --wave:#2f5d86; --ver:#c8402a; --ver-ink:#a8321f; --gold:#c9963a; --foam:#f7f1e1;
+                --grain:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.35 0 0 0 0 0.25 0 0 0 0 0.15 0 0 0 0.09 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E"); }
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { font-family:'Zen Old Mincho','Hiragino Mincho ProN','Yu Mincho',Georgia,serif; background:var(--washi);
+               color:var(--ink); overflow:hidden; height:100vh; height:100dvh; }
+        /* Paper grain over the whole sheet, above the backdrop and under the posts. */
+        body::before { content:''; position:fixed; inset:0; z-index:2; pointer-events:none; background-image:var(--grain); opacity:0.9; }
+        h1, h2, h3, h4, h5, h6 { font-family:'Zen Antique','Zen Old Mincho',Georgia,serif; font-weight:400; letter-spacing:0.04em; }
+        #three-canvas { position:fixed; top:0; left:0; width:100%; height:100%; z-index:1; }
+        .overlay { position:relative; z-index:10; height:100vh; height:100dvh; display:flex; flex-direction:column; }
+        /* The header is the print's title cartouche: an indigo block with a
+           carved ink rule and a seigaiha wave border along its foot. */
+        header { position:relative; padding:14px 28px 18px; background:var(--indigo); color:var(--washi);
+                 border-bottom:3px solid var(--ink); display:flex; align-items:center; justify-content:space-between; }
+        header::after { content:''; position:absolute; left:0; right:0; bottom:0; height:8px; pointer-events:none;
+            background:radial-gradient(circle at 50% 100%, transparent 3px, rgba(247,241,225,0.55) 3.5px, rgba(247,241,225,0.55) 4.5px, transparent 5px) 0 0/12px 8px repeat-x; }
+        .logo { display:flex; align-items:center; gap:16px; }
+        /* The hanko: the logo is a red seal stamped slightly askew. */
+        .logo-mark { font-family:'Zen Antique',Georgia,serif; font-size:1.25rem; line-height:1; color:var(--foam); background:var(--ver);
+                     padding:9px 8px 7px; border:2px solid var(--foam); outline:2px solid var(--ver); transform:rotate(-4deg);
+                     letter-spacing:0.06em; box-shadow:2px 2px 0 rgba(0,0,0,0.35); }
+        .logo-title h1 { font-family:'Zen Antique',Georgia,serif; font-size:1.55rem; font-weight:400; letter-spacing:0.08em; color:var(--washi); }
+        .logo-title .subtitle { font-size:0.78rem; color:rgba(243,233,210,0.82); margin-top:2px; }
+        .logo-title .subtitle a { color:#f2a08f; text-decoration:none; border-bottom:1px solid rgba(242,160,143,0.45); }
+        .logo-title .subtitle a:hover { color:#ffd2c8; }
+        .logo-host { color:rgba(243,233,210,0.78); }
+        .transmit-btn { border:2px solid var(--washi); color:var(--washi); background:var(--ver); padding:8px 18px; text-decoration:none;
+                        font-size:0.85rem; letter-spacing:0.12em; transition:transform 0.15s, box-shadow 0.15s; box-shadow:3px 3px 0 var(--ink); }
+        .transmit-btn:hover { transform:translate(-1px,-1px); box-shadow:4px 4px 0 var(--ink); }
+        a.header-feed-link { color:#f2c48f; }
+        a.header-feed-link:hover { color:var(--foam); }
+        .nav-hints { background:rgba(233,220,191,0.94); border-bottom:2px solid var(--ink); color:var(--ink);
+                     padding:5px 28px; display:flex; gap:18px; font-size:0.7rem; flex-wrap:wrap; }
+        .nav-hints kbd { background:var(--washi); border:1px solid var(--ink); color:var(--prussian); border-radius:2px; padding:0 5px; margin:0 2px;
+                         font-family:'Zen Old Mincho',Georgia,serif; box-shadow:1px 1px 0 var(--ink); }
+        .nav-hints-row + .nav-hints-row { border-top:1px dashed rgba(43,36,32,0.3); }
+        .content { flex:1; overflow-y:auto; padding:22px 28px; scrollbar-width:thin; scrollbar-color:var(--prussian) var(--washi2); }
+        .content::-webkit-scrollbar { width:10px; }
+        .content::-webkit-scrollbar-track { background:var(--washi2); }
+        .content::-webkit-scrollbar-thumb { background:var(--prussian); border:2px solid var(--washi2); }
+        .page-nav { display:flex; justify-content:center; margin:14px 0; }
+        .page-nav a { border:2px solid var(--ink); color:var(--prussian); background:var(--washi); padding:8px 20px; text-decoration:none;
+                      font-size:0.85rem; letter-spacing:0.08em; box-shadow:3px 3px 0 rgba(31,58,95,0.55); }
+        .page-nav a:hover { background:var(--prussian); color:var(--washi); }
+        .page-nav-footer { flex-shrink:0; padding:8px 28px; display:flex; justify-content:center; background:rgba(233,220,191,0.94);
+                           border-top:2px solid var(--ink); }
+        /* A post is a printed sheet: washi with grain, a carved ink outline
+           and a Prussian-blue block printed slightly out of register behind. */
+        .post { position:relative; background:var(--grain), rgba(247,240,224,0.95); border:2px solid var(--ink); padding:20px 22px;
+                margin:0 6px 18px 0; cursor:pointer; box-shadow:5px 5px 0 rgba(31,58,95,0.5);
+                transition:transform 0.18s, box-shadow 0.18s; }
+        .post:hover { transform:translate(-2px,-2px); box-shadow:7px 7px 0 rgba(31,58,95,0.6); }
+        .post-active { background:var(--grain), #fbf5e6 !important; box-shadow:7px 7px 0 var(--prussian), inset 5px 0 0 var(--ver) !important; }
+        .post-active::after { content:''; position:absolute; top:10px; right:10px; width:18px; height:18px; background:var(--ver);
+                              border:2px solid var(--foam); outline:1px solid var(--ver); transform:rotate(-6deg); }
+        .post-header { display:flex; justify-content:space-between; margin-bottom:12px; font-size:0.9rem; font-weight:700; padding-right:26px; }
+        .post-header strong { font-family:'Zen Antique',Georgia,serif; font-weight:400; color:var(--prussian); letter-spacing:0.04em; }
+        .post-time { color:var(--sumi); font-size:0.8rem; font-weight:400; }
+        .post-text { line-height:1.75; font-size:0.98rem; }
+        .post-text strong { font-weight:700; }
+        .post-text a { color:var(--ver-ink); text-decoration:none; border-bottom:1px solid rgba(168,50,31,0.4); }
+        .post-text a:hover { border-bottom-color:var(--ver-ink); }
+        .post-text code { background:rgba(31,58,95,0.08); padding:0 4px; }
+        .post-image { margin-top:10px; border:2px solid var(--ink); filter:sepia(0.18) saturate(0.9); }
+        .post-audio { width:100%; margin-top:10px; filter:sepia(0.3); }
+        .post-modal { display:none; position:fixed; inset:0; z-index:100; overflow-y:auto; padding:40px 20px; background:rgba(20,36,61,0.35); }
+        .post-modal.active { display:block; }
+        .modal-inner { position:relative; max-width:780px; margin:0 auto; background:var(--grain), var(--washi); border:3px solid var(--ink);
+                       box-shadow:8px 8px 0 var(--prussian); padding:40px; }
+        .modal-inner::before { content:''; position:absolute; left:0; right:0; top:0; height:12px; border-bottom:2px solid var(--ink);
+            background:radial-gradient(circle at 50% 100%, var(--wave) 4px, var(--foam) 4.5px, var(--foam) 6px, var(--wave) 6.5px) 0 0/16px 12px repeat-x; }
+        .modal-close { float:right; background:var(--washi); border:2px solid var(--ink); color:var(--ver-ink); padding:4px 10px;
+                       font-family:'Zen Old Mincho',Georgia,serif; font-size:0.85rem; cursor:pointer; letter-spacing:0.08em; }
+        .modal-close:hover { background:var(--ver); color:var(--foam); }
+        @media(max-width:640px) { .nav-hints{padding:6px 16px} .nav-hints .nav-hints-row{padding:6px 0;gap:8px} .nav-hints kbd{display:none} .nav-hints-label,.nav-hints-spacer{display:none} .nav-fx-button{padding:10px 0;min-height:44px;flex:1 1 auto;justify-content:center;gap:0.2rem} header{padding:12px 16px 16px;} .logo{gap:10px} .logo-mark{font-size:1rem;padding:7px 6px 5px} .logo-title h1{font-size:1.25rem} .content{padding:14px 14px;} .post{padding:16px 14px;margin-right:4px} .modal-inner{padding:26px 14px} .transmit-btn{padding-top:11px;padding-bottom:11px;min-height:44px} .modal-close{padding:10px 14px;min-width:44px;min-height:44px;text-align:center} }
+
+        /* --- Page effects (theme.js) --- */
+        .uk-seal { width:74px; height:74px; background:var(--ver); border:4px solid var(--foam); outline:3px solid var(--ver);
+                   box-shadow:inset 0 0 0 3px var(--ver), inset 0 0 0 5px var(--foam); transform:rotate(-8deg) scale(2.6); opacity:0;
+                   animation:uk-stamp 0.32s cubic-bezier(0.5,0,0.75,0) 0.05s forwards; transition:opacity 0.35s; }
+        .uk-seal::before, .uk-seal::after { content:''; position:absolute; background:var(--foam); }
+        .uk-seal::before { left:22px; top:14px; width:5px; height:38px; box-shadow:18px 0 0 var(--foam); }
+        .uk-seal::after { left:14px; top:30px; width:38px; height:5px; }
+        .uk-seal.uk-seal-out { opacity:0; }
+        @keyframes uk-stamp { 0%{transform:rotate(-8deg) scale(2.6);opacity:0} 70%{transform:rotate(-8deg) scale(0.92);opacity:1} 100%{transform:rotate(-8deg) scale(1);opacity:1} }
+        .uk-thud { animation:uk-thud 0.24s ease-out; }
+        @keyframes uk-thud { 0%{transform:translateY(0)} 30%{transform:translateY(4px)} 60%{transform:translateY(-1px)} 100%{transform:translateY(0)} }
+        .uk-fold { box-shadow:6px 6px 0 var(--prussian); animation:uk-fold 0.44s ease-in forwards; }
+        @keyframes uk-fold { 0%{transform:perspective(900px) rotateX(0);opacity:0.95} 100%{transform:perspective(900px) rotateX(88deg);opacity:0} }
+        .uk-brush { transform:translateX(-100%) scaleX(0.3); transform-origin:0 50%; opacity:0.85;
+                    background:linear-gradient(180deg, transparent 0 8%, rgba(43,36,32,0.85) 14% 40%, rgba(43,36,32,0.6) 46% 58%, rgba(43,36,32,0.88) 64% 86%, transparent 94%);
+                    border-radius:40% 8% 30% 12% / 50% 20% 60% 30%;
+                    transition:transform 0.38s cubic-bezier(0.2,0.7,0.3,1), opacity 0.45s ease 0.08s; }
+        .uk-register { animation:uk-register 0.2s steps(2); }
+        @keyframes uk-register { 0%{transform:translate(0,0)} 50%{transform:translate(2px,1px);filter:drop-shadow(-3px 0 0 rgba(200,64,42,0.35))} 100%{transform:translate(0,0)} }
+        .uk-pagefold { animation:uk-pagefold 0.42s ease; transform-origin:0 50%; }
+        @keyframes uk-pagefold { 0%{transform:perspective(1400px) rotateY(0)} 40%{transform:perspective(1400px) rotateY(-9deg)} 100%{transform:perspective(1400px) rotateY(0)} }
+        .uk-wipe { background:linear-gradient(100deg, transparent 0 30%, rgba(31,58,95,0.0) 34%, rgba(31,58,95,0.55) 40% 52%, rgba(43,36,32,0.7) 56% 60%, transparent 66%);
+                   background-size:300% 100%; animation:uk-wipe 0.46s ease-out forwards; }
+        @keyframes uk-wipe { 0%{background-position:100% 0} 100%{background-position:0 0;opacity:0.2} }
+
+        /* --- Splash --- */
+        [data-sno-theme="ukiyoe"] .splash-overlay {
+            background: linear-gradient(180deg, #1f3a5f 0%, #6f8fae 30%, var(--washi) 62%), var(--washi);
+            color:var(--ink);
+        }
+        [data-sno-theme="ukiyoe"] #splash-overlay::before { background:var(--grain); }
+        [data-sno-theme="ukiyoe"] #splash-overlay .splash-inner { background:var(--grain), rgba(247,240,224,0.94); color:var(--ink); border:3px solid var(--ink);
+            border-radius:0; box-shadow:8px 8px 0 var(--prussian); backdrop-filter:none; -webkit-backdrop-filter:none; }
+        [data-sno-theme="ukiyoe"] .splash-hanko { position:relative; width:64px; height:64px; margin:0 auto 1rem; background:var(--ver);
+            border:3px solid var(--foam); outline:3px solid var(--ver); transform:rotate(-6deg);
+            animation:uk-splash-stamp 0.6s cubic-bezier(0.5,0,0.75,0) 0.3s both; }
+        [data-sno-theme="ukiyoe"] .splash-hanko::before { content:''; position:absolute; left:17px; top:11px; width:5px; height:36px; background:var(--foam); box-shadow:20px 0 0 var(--foam); }
+        [data-sno-theme="ukiyoe"] .splash-hanko::after { content:''; position:absolute; left:10px; top:26px; width:38px; height:5px; background:var(--foam); }
+        @keyframes uk-splash-stamp { 0%{transform:rotate(-6deg) scale(3);opacity:0} 75%{transform:rotate(-6deg) scale(0.9);opacity:1} 100%{transform:rotate(-6deg) scale(1);opacity:1} }
+        [data-sno-theme="ukiyoe"] .splash-seigaiha { height:14px; margin:1rem -0.4rem 0; border-top:2px solid var(--ink);
+            background:radial-gradient(circle at 50% 100%, var(--wave) 4px, var(--foam) 4.5px, var(--foam) 6px, var(--wave) 6.5px) 0 0/16px 14px repeat-x;
+            animation:uk-seigaiha 3s linear infinite; }
+        @keyframes uk-seigaiha { to { background-position:32px 0; } }
+        [data-sno-theme="ukiyoe"] .splash-title { font-family:'Zen Antique',Georgia,serif; font-size:clamp(1.6rem,5vw,2.4rem); font-weight:400; letter-spacing:0.08em; color:var(--ink); }
+        [data-sno-theme="ukiyoe"] .splash-tag { color:var(--ver-ink); letter-spacing:0.2em; font-weight:700; }
+        [data-sno-theme="ukiyoe"] .splash-hint { color:var(--prussian); }
+        [data-sno-theme="ukiyoe"] .splash-controls kbd { background:var(--washi); border-color:var(--ink); color:var(--ink); }
+        [data-sno-theme="ukiyoe"] .splash-music-btn { border:2px solid var(--ink); background:var(--washi); color:var(--ink); border-radius:0; box-shadow:2px 2px 0 var(--prussian); }
+        [data-sno-theme="ukiyoe"] .splash-music-btn:hover { background:var(--prussian); color:var(--washi); border-color:var(--ink); }
+        [data-sno-theme="ukiyoe"] .splash-controls { opacity:0.8; }

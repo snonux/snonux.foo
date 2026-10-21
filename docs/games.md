@@ -505,6 +505,41 @@ Aurora ribbons in the sky strip, snow spray particles. The ending: the aurora
 fills the whole sky and coloured snow glints down through the fireworks
 (**POLAR CHAMPION**). Music: airy lydian arpeggios.
 
+### bauhaus — Composition (Tempest-style tube shooter)
+A flat Bauhaus print of Tempest: the tube is a shape drawn from a small black
+copy of itself at the centre out to a heavy black rim, its lanes ruled in
+thin black lines. The red claw rides the rim lane to lane with angular
+momentum (`← →` or ◀ ▶ accelerate it round the rim; let go and it slides into
+the nearest lane; a held key keeps circling the same way), `SPACE` / FIRE
+shoots down the claw's lane (hold for rapid fire), `X` / ZAP clears the whole
+tube once per level. Shapes climb out of the centre; whatever reaches the
+rim walks along it towards the claw, a lane at a time, and catches it if it
+leaps onto the claw's lane: meet it first, firing, in its own lane. Shoot a
+quota of shapes, then the claw dives down the tube — a spike left in its lane
+wrecks the dive, so spikes are shot down (a few hits each) or sidestepped.
+Lose a life to a crawler, an enemy shot or a spike; the tube is swept clean
+and the quota kept. Levels:
+
+1. **Circle** — a round sixteen-lane tube and plain climbers (red circles):
+   learn the slide, the rim and the crawlers.
+2. **Triangle** — an angular fifteen-lane tube with flippers (yellow
+   triangles) that hop lane to lane on the way up and walk the rim, spikers
+   (blue diamonds) that lay spikes in their lanes and come back as flippers,
+   and enemy fire up the lanes (shootable).
+3. **Square Infinite** — the finale: the twelve-lane tube spins and morphs
+   square → star → triangle → circle mid-level, tankers (blue squares) split
+   into two flippers, and after the quota the Kandinsky core wakes in the
+   tube's mouth: a turning ring of coloured segments to shoot out lane by
+   lane, then concentric circles to break through the gaps, while it fires
+   solid discs (dodge, they cannot be shot) and rings of them up every other
+   lane.
+
+The ending (**EXHIBITION** — opening night): the shapes fall one by one onto
+two canvases on easels and settle into finished Kandinsky compositions under
+red, yellow, blue, black and paper-white fireworks. Music: cool Kraftwerk-ish
+minimal electronic — square lead and bass, sine arpeggio in F lydian, a
+precise drum machine; every event has its own clean sine/square blip.
+
 ### biomech — Spine Crawler (centipede-style shooter)
 A segmented biomechanical worm winds down through a field of bone nodes; it
 turns and drops a row whenever it meets a node or a wall. The player's turret
@@ -526,6 +561,32 @@ worm is loose in the zone. Levels:
 The ending: the Queen's carapace flakes apart and her head melts while rings
 of luminous spores burst across the field (**THE QUEEN DISSOLVES**). Wet,
 fleshy noise-based sounds; phrygian music.
+
+### blueprint — Draftsman (Qix-style territory claiming)
+A drafting sheet on prussian-blue paper. The pen runs along the white
+claimed edges (`arrows`, 4-way pad); holding `SPACE` / **DRAW** while it
+moves into the open sheet draws a line, and closing that line on a claimed
+edge hatches every part of the sheet that holds no enemy. An enemy touching
+the unfinished line or the pen costs a life (the line is erased), and a pen
+that stands still on its line lets the fuse creep along it from the start.
+Holding `X` / **SLOW** while drawing halves the pen's speed and doubles the
+points of the claim. The bottom margin is a dimension line measuring the
+claim against the level's target. Levels:
+
+1. **Floor Plan** — a plain sheet and one bouncing ink blot: claim 70%.
+2. **Elevation** — the ground floor of an elevation is already drawn in,
+   two eraser crumbs run along the claimed edges hunting the pen, and slow
+   drawing is introduced: claim 70%.
+3. **The Tower** — a tower-shaped sheet with the blot, the crumbs and a big
+   compass spider; once its corner is under 55% of the sheet it splits into
+   two twins that drift apart, and the claim that leaves them in separate
+   regions approves the drawing (88% claimed also wins).
+
+The ending (**APPROVED**): a setback tower drafts itself edge by edge while
+a red approval stamp slams onto the sheet under cyan, white and red
+fireworks. Plotter clicks and pen scratches, chimes that climb with the size
+of a claim; calm D dorian music with a marimba-like figure and phasing
+arp and click patterns.
 
 ### breakout — Brick Breaker (paddle and ball)
 The reference game. `← →` or the mouse move the paddle (on a phone ◀ ▶ or a
@@ -604,6 +665,75 @@ The ending is a supernova: the giant flares out in shock rings while a new
 constellation is drawn star by star, under gold and blue fireworks. Spacey
 dorian pads and arps.
 
+### deco — Last Call (Tapper-style bartending)
+Four bars run from the swing doors on the left to the taps on the right.
+`↑ ↓` jump between the four taps (wrapping round), `← →` walk along a bar,
+`SPACE` / **POUR** slides a cocktail down the bar. A glass slides under
+friction (it slows as it goes); the first walking guest it reaches catches
+it, is shoved back towards the door with drag and drinks, then sends the
+empty back down the bar just hard enough to reach the taps, where the
+bartender must catch it (standing at the tap, or walking out to meet it).
+A guest shoved out of the door is served; serve the level's quota to clear
+it. A cocktail nobody catches, an empty that reaches the tap end
+unattended, or a guest who walks the whole bar costs a life (four per
+level); the band then strikes up, the bar is cleared and every guest takes
+a step back. A drink poured away from the tap sends the bartender running
+back to pour it. Levels:
+
+1. **The Speakeasy** — four bars and patient guests who amble in hops: learn
+   to pour ahead of a guest and to be home for the empties. 14 served.
+2. **Rooftop Gala** — faster guests, a dance floor that sweeps a guest to the
+   neighbouring bar (never one with a drink already coming), tips left on
+   the bar to walk out for, and a champagne tower that drains: `X` /
+   **FIZZ** on the band's beat (a gold ring swells with it) tops it up and
+   scores, off the beat only splashes; a dry tower makes the crowd rush
+   until it is refilled. 18 served.
+3. **The Raid** — Prohibition agents in trench coats mix with the guests:
+   they take seltzer (`X` / **FIZZ**), gin for an agent is a bust and costs
+   a life, seltzer for a guest is refused and hurries them on. Raids are
+   announced by a siren: `→` at the tap hides the gin behind the swing door
+   before the inspection lamp sweeps (evidence costs a life), and no gin
+   can be poured until the all-clear. After 14 served the sergeant marches
+   in, fast, changing bars, and takes five seltzers before he storms out.
+
+The ending (**LAST CALL**, "The gala roars till dawn."): a gold and emerald
+sunburst turns behind two champagne fountains spilling over their coupes
+while confetti and pearls rain, under gold, emerald and ivory fireworks.
+Clinks, glugs, a police whistle siren, coin tips; the music is a hot-jazz
+tune in C major (I-vi-ii-V) with a walking bass, a dotted swing lead and
+brushes on two and four.
+
+### dmg — SERPENT.GB (snake with momentum)
+Snake on the four-shade pea-green LCD of an original Game Boy, drawn
+strictly in its four shades with the LCD's dot grid and ghosting. The
+snake glides from cell to cell rather than hopping: its speed eases towards
+a target, so a boost (`SPACE` / pad **BOOST**, held) builds up and dies
+away. Arrows (the pad in four-way mode) steer; a turn pressed early is
+buffered (two at most) and taken at the next cell centre, and one pressed
+just after a centre still counts. Every apple adds a segment; eat the
+level's apple quota to clear it. Walls, rocks, your own body and the
+rival's body cost a life (the apples already eaten are kept; three lives).
+Levels:
+
+1. **Garden** — an open field inside a hedge with a few boulders and
+   drifting cloud shadows: learn the glide, the turn buffer and the boost
+   (12 apples).
+2. **Cartridge Maze** — a cartridge board of contact pins and chips:
+   wrap-around tunnels through all four edges and ice lanes (one runs as a
+   slot through each chip) on which the snake slides on, faster, and
+   cannot turn until it leaves the ice (14 apples).
+3. **The Rival** — the finale: an AI snake plugs in through a link-cable
+   port and races you for the apples (it steals them and grows). It runs
+   into anything in its way, so trap it with your body: it bursts into
+   golden apples and plugs back in a few seconds later (18 apples).
+
+The ending (**HIGH SCORE**): the battery LED blinks under "DOT MATRIX WITH
+STEREO SOUND", a pixel trophy shines, the staff roll scrolls and a snake
+marches round the screen edge under fireworks in the green shades. Square
+blips for eating and turning, a rising glide onto ice, a sweep through the
+tunnels, a noise crash; the music is an upbeat major-key chiptune in the
+four-channel style (two square voices, triangle bass, noise drums).
+
 ### dos — DIGGER.EXE (CGA tunnel digger)
 Grid-based digging in the CGA palette (black, cyan, magenta, white) with the
 DOS font. `arrows` dig through dirt, `SPACE` fires a shot down the tunnel
@@ -619,6 +749,37 @@ tunnels, the TSR ghost that drifts through soil, and tunnels that silt up
 behind you. The ending is a victory session at the DOS prompt (`FORMAT C:
 /EMERALDS` … `Format complete.`) under CGA fireworks and a marquee border.
 PC-speaker style square-wave sounds and music.
+
+### greenhouse — Pollinator (Defender-style scrolling flier)
+A long Victorian glasshouse that wraps around left and right, with a
+scanner of the whole house at the top. The bee flies 8-way with inertia and
+a little gravity (it sinks unless it hovers), `SPACE` / **STING** fires a
+short dart forward (hold to keep stinging). Touching a flower takes its
+pollen (the bee carries the colour of the last flower touched); touching a
+closed bud of the same colour, other than the one the pollen came from,
+makes it bloom. Open every bud to clear the level; a pulsing ring and an
+edge arrow point to the buds the carried pollen opens. Pests cost a life on
+contact (and the pollen); a hive whose health runs out costs a life too
+(the colony drives the raiders off and rebuilds it, and mends it whenever
+no wasp is at it). Levels:
+
+1. **Seedlings** — seven flowers in three colours and a few slow beetles
+   that turn towards the bee when it comes close: learn the pollen runs and
+   the sting.
+2. **Hothouse** — ten flowers in a longer house, misters that blow the bee
+   down and sideways after a warning puff, spider webs that hold it fast,
+   thief wasps that sip an open flower closed again unless stung in time,
+   and raiders that sting the hive and turn on a bee that comes near.
+3. **The Hornet Queen** — the queen arrives from the far end of the house
+   and makes for the hive with her escorts (30 hits, three phases: aimed
+   stingers; fans of stingers and raider calls; an enraged phase with dashes
+   at the bee and wide fans). Kill her and open every bud.
+
+The ending (**IN FULL BLOOM**): the beds burst into flower one after another
+while a swarm of bees dances a figure of eight and petals drift down, under
+pink, green and gold fireworks. Pastoral D-major music: triangle lead, harp-
+like triangle arpeggio, soft sine bass; harp rolls on a bloom, chirps on a
+pollen pickup, hisses from the misters.
 
 ### invaders — Formation (fixed shooter)
 A marching formation that speeds up as it thins, bunkers that erode where
@@ -725,6 +886,37 @@ scatters, shutters, a pad, side tunnels and vertical warps, and eight power
 pellets. Ending: *MAZE CLEARED* — the core's walls light up ring by ring in
 cycling neon while Pac chases four blue ghosts along the top, under
 fireworks. The classic wakka sound, siren that rises as pellets run out.
+
+### pharaoh — Pyramid Hop (Q*bert-style isometric hopper)
+A pyramid of sandstone blocks under a night desert sky. The hero hops
+diagonally from stone to stone on real gravity arcs: `↑` up-right, `→`
+down-right, `↓` down-left, `←` up-left (the same four arrows on the touch
+pad, or a tap on the side to hop toward; a compass in the corner shows the
+mapping). Each landing turns a stone toward gold; when every stone is gold the
+level is cleared. A hop off an edge is a long fall (a life), except onto a
+winged sun-disc floating beside the pyramid: it carries the hero back to the
+capstone, and a mummy or Anubis chasing the hero follows it over the edge.
+Scarab balls drop onto the stones under the capstone and bounce down at
+random; a sarcophagus bounces to the bottom row and wakes as a mummy that
+hops after the hero. A lost life clears the pyramid of enemies; the stones
+keep their gold. Levels:
+
+1. **Outer Steps** — one hop turns a stone gold; scarab balls and a slow
+   mummy, two sun-discs.
+2. **Inner Chamber** — dotted stones need two hops (sandstone, turquoise,
+   gold), a cursed turquoise scarab turns gold back as it lands (touch it to
+   catch it), cracked stones crumble a second after they are stood on and
+   return later, sand pours from the apex down a marked path, and a cobra
+   slides along a row.
+3. **Anubis** — the god rises from the bottom row and stalks the hero,
+   undoing the gold of every stone he lands on; lure him over the edge from a
+   sun-disc (used discs come back while he lives), then finish the stones,
+   under scarab balls, cracked stones and the cobra.
+
+The ending (**TOMB SEALED**): the sun rises behind the pyramid while its gold
+capstone glints between two torches, under gold, lapis and turquoise
+fireworks. Oud-like plucks for hops, drum thuds, sand hiss; Hijaz-flavoured
+music on the harmonic scale with a maqsum darbuka beat.
 
 ### pinball — Electro Ball (pinball)
 A real table: gravity, two flippers that add momentum when they swing
@@ -894,6 +1086,39 @@ island festival at the totem, torches, lanterns and dancing silhouettes
 between palms, under tropical fireworks. Bright major-pentatonic calypso
 tune.
 
+### ukiyoe — Tokaido Crossing (Frogger-style crossing)
+An Edo woodblock print of the old Tokaido road. `← ↑ → ↓` (a 4-way pad on a
+phone, no action buttons) hop the traveller one step; a held direction keeps
+hopping and a press during a hop is buffered. Hops are short ballistic arcs;
+a hop that starts on a boat keeps the boat's drift. Cross five road lanes of
+ox carts, palanquins and samurai on horseback (a vehicle hits once a hop is
+past its middle), rest on the pine verge, then ride sampans and logs across
+five river lanes whose current surges and slackens with momentum: missing a
+craft or drifting off the edge is a splash. Hop into an empty inn on the far
+bank (the bank between the inns is a wall); fill every inn to clear the
+level. Each crossing burns one incense stick (45-50 s): running out costs a
+life, and a life lost keeps the inns already filled. Levels:
+
+1. **Rice Paddies** — carts and palanquins on the road, a calm river, four
+   inns: learn the hop, the drift and lining up under a door.
+2. **Great Wave** — samurai riders gallop through the road, and the river
+   swells: each lane rides a rolling wave, alternate lanes half a roll
+   apart, and a craft in the trough is under water for a moment (it sinks
+   visibly first), so timing is about the crest, not only the lane.
+3. **Fuji Pass** — night: only paper lanterns (posts, carts, palanquins,
+   boats, the traveller's own) light the lanes, two lanes of riders, the
+   swell, and a ronin who walks the far bank and, once the traveller is on
+   the river, follows the traveller's line. Landing within his reach cuts
+   the traveller down; lead him away from a door or land while he sits to
+   meditate (every few seconds), shown by his sheathed sword.
+
+The ending (**SAFE ARRIVAL**): paper lanterns rise over a woodblock Mount
+Fuji and its red sun while layered Great-Wave crests roll below, under
+vermilion, Prussian-blue and cream fireworks. Koto-like triangle plucks,
+taiko thuds, a seal-stamp thud on every inn and shakuhachi-like sine slides
+when the ronin wakes; the tune is a koto melody in the in scale (phrygian
+degrees A Bb D E F) over a sparse taiko beat.
+
 ### volcano — Magma Rising (vertical climber)
 The lava rises without pause. `← →` run, `SPACE` jump, wall-jump off the
 shaft walls. Climb ledges (solid, crumbling, drifting), ride steam geysers,
@@ -907,3 +1132,35 @@ loose, lava-fall columns to time, lava surges, on top of everything before.
 The ending: out of the crater as the mountain blows, two cones throwing
 lava up as fireworks while the climber waves from the ridge. Camera follows
 upward. Rumbling noise bed, urgent phrygian music.
+
+### western — Gold Express (train-roof side-scroller)
+Express-Raider-style run along the roofs of a moving train in sepia. `← →`
+run with inertia, `↑` jumps (hold for height), `↓` ducks, `SPACE` / **SHOOT**
+fires the six-gun (the gun keeps facing its target for a moment after a
+shot, so the player can back off while firing). Jump the gaps between the
+cars: in the air the head wind drags the player back, so a jump needs a full
+run. Water-tower spouts and tunnel mouths sweep back along the train (a sign
+at the right edge warns first): duck under them or be knocked off. Outlaws
+draw (a visible `!`) and fire chest-high shots that a duck dodges; touching
+one costs a life, as does a fall between the cars. Gold sacks lie on the
+roofs, some high enough to need a jump. A lost life puts the player back on
+the last car they stood on. Levels:
+
+1. **Freight Line** — thirteen cars, water towers and three outlaws: learn
+   the run-up jump, the duck and the draw; take the strongbox on the mail car.
+2. **Canyon Bridge** — on a timber trestle: longer gaps, faster train,
+   tunnels (duck through the whole of them), outlaws on horseback galloping
+   on the far side and firing across the roofs, and wind gusts (warned)
+   that make any jump fall short.
+3. **The Locomotive** — a countdown to the broken bridge (a meter under the
+   HUD; at zero the train plunges), outlaws, towers and gusts on the way to
+   the coal tender, where Black Bart throws lumps of coal in arcs at the
+   player (two at a time once wounded, then also pistol shots to duck),
+   ducks behind his coal now and then, and takes sixteen hits. Then pull the
+   brake lever in the cab (**SHOOT** at the lever) before the bridge.
+
+The ending (**END OF THE LINE**): a rider silhouette canters off into a huge
+setting sun over the mesas, under sepia, gold and red fireworks. Gunshot
+cracks, ricochets, the water-tower bell, the train whistle before tunnels,
+wind gusts, the clack of the rails and a long brake screech; a galloping
+harmonic-minor spaghetti-western tune with a square-wave harmonica lead.

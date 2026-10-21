@@ -1,0 +1,56 @@
+Zen Antique and Zen Old Mincho
+==============================
+
+This directory bundles the web fonts:
+
+    zen-antique-v15-latin-400.woff2      (weight 400)
+    zen-old-mincho-v14-latin-400.woff2   (weight 400)
+    zen-old-mincho-v14-latin-700.woff2   (weight 700)
+
+Subsets: latin.
+
+Source / version
+----------------
+- Zen Antique family page    : https://fonts.google.com/specimen/Zen+Antique
+- Zen Antique designer       : Yoshimichi Ohira
+- Zen Antique webfont set    : zen-antique-v15 (latin, woff2)
+- Zen Antique project        : https://github.com/googlefonts/zen-antique
+
+- Zen Old Mincho family page : https://fonts.google.com/specimen/Zen+Old+Mincho
+- Zen Old Mincho designer    : Yoshimichi Ohira
+- Zen Old Mincho webfont set : zen-old-mincho-v14 (latin, woff2)
+- Zen Old Mincho project     : https://github.com/googlefonts/zen-oldmincho
+
+- Fetched via                : fonts.googleapis.com css2 API (woff2 files from fonts.gstatic.com)
+- Zen Antique 400 file       : https://fonts.gstatic.com/s/zenantique/v15/AYCPpXPnd91Ma_Zf-Ri2JUJt5vM.woff2
+- Zen Old Mincho 400 file    : https://fonts.gstatic.com/s/zenoldmincho/v14/tss0ApVaYytLwxTqcxfMyBveybbwiXw.woff2
+- Zen Old Mincho 700 file    : https://fonts.gstatic.com/s/zenoldmincho/v14/tss3ApVaYytLwxTqcxfMyBveyb5LrGld-9I.woff2
+- Fetched on                 : 2026-10-21
+
+License
+-------
+SIL Open Font License, Version 1.1.
+
+Zen Antique copyright:
+Copyright 2021 The Zen Antique Project Authors
+(https://github.com/googlefonts/zen-antique).
+
+Zen Old Mincho copyright:
+Copyright 2021 The Zen Old Mincho Project Authors
+(https://github.com/googlefonts/zen-oldmincho).
+
+  - Summary    : https://scripts.sil.org/cms/scripts/page.php?item_id=OFL_web
+  - Full text  : https://openfontlicense.org/open-font-license-official-text/
+
+The OFL allows free use, modification, and redistribution of the font,
+including embedding in commercial products. Any standalone modified
+version of the font itself must be released under the same license and
+must not use the Reserved Font Names "Zen Antique" or "Zen Old Mincho".
+
+Required attribution
+--------------------
+Font: "Zen Antique" by Yoshimichi Ohira - https://github.com/googlefonts/zen-antique
+      Licensed under the SIL Open Font License 1.1.
+
+Font: "Zen Old Mincho" by Yoshimichi Ohira - https://github.com/googlefonts/zen-oldmincho
+      Licensed under the SIL Open Font License 1.1.

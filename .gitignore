@@ -2,3 +2,4 @@ inbox/
 dist/
 /snonux
 /.serena/
+__pycache__/

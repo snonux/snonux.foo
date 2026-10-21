@@ -1,0 +1,274 @@
+{
+  "splash": {
+    "freqs": [
+      987.77,
+      1975.53
+    ],
+    "spacing": 0.09,
+    "gain": 0.08,
+    "wave": "square"
+  },
+  "nav": {
+    "freq": 1046.5,
+    "wave": "square",
+    "dur": 0.04,
+    "gain": 0.09
+  },
+  "open": {
+    "wave": "square",
+    "start": 523.25,
+    "end": 1567.98,
+    "dur": 0.12,
+    "gain": 0.09
+  },
+  "close": {
+    "wave": "square",
+    "start": 1046.5,
+    "end": 261.63,
+    "dur": 0.14,
+    "gain": 0.08
+  },
+  "bounce": {
+    "wave": "triangle",
+    "start": 196,
+    "end": 98,
+    "dur": 0.1,
+    "gain": 0.12
+  },
+  "ambient": {
+    "normal": {
+      "bpm": 140,
+      "gain": 0.03,
+      "wave": "square",
+      "droneFreqs": [
+        65.41,
+        130.81,
+        196.0
+      ],
+      "cutoffMin": 1400,
+      "cutoffMax": 5200,
+      "attack": 0.01,
+      "release": 0.07,
+      "melody": [
+        {
+          "freq": 523.25,
+          "dur": 0.15,
+          "step": 0.2143
+        },
+        {
+          "freq": 659.26,
+          "dur": 0.15,
+          "step": 0.2143
+        },
+        {
+          "freq": 783.99,
+          "dur": 0.15,
+          "step": 0.2143
+        },
+        {
+          "freq": 1046.5,
+          "dur": 0.3,
+          "step": 0.4286
+        },
+        {
+          "freq": 783.99,
+          "dur": 0.15,
+          "step": 0.2143
+        },
+        {
+          "freq": 659.26,
+          "dur": 0.15,
+          "step": 0.2143
+        },
+        {
+          "freq": 698.46,
+          "dur": 0.15,
+          "step": 0.2143
+        },
+        {
+          "freq": 880.0,
+          "dur": 0.15,
+          "step": 0.2143
+        },
+        {
+          "freq": 1046.5,
+          "dur": 0.3,
+          "step": 0.4286
+        },
+        {
+          "freq": 880.0,
+          "dur": 0.15,
+          "step": 0.2143
+        },
+        {
+          "freq": 698.46,
+          "dur": 0.15,
+          "step": 0.2143
+        },
+        {
+          "freq": 783.99,
+          "dur": 0.15,
+          "step": 0.2143
+        },
+        {
+          "freq": 987.77,
+          "dur": 0.15,
+          "step": 0.2143
+        },
+        {
+          "freq": 1174.66,
+          "dur": 0.3,
+          "step": 0.4286
+        },
+        {
+          "freq": 987.77,
+          "dur": 0.15,
+          "step": 0.2143
+        },
+        {
+          "freq": 783.99,
+          "dur": 0.15,
+          "step": 0.2143
+        },
+        {
+          "freq": 1046.5,
+          "dur": 0.6,
+          "step": 0.8571
+        }
+      ],
+      "drums": [
+        "kick",
+        "_",
+        "hat",
+        "_",
+        "snare",
+        "_",
+        "hat",
+        "hat",
+        "kick",
+        "_",
+        "hat",
+        "kick",
+        "snare",
+        "_",
+        "hat",
+        "_"
+      ],
+      "file": "ambient.ogg",
+      "volume": 0.5
+    },
+    "wild": {
+      "bpm": 176,
+      "gain": 0.06,
+      "wave": "square",
+      "droneFreqs": [
+        65.41,
+        130.81,
+        196.0,
+        261.63
+      ],
+      "cutoffMin": 2600,
+      "cutoffMax": 8000,
+      "attack": 0.005,
+      "release": 0.04,
+      "detuneCents": 14,
+      "melody": [
+        {
+          "freq": 1046.5,
+          "dur": 0.1023,
+          "step": 0.1705
+        },
+        {
+          "freq": 1318.51,
+          "dur": 0.1023,
+          "step": 0.1705
+        },
+        {
+          "freq": 1567.98,
+          "dur": 0.1023,
+          "step": 0.1705
+        },
+        {
+          "freq": 2093.0,
+          "dur": 0.1023,
+          "step": 0.1705
+        },
+        {
+          "freq": 1567.98,
+          "dur": 0.1023,
+          "step": 0.1705
+        },
+        {
+          "freq": 1318.51,
+          "dur": 0.1023,
+          "step": 0.1705
+        },
+        {
+          "freq": 1396.91,
+          "dur": 0.1023,
+          "step": 0.1705
+        },
+        {
+          "freq": 1760.0,
+          "dur": 0.1023,
+          "step": 0.1705
+        },
+        {
+          "freq": 2093.0,
+          "dur": 0.1023,
+          "step": 0.1705
+        },
+        {
+          "freq": 1760.0,
+          "dur": 0.1023,
+          "step": 0.1705
+        },
+        {
+          "freq": 1567.98,
+          "dur": 0.1023,
+          "step": 0.1705
+        },
+        {
+          "freq": 1975.53,
+          "dur": 0.1023,
+          "step": 0.1705
+        },
+        {
+          "freq": 2349.32,
+          "dur": 0.1023,
+          "step": 0.1705
+        },
+        {
+          "freq": 1975.53,
+          "dur": 0.1023,
+          "step": 0.1705
+        },
+        {
+          "freq": 2093.0,
+          "dur": 0.2045,
+          "step": 0.3409
+        }
+      ],
+      "drums": [
+        "kick",
+        "hat",
+        "kick",
+        "hat",
+        "snare",
+        "hat",
+        "kick",
+        "hat",
+        "kick",
+        "kick",
+        "hat",
+        "kick",
+        "snare",
+        "hat",
+        "snare",
+        "snare"
+      ],
+      "file": "ambient.ogg",
+      "volume": 0.6
+    }
+  }
+}

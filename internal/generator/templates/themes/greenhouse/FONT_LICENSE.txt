@@ -1,0 +1,49 @@
+Greenhouse theme fonts
+======================
+
+This directory bundles the web fonts:
+
+    fraunces-v38-latin-var.woff2  (Fraunces, variable weight 400-700)
+    karla-v33-latin-var.woff2     (Karla, variable weight 400-600)
+
+Subset: latin.
+
+Source / version
+----------------
+- Fraunces family page  : https://fonts.google.com/specimen/Fraunces
+- Fraunces designer     : Undercase Type (Phaedra Charles, Flavia Zimbardi)
+- Fraunces webfont set  : fraunces-v38 (latin, woff2)
+- Fraunces fetched via  : fonts.googleapis.com css2 API
+- Karla family page     : https://fonts.google.com/specimen/Karla
+- Karla designer        : Jonathan Pinhorn
+- Karla webfont set     : karla-v33 (latin, woff2)
+- Karla fetched via     : fonts.googleapis.com css2 API
+- Fetched on            : 2026-10-21
+
+License
+-------
+SIL Open Font License, Version 1.1.
+
+Fraunces copyright:
+Copyright 2018 The Fraunces Project Authors
+(https://github.com/undercasetype/Fraunces).
+
+Karla copyright:
+Copyright 2019 The Karla Project Authors
+(https://github.com/googlefonts/karla).
+
+  - Summary    : https://scripts.sil.org/cms/scripts/page.php?item_id=OFL_web
+  - Full text  : https://openfontlicense.org/open-font-license-official-text/
+
+The OFL allows free use, modification, and redistribution of the font,
+including embedding in commercial products. Any standalone modified
+version of the font itself must be released under the same license and
+must not use the Reserved Font Names of the fonts.
+
+Required attribution
+--------------------
+Font: "Fraunces" by Undercase Type - https://github.com/undercasetype/Fraunces
+      Licensed under the SIL Open Font License 1.1.
+
+Font: "Karla" by Jonathan Pinhorn - https://github.com/googlefonts/karla
+      Licensed under the SIL Open Font License 1.1.
