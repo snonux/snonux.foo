@@ -1,0 +1,35 @@
+Bauhaus theme fonts
+===================
+
+This directory bundles the web font:
+
+    jost-v20-latin-var.woff2  (Jost, variable weight 400-700)
+
+Subset: latin.
+
+Source / version
+----------------
+- Jost family page    : https://fonts.google.com/specimen/Jost
+- Jost designer       : Owen Earl (indestructible type*)
+- Jost webfont set    : jost-v20 (latin, woff2, variable wght 400-700)
+- Jost file URL       : https://fonts.gstatic.com/s/jost/v20/92zatBhPNqw73oTd4g.woff2
+- Fetched via         : fonts.googleapis.com css2 API
+- Fetched on          : 2026-10-21
+
+License
+-------
+SIL Open Font License, Version 1.1.
+
+  - Summary   : https://scripts.sil.org/cms/scripts/page.php?item_id=OFL_web
+  - Full text : https://openfontlicense.org/open-font-license-official-text/
+
+The OFL allows free use, modification, and redistribution of the font,
+including embedding in commercial products. Any standalone modified
+version of the font itself must be released under the same license and
+must not use the Reserved Font Name of the font.
+
+Required attribution
+--------------------
+Font: "Jost" by Owen Earl (indestructible type*)
+      https://fonts.google.com/specimen/Jost
+      Licensed under the SIL Open Font License 1.1.

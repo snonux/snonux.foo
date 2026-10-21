@@ -1,0 +1,176 @@
+        /* Self-hosted web fonts: Press Start 2P by CodeMan38 and Pixelify Sans
+           by Stefie Justprince (SIL OFL 1.1).
+           Sources: https://fonts.google.com/specimen/Press+Start+2P and
+           https://fonts.google.com/specimen/Pixelify+Sans
+           See FONT_LICENSE.txt in this directory. */
+        @font-face {
+            font-family: 'Press Start 2P';
+            src: url('press-start-2p-v16-latin-400.woff2') format('woff2');
+            font-weight: 400;
+            font-style: normal;
+            font-display: swap;
+        }
+        @font-face {
+            font-family: 'Pixelify Sans';
+            src: url('pixelify-sans-v3-latin-var.woff2') format('woff2');
+            font-weight: 400 600;
+            font-style: normal;
+            font-display: swap;
+        }
+        /* The four shades of the DMG-01 LCD, ink to paper, and the plastic
+           around it: the grey case, the dark screen bezel, the maroon/navy
+           bezel stripes, the magenta A/B buttons and the red battery LED. */
+        :root { --ink:#0f380f; --dark:#306230; --mid:#8bac0f; --paper:#9bbc0f;
+                --case:#c9c5bf; --case-lo:#aaa59e; --case-ink:#24232e; --bezel:#5d5c6b;
+                --stripe-a:#7a2a4f; --stripe-b:#2e3a7a; --button:#8b1e4f; --led:#e8283c;
+                --pixel:'Press Start 2P','Courier New',monospace; }
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { font-family:'Pixelify Sans','Trebuchet MS',system-ui,sans-serif; background:var(--ink);
+               color:var(--paper); overflow:hidden; height:100vh; height:100dvh; }
+        h1, h2, h3, h4, h5, h6 { font-family:var(--pixel); font-weight:400; letter-spacing:0.04em; line-height:1.5; }
+        #three-canvas { position:fixed; top:0; left:0; width:100%; height:100%; z-index:1; image-rendering:pixelated; }
+        .overlay { position:relative; z-index:10; height:100vh; height:100dvh; display:flex; flex-direction:column; }
+        /* Header: the grey case above the screen, with the two bezel stripes. */
+        header { padding:14px 28px; color:var(--case-ink);
+                 background:linear-gradient(180deg,#d6d2cc 0%,var(--case) 60%,#bdb8b1 100%);
+                 box-shadow:0 3px 0 var(--stripe-a),0 6px 0 var(--case),0 9px 0 var(--stripe-b),0 12px 18px rgba(0,0,0,0.45);
+                 margin-bottom:12px; display:flex; align-items:center; justify-content:space-between; position:relative; z-index:2; }
+        .logo { display:flex; align-items:center; gap:14px; }
+        .logo-mark { position:relative; font-family:var(--pixel); font-size:1rem; color:var(--paper); background:var(--ink);
+                     padding:12px 10px 10px 26px; border:4px solid var(--bezel); border-radius:4px 4px 14px 4px;
+                     text-shadow:2px 2px 0 var(--dark); }
+        .dmg-led { display:inline-block; width:9px; height:9px; border-radius:50%; background:var(--led);
+                   box-shadow:0 0 6px 2px rgba(232,40,60,0.75); animation:dmgLed 3.2s steps(1) infinite; }
+        .logo-mark .dmg-led { position:absolute; left:8px; top:50%; margin-top:-4px; }
+        @keyframes dmgLed { 0%,88%,100% { opacity:1; } 92% { opacity:0.35; } }
+        .logo-title h1 { font-size:1.05rem; color:var(--case-ink); text-shadow:1px 1px 0 rgba(255,255,255,0.5); }
+        .logo-title .subtitle { font-size:0.82rem; color:#33323f; margin-top:3px; }
+        .logo-title .subtitle a { color:var(--stripe-b); text-decoration:none; border-bottom:2px dotted currentColor; }
+        .logo-title .subtitle a:hover { color:var(--stripe-a); }
+        .logo-host { color:#33323f; }
+        /* Transmit is one of the magenta A/B buttons. */
+        .transmit-btn { font-family:var(--pixel); font-size:0.62rem; color:#fbeef3; background:var(--button);
+                        padding:11px 18px; border-radius:999px; text-decoration:none; letter-spacing:0.06em;
+                        box-shadow:inset 0 -3px 0 rgba(0,0,0,0.3),0 2px 0 #5b1233; transform:rotate(-8deg);
+                        display:inline-block; transition:transform 0.1s steps(2); }
+        .transmit-btn:hover { transform:rotate(-8deg) translateY(2px); box-shadow:inset 0 -1px 0 rgba(0,0,0,0.3),0 0 0 #5b1233; }
+        a.header-feed-link { color:var(--stripe-b); font-weight:600; }
+        a.header-feed-link:hover { color:var(--stripe-a); }
+        .nav-hints { background:var(--case-lo); color:var(--case-ink); padding:5px 28px; display:flex; gap:18px;
+                     font-size:0.74rem; flex-wrap:wrap; border-bottom:3px solid #8e8982; position:relative; z-index:1; }
+        .nav-hints kbd { background:#4a4956; border:1px solid #2f2e39; color:#efede8; border-radius:3px;
+                         padding:0 5px; margin:0 2px; font-family:var(--pixel); font-size:0.5rem; box-shadow:0 2px 0 #2f2e39; }
+        .content { flex:1; overflow-y:auto; padding:20px 28px;
+                   scrollbar-width:thin; scrollbar-color:var(--dark) var(--ink); }
+        .content::-webkit-scrollbar { width:10px; }
+        .content::-webkit-scrollbar-track { background:var(--ink); }
+        .content::-webkit-scrollbar-thumb { background:var(--dark); border:2px solid var(--ink); }
+        .page-nav { display:flex; justify-content:center; margin:14px 0; gap:18px; }
+        /* SELECT / START: the slanted grey rubber buttons. */
+        .page-nav a { font-family:var(--pixel); font-size:0.6rem; color:#f1efea; background:#6c6a78; padding:10px 18px;
+                      border-radius:999px; text-decoration:none; transform:rotate(-14deg); display:inline-block;
+                      box-shadow:inset 0 -2px 0 rgba(0,0,0,0.35); }
+        .page-nav a:hover { background:#4f4d5b; }
+        .page-nav-footer { flex-shrink:0; padding:9px 28px; display:flex; justify-content:center;
+            background:repeating-linear-gradient(-60deg, transparent 0 14px, rgba(36,35,46,0.35) 14px 18px) right / 120px 100% no-repeat,
+                       linear-gradient(180deg,#bdb8b1,var(--case));
+            border-top:3px solid #8e8982; }
+        /* A post is a little LCD: paper green with a dot grid, inside the
+           dark bezel with the DMG's round bottom-right corner. Text sits in
+           ink with a faint ghost of itself, the LCD's slow pixels. */
+        .post { color:var(--ink); background-color:var(--paper);
+                background-image:linear-gradient(90deg, rgba(15,56,15,0.07) 1px, transparent 1px),
+                                 linear-gradient(0deg, rgba(15,56,15,0.07) 1px, transparent 1px);
+                background-size:3px 3px; border:6px solid var(--bezel); border-radius:6px 6px 26px 6px;
+                padding:18px 20px; margin-bottom:16px; cursor:pointer; position:relative;
+                text-shadow:1px 1px 0 rgba(48,98,48,0.28);
+                box-shadow:0 4px 0 #3c3b48,0 8px 16px rgba(0,0,0,0.4); transition:transform 0.12s steps(3), box-shadow 0.12s steps(3); }
+        .post:hover { transform:translate(-2px,-2px); box-shadow:4px 6px 0 #3c3b48,4px 10px 16px rgba(0,0,0,0.45); }
+        /* The selected post is inverted, as a Game Boy menu cursor would show it. */
+        .post-active { background-color:var(--ink) !important; color:var(--paper) !important;
+                       background-image:linear-gradient(90deg, rgba(155,188,15,0.07) 1px, transparent 1px),
+                                        linear-gradient(0deg, rgba(155,188,15,0.07) 1px, transparent 1px) !important;
+                       border-color:#3e3d4a !important; text-shadow:1px 1px 0 rgba(48,98,48,0.7) !important;
+                       box-shadow:0 0 0 3px var(--mid),0 4px 0 6px #3c3b48 !important; }
+        .post-active::before { content:'\25B6'; position:absolute; left:-30px; top:16px; color:var(--mid);
+                               font-family:var(--pixel); font-size:0.9rem; animation:dmgBlink 0.8s steps(1) infinite; }
+        @keyframes dmgBlink { 50% { opacity:0; } }
+        .post-header { display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:12px; font-size:0.95rem; }
+        .post-header strong { font-family:var(--pixel); font-size:0.66rem; font-weight:400; }
+        .post-time { font-family:var(--pixel); font-size:0.52rem; color:inherit; opacity:0.92; }
+        .post-text { line-height:1.6; font-size:1.02rem; }
+        .post-text a { color:inherit; text-decoration:underline; text-decoration-style:dotted; text-underline-offset:3px; font-weight:600; }
+        .post-text a:hover { background:var(--ink); color:var(--paper); text-decoration:none; }
+        .post-active .post-text a:hover { background:var(--paper); color:var(--ink); }
+        .post-text code, .post-text pre { font-family:var(--pixel); font-size:0.7em; }
+        .post-audio { width:100%; margin-top:10px; filter:sepia(1) hue-rotate(40deg) saturate(1.6); }
+        .post-modal { display:none; position:fixed; inset:0; z-index:100;
+                      overflow-y:auto; padding:40px 20px; background:rgba(15,56,15,0.55); }
+        .post-modal.active { display:block; }
+        /* The modal is the whole screen of the handheld: bezel, label, LCD. */
+        .modal-inner { max-width:760px; margin:0 auto; color:var(--ink); background-color:var(--paper);
+                       background-image:linear-gradient(90deg, rgba(15,56,15,0.07) 1px, transparent 1px),
+                                        linear-gradient(0deg, rgba(15,56,15,0.07) 1px, transparent 1px);
+                       background-size:3px 3px; border:18px solid var(--bezel);
+                       border-radius:10px 10px 48px 10px; position:relative; text-shadow:1px 1px 0 rgba(48,98,48,0.28);
+                       box-shadow:0 0 0 10px var(--case),0 20px 60px rgba(0,0,0,0.6); padding:36px; }
+        .modal-inner::before { content:'DOT MATRIX WITH STEREO SOUND'; display:block; margin:-36px -36px 24px; padding:4px 8px 12px;
+                               background:var(--bezel); text-align:center; font-family:var(--pixel); font-size:0.46rem;
+                               color:#d9d7e2; letter-spacing:0.08em; text-shadow:none; }
+        #modal-content a { color:inherit; font-weight:600; text-decoration-style:dotted; }
+        .modal-close { float:right; background:none; border:2px solid var(--ink); color:var(--ink); padding:6px 10px;
+                       font-family:var(--pixel); font-size:0.6rem; cursor:pointer; letter-spacing:1px; }
+        .modal-close:hover { background:var(--ink); color:var(--paper); }
+        /* Wild mode: the LCD's palette flips back and forth. */
+        body.dmg-wild .post:not(.post-active) { animation:dmgInvert 0.9s steps(1) infinite; }
+        @keyframes dmgInvert { 50% { background-color:var(--ink); color:var(--paper); } }
+        /* Scroll and nav effects: LCD ghost trails of the posts. */
+        .dmg-ghost-down .post { box-shadow:0 -8px 0 rgba(139,172,15,0.45),0 -16px 0 rgba(139,172,15,0.22),0 4px 0 #3c3b48; }
+        .dmg-ghost-up .post { box-shadow:0 8px 0 rgba(139,172,15,0.45),0 16px 0 rgba(139,172,15,0.22),0 4px 0 #3c3b48; }
+        .dmg-wipe { position:fixed; inset:0; z-index:998; pointer-events:none; display:grid; }
+        .dmg-wipe i { background:var(--ink); transition:opacity 0.05s steps(1); }
+        .dmg-fade { position:fixed; inset:0; z-index:998; pointer-events:none; animation:dmgFade 0.36s steps(4) forwards; }
+        @keyframes dmgFade { 0% { background:rgba(155,188,15,0.7); } 33% { background:rgba(139,172,15,0.5); }
+                             66% { background:rgba(48,98,48,0.35); } 100% { background:rgba(15,56,15,0); } }
+        .dmg-jolt { animation:dmgJolt 0.24s steps(3); }
+        @keyframes dmgJolt { 0% { transform:translate(3px,0); } 50% { transform:translate(-3px,1px); } 100% { transform:none; } }
+        @media(max-width:640px) { .nav-hints{padding:6px 16px} .nav-hints .nav-hints-row{padding:6px 0;gap:8px} .nav-hints kbd{display:none} .nav-hints-label,.nav-hints-spacer{display:none} .nav-fx-button{padding:10px 0;min-height:44px;flex:1 1 auto;justify-content:center;gap:0.2rem} header{padding:12px 16px;} .content{padding:14px 16px 14px 26px;} .modal-inner{padding:20px 14px;border-width:10px} .modal-inner::before{font-size:0.36rem;margin:-20px -14px 16px} .transmit-btn{padding-top:14px;padding-bottom:14px;min-height:44px;transform:none} .transmit-btn:hover{transform:translateY(2px)} .modal-close{padding:10px 14px;min-width:44px;min-height:44px;text-align:center} .logo-title h1{font-size:0.8rem} .logo-mark{font-size:0.8rem;padding:10px 8px 8px 22px} .post{padding:14px} .post-active::before{left:-22px} .page-nav a{transform:none;min-height:44px;display:inline-flex;align-items:center} }
+        /* Splash: the grey case with a speaker grille; the panel is the LCD
+           inside its bezel, and the title scrolls down into place like the
+           boot logo. */
+        [data-sno-theme="dmg"] .splash-overlay {
+            background:
+                repeating-linear-gradient(-60deg, transparent 0 16px, rgba(36,35,46,0.28) 16px 22px) 92% 92% / 180px 120px no-repeat,
+                radial-gradient(ellipse 80% 70% at 50% 40%, #d8d4ce 0%, var(--case) 55%, #a9a49d 100%);
+            color:var(--ink);
+        }
+        [data-sno-theme="dmg"] #splash-overlay::before { background:radial-gradient(ellipse 92% 82% at 50% 42%, rgba(0,0,0,0) 45%, rgba(0,0,0,0.18) 100%); }
+        [data-sno-theme="dmg"] #splash-overlay .splash-gl-canvas { image-rendering:pixelated; }
+        [data-sno-theme="dmg"] #splash-overlay .splash-inner {
+            color:var(--ink); background-color:var(--paper); backdrop-filter:none; -webkit-backdrop-filter:none;
+            background-image:linear-gradient(90deg, rgba(15,56,15,0.08) 1px, transparent 1px),
+                             linear-gradient(0deg, rgba(15,56,15,0.08) 1px, transparent 1px);
+            background-size:3px 3px; border:16px solid var(--bezel); border-top-width:38px;
+            border-radius:10px 10px 44px 10px; box-shadow:0 18px 40px rgba(0,0,0,0.45); text-shadow:1px 1px 0 rgba(48,98,48,0.3);
+        }
+        [data-sno-theme="dmg"] .dmg-bezel-label { position:absolute; top:-27px; left:-6px; right:-6px; display:flex; align-items:center;
+            justify-content:center; gap:8px; font-family:var(--pixel); font-size:clamp(0.32rem,1.4vw,0.46rem); color:#d9d7e2; letter-spacing:0.06em; text-shadow:none; }
+        [data-sno-theme="dmg"] .dmg-bezel-label::before, [data-sno-theme="dmg"] .dmg-bezel-label::after {
+            content:''; flex:1; height:6px; border-top:2px solid var(--stripe-a); border-bottom:2px solid var(--stripe-b); }
+        [data-sno-theme="dmg"] .dmg-bezel-label .dmg-led { flex:0 0 auto; }
+        [data-sno-theme="dmg"] .splash-title { font-family:var(--pixel); font-weight:400; font-size:clamp(1rem,4.2vw,1.6rem); color:var(--ink);
+            letter-spacing:0.02em; animation:dmgBoot 2.2s steps(22) both; }
+        @keyframes dmgBoot { from { transform:translateY(-2.4em); opacity:0.2; } to { transform:none; opacity:1; } }
+        [data-sno-theme="dmg"] .splash-tag { color:var(--ink); font-size:0.85rem; font-weight:600; letter-spacing:0.18em; animation:dmgAppear 2.4s steps(1) both; }
+        [data-sno-theme="dmg"] .splash-hint { color:var(--ink); font-family:var(--pixel); font-size:0.55rem; line-height:1.8;
+            animation:dmgAppear 2.4s steps(1) both, dmgBlink 1s steps(1) 2.4s infinite; }
+        @keyframes dmgAppear { 0%,99% { visibility:hidden; } 100% { visibility:visible; } }
+        [data-sno-theme="dmg"] .splash-controls { opacity:0.9; color:var(--ink); }
+        [data-sno-theme="dmg"] .splash-controls kbd { background:var(--ink); color:var(--paper); border-color:var(--ink); }
+        [data-sno-theme="dmg"] .splash-music-btn { border:2px solid var(--ink); border-radius:999px; background:transparent; color:var(--ink);
+            font-weight:600; }
+        [data-sno-theme="dmg"] .splash-music-btn:hover { background:var(--ink); color:var(--paper); border-color:var(--ink); }
+        @media (prefers-reduced-motion: reduce) {
+            [data-sno-theme="dmg"] .splash-title, [data-sno-theme="dmg"] .splash-tag, [data-sno-theme="dmg"] .splash-hint { animation:none; }
+            .dmg-led, .post-active::before, body.dmg-wild .post:not(.post-active) { animation:none; }
+        }

@@ -41,7 +41,9 @@
         plasma: 'Plasma Storm', retro: 'Carrier Lost', retrofuture: 'Atomic Defense',
         spaceage: 'Orbital Dock', surveillance: 'Blind Spot', synthwave: 'Outrun the Sun',
         terminal: 'kill -9', tetris: 'Block Blaster', tropicale: 'Island Hopper',
-        volcano: 'Magma Rising'
+        volcano: 'Magma Rising', ukiyoe: 'Tokaido Crossing', deco: 'Last Call',
+        dmg: 'SERPENT.GB', blueprint: 'Draftsman', pharaoh: 'Pyramid Hop',
+        western: 'Gold Express', bauhaus: 'Composition', greenhouse: 'Pollinator'
     };
 
     var G = window.SnoGame = {

@@ -1,0 +1,40 @@
+DMG theme fonts
+===============
+
+This directory bundles the web fonts:
+
+    press-start-2p-v16-latin-400.woff2  (Press Start 2P, weight 400)
+    pixelify-sans-v3-latin-var.woff2    (Pixelify Sans, variable weight 400-600)
+
+Subset: latin.
+
+Source / version
+----------------
+- Press Start 2P family page  : https://fonts.google.com/specimen/Press+Start+2P
+- Press Start 2P designer     : CodeMan38
+- Press Start 2P webfont set  : press-start-2p-v16 (latin, woff2)
+- Pixelify Sans family page   : https://fonts.google.com/specimen/Pixelify+Sans
+- Pixelify Sans designer      : Stefie Justprince
+- Pixelify Sans webfont set   : pixelify-sans-v3 (latin, variable, woff2)
+- Fetched via                 : fonts.googleapis.com css2 API (files from fonts.gstatic.com)
+- Fetched on                  : 2026-10-21
+
+License
+-------
+SIL Open Font License, Version 1.1.
+
+  - Summary    : https://scripts.sil.org/cms/scripts/page.php?item_id=OFL_web
+  - Full text  : https://openfontlicense.org/open-font-license-official-text/
+
+The OFL allows free use, modification, and redistribution of the font,
+including embedding in commercial products. Any standalone modified
+version of the font itself must be released under the same license and
+must follow the Reserved Font Name requirements from the upstream license.
+
+Required attribution
+--------------------
+Font: "Press Start 2P" by CodeMan38 - https://fonts.google.com/specimen/Press+Start+2P
+      Licensed under the SIL Open Font License 1.1.
+
+Font: "Pixelify Sans" by Stefie Justprince - https://fonts.google.com/specimen/Pixelify+Sans
+      Licensed under the SIL Open Font License 1.1.

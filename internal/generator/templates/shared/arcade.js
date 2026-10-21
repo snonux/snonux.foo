@@ -48,7 +48,15 @@
         terminal: 'Rogue processes are eating the box. Kill every one of them.',
         tetris: 'Fire blocks into the gaps of the falling wall. Full rows clear and knock it back.',
         tropicale: 'Hop the islands and reach the tiki totem before the tide comes in.',
-        volcano: 'The lava never stops. Climb to the crater rim.'
+        volcano: 'The lava never stops. Climb to the crater rim.',
+        ukiyoe: 'Hop the traveller over the Tokaido road and across the river on drifting boats.',
+        deco: 'Slide the cocktails down the bars, catch the empties, never keep a guest waiting.',
+        dmg: 'Eat the apples, grow longer, never bite yourself. The snake keeps sliding.',
+        blueprint: 'Draw lines to claim the sheet. Keep the ink blot off your pen.',
+        pharaoh: 'Hop every stone of the pyramid to gold. Do not let the mummies catch you.',
+        western: 'Run the roofs of the express, leap the gaps, take the gold before the bridge.',
+        bauhaus: 'Ride the rim of the shape and shoot what climbs out of it.',
+        greenhouse: 'Fly the bee from bloom to bloom, pollinate them all, keep the wasps off the hive.'
     };
 
     var ICON = '<i class="fas fa-table-cells-large" aria-hidden="true"></i> ';

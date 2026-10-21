@@ -1,0 +1,7 @@
+{
+  "title": "snonux.foo \u25a6 DMG",
+  "header_html": "<div class=\"logo\">\n                <span class=\"logo-mark\" aria-hidden=\"true\"><span class=\"dmg-led\"></span>SN</span>\n                <div class=\"logo-title\">\n                    <h1>snonux.foo</h1>\n                    <p class=\"subtitle\">microblog &mdash; <a href=\"https://foo.zone\">foo.zone</a> is the real blog</p>\n                    <p class=\"logo-host\">Served by NetBSD on a Raspberry Pi 3</p>\n                </div>\n            </div>\n            <div class=\"nav\">\n                <a href=\"atom.xml\" class=\"header-feed-link\" rel=\"alternate\" title=\"Atom feed\" type=\"application/atom+xml\">Atom feed</a>\n                <a href=\"https://foo.zone/about\" class=\"transmit-btn\">Transmit</a>\n            </div>",
+  "splash_inner_html": "<canvas class=\"splash-gl-canvas\" id=\"splash-gl-canvas\" aria-hidden=\"true\"></canvas>\n        <div class=\"splash-inner\">\n            <div class=\"dmg-bezel-label\" aria-hidden=\"true\"><span class=\"dmg-led\"></span><span class=\"dmg-bezel-text\">DOT MATRIX WITH STEREO SOUND</span></div>\n            <div class=\"splash-title\">snonux.foo</div>\n            <div class=\"splash-tag\">Dot matrix microblog</div>\n            <div class=\"splash-hint\">PRESS START &mdash; click or Enter</div>\n        </div>",
+  "prev_page_text": "&#9664; Newer",
+  "next_page_text": "Older &#9654;"
+}

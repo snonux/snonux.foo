@@ -1,0 +1,153 @@
+        /* Self-hosted web font: Jost by Owen Earl (SIL OFL 1.1), a geometric
+           sans in the Futura line.
+           Source: https://fonts.google.com/specimen/Jost
+           See FONT_LICENSE.txt in this directory. */
+        @font-face {
+            font-family: 'Jost';
+            src: url('jost-v20-latin-var.woff2') format('woff2');
+            font-weight: 400 700;
+            font-style: normal;
+            font-display: swap;
+        }
+        /* Off-white paper, the three primaries and heavy black rules.
+           --red-ink is the red used for text: plain --red is a little
+           under 4.5:1 on the paper. */
+        :root { --paper:#f8f3e8; --cream:#efe7d6; --red:#d62d20; --red-ink:#b8231a; --yellow:#f2b705;
+                --blue:#1f4e9c; --black:#141210; --ink:#4a453d; --rule:6px; }
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { font-family:'Jost','Futura','Century Gothic',system-ui,sans-serif; background:var(--cream);
+               color:var(--black); overflow:hidden; height:100vh; height:100dvh; font-weight:400; }
+        /* Bauhaus typography: headings set all in lower case, tight and bold. */
+        h1, h2, h3, h4, h5, h6 { font-family:'Jost','Futura',sans-serif; font-weight:700; text-transform:lowercase; letter-spacing:-0.01em; }
+        #three-canvas { position:fixed; inset:0; width:100%; height:100%; z-index:1; }
+        .overlay { position:relative; z-index:10; height:100vh; height:100dvh; display:flex; flex-direction:column; }
+        header { position:relative; padding:14px 28px 14px; background:var(--paper);
+                 border-bottom:var(--rule) solid var(--black);
+                 display:flex; align-items:center; justify-content:space-between; }
+        /* A red / yellow / blue band under the header's black rule. */
+        header::after { content:''; position:absolute; left:0; right:0; bottom:calc(-1 * var(--rule) - 8px); height:8px; pointer-events:none;
+            background:linear-gradient(90deg, var(--red) 0 38%, var(--yellow) 38% 61%, var(--blue) 61% 100%); }
+        .logo { display:flex; align-items:center; gap:16px; }
+        /* The mark: a red circle, a yellow triangle and a blue square. */
+        .logo-mark.bh-mark { display:inline-flex; align-items:flex-end; gap:5px; height:34px; }
+        .bh-mark i { display:block; width:28px; height:28px; transition:transform 0.4s cubic-bezier(0.22,1,0.36,1); }
+        .bh-mark i:nth-child(1) { background:var(--red); border-radius:50%; }
+        .bh-mark i:nth-child(2) { background:var(--yellow); clip-path:polygon(50% 0, 100% 100%, 0 100%); width:32px; }
+        .bh-mark i:nth-child(3) { background:var(--blue); }
+        .logo-mark.bh-mark:hover i:nth-child(1) { transform:translateY(-6px); }
+        .logo-mark.bh-mark:hover i:nth-child(2) { transform:rotate(180deg); }
+        .logo-mark.bh-mark:hover i:nth-child(3) { transform:rotate(45deg); }
+        .logo-title h1 { font-size:1.7rem; font-weight:700; line-height:1; color:var(--black); }
+        .logo-title .subtitle { font-size:0.82rem; color:var(--ink); margin-top:4px; }
+        .logo-title .subtitle a { color:var(--blue); font-weight:600; text-decoration:none; border-bottom:2px solid var(--yellow); }
+        .logo-title .subtitle a:hover { color:var(--red-ink); border-color:var(--red); }
+        .logo-title .logo-host { color:var(--ink); letter-spacing:0.08em; text-transform:lowercase; }
+        .transmit-btn { background:var(--black); color:var(--paper); padding:9px 20px; text-decoration:none; font-size:0.86rem;
+                        font-weight:600; letter-spacing:0.12em; text-transform:lowercase; border:3px solid var(--black);
+                        box-shadow:5px 5px 0 var(--red); transition:transform 0.15s, box-shadow 0.15s, background 0.15s; }
+        .transmit-btn:hover { background:var(--blue); transform:translate(-2px,-2px); box-shadow:7px 7px 0 var(--yellow); }
+        a.header-feed-link { color:var(--blue); font-weight:600; }
+        a.header-feed-link:hover { color:var(--red-ink); }
+        .header-game-btn, .header-arcade-btn { border:2px solid var(--black) !important; border-radius:0 !important; font-weight:600; opacity:1 !important; }
+        .header-game-btn:hover, .header-arcade-btn:hover { background:var(--yellow); }
+        .nav-hints { margin-top:8px; background:var(--black); color:var(--paper); padding:4px 28px; display:flex; gap:18px;
+                     font-size:0.7rem; letter-spacing:0.05em; flex-wrap:wrap; text-transform:lowercase; }
+        .nav-hints kbd { background:var(--yellow); color:var(--black); border:0; padding:0 5px; margin:0 2px; font-family:'Jost',sans-serif; font-weight:600; }
+        .nav-hints .nav-fx-button[aria-pressed="true"] { color:var(--yellow); text-shadow:none; }
+        /* An asymmetric column: the posts sit right of a wide left margin. */
+        .content { flex:1; overflow-y:auto; padding:26px 28px 26px clamp(28px, 14vw, 240px);
+                   scrollbar-width:thin; scrollbar-color:var(--red) var(--cream); }
+        .content::-webkit-scrollbar { width:12px; }
+        .content::-webkit-scrollbar-track { background:var(--cream); border-left:3px solid var(--black); }
+        .content::-webkit-scrollbar-thumb { background:var(--red); border-left:3px solid var(--black); }
+        .page-nav { display:flex; justify-content:center; gap:14px; margin:14px 0; }
+        .page-nav a { background:var(--yellow); color:var(--black); border:3px solid var(--black); padding:7px 22px; text-decoration:none;
+                      font-size:0.9rem; font-weight:600; text-transform:lowercase; box-shadow:4px 4px 0 var(--black);
+                      transition:transform 0.15s, box-shadow 0.15s, background 0.15s, color 0.15s; }
+        .page-nav a:hover { background:var(--red-ink); color:var(--paper); transform:translate(-2px,-2px); box-shadow:6px 6px 0 var(--black); }
+        .page-nav-footer { flex-shrink:0; padding:9px 28px; display:flex; justify-content:center;
+            background:var(--paper); border-top:var(--rule) solid var(--black); }
+        /* Each post is a white panel with a black rule and an offset block of
+           colour behind it; the colour and the corner shape cycle red,
+           yellow, blue down the page. */
+        .post { --bh:var(--red); position:relative; background:var(--paper); border:3px solid var(--black);
+                padding:22px 54px 22px 26px; margin:0 0 26px; max-width:820px; cursor:pointer;
+                box-shadow:8px 8px 0 var(--bh); transition:transform 0.2s, box-shadow 0.2s; }
+        .post:nth-child(3n+2) { --bh:var(--yellow); margin-left:clamp(0px, 4vw, 60px); }
+        .post:nth-child(3n) { --bh:var(--blue); margin-left:clamp(0px, 2vw, 30px); }
+        /* ::after, since the shared hover ripple owns ::before. */
+        .post::after { content:''; position:absolute; top:14px; right:14px; width:22px; height:22px; background:var(--bh); border-radius:50%; }
+        .post:nth-child(3n+2)::after { border-radius:0; clip-path:polygon(50% 0, 100% 100%, 0 100%); }
+        .post:nth-child(3n)::after { border-radius:0; }
+        /* Solid paper: the composition behind must not show through the text. */
+        html[data-sno-theme="bauhaus"] .post:not(.post-active) { opacity:1; }
+        .post:hover { transform:translate(-3px,-3px); box-shadow:11px 11px 0 var(--bh); }
+        .post-active { border-width:4px !important; box-shadow:12px 12px 0 var(--bh), inset 10px 0 0 var(--black) !important;
+                       padding-left:34px !important; transform:translate(-4px,-4px); }
+        .post-header { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:12px; font-size:0.92rem;
+                       padding-bottom:8px; border-bottom:2px solid var(--black); }
+        .post-header strong { font-weight:700; color:var(--black); }
+        .post-time { color:var(--blue); font-size:0.8rem; font-weight:600; letter-spacing:0.1em; text-transform:lowercase; }
+        .post-text { line-height:1.66; font-size:1rem; color:var(--black); }
+        .post-text h1, .post-text h2, .post-text h3, #modal-content h1, #modal-content h2, #modal-content h3 { margin:0.6em 0 0.3em; line-height:1.15; }
+        .post-text a, #modal-content a { color:var(--blue); font-weight:600; text-decoration:none; border-bottom:2px solid var(--yellow); }
+        .post-text a:hover, #modal-content a:hover { color:var(--red-ink); border-color:var(--red); }
+        .post-text code, #modal-content code { background:var(--cream); border:1px solid rgba(20,18,16,0.25); padding:0 4px; }
+        .post-text pre, #modal-content pre { background:var(--black); color:var(--paper); padding:12px 14px; border-left:8px solid var(--yellow); }
+        .post-text pre code, #modal-content pre code { background:none; border:0; color:inherit; }
+        .post-text blockquote, #modal-content blockquote { border-left:6px solid var(--red); padding-left:12px; color:var(--ink); }
+        .post-text img { border:3px solid var(--black); border-radius:0; }
+        .post-audio { width:100%; margin-top:10px; }
+        .post-modal { display:none; position:fixed; inset:0; z-index:100; overflow-y:auto; padding:40px 20px; background:rgba(20,18,16,0.45); }
+        .post-modal.active { display:block; }
+        .modal-inner { position:relative; max-width:780px; margin:0 auto; background:var(--paper); color:var(--black);
+                       border:4px solid var(--black); box-shadow:16px 16px 0 var(--blue); padding:44px 42px 40px; }
+        /* A red quarter disc in the sheet's corner and a yellow bar along its
+           foot (inside the box: the sheet scrolls, so it clips anything outside). */
+        .modal-inner::before { content:''; position:absolute; top:0; left:0; width:40px; height:40px; border-radius:0 0 100% 0;
+                               background:var(--red); pointer-events:none; }
+        .modal-inner::after { content:''; position:absolute; right:0; bottom:0; width:38%; height:10px; background:var(--yellow); pointer-events:none; }
+        .modal-close { float:right; background:var(--black); border:0; color:var(--paper); padding:6px 12px; font-family:inherit;
+                       font-size:0.86rem; font-weight:600; cursor:pointer; letter-spacing:0.12em; text-transform:lowercase; }
+        .modal-close:hover { background:var(--red-ink); }
+        .post-share-btn { color:var(--black); }
+        @media(max-width:640px) { .nav-hints{padding:6px 16px} .nav-hints .nav-hints-row{padding:6px 0;gap:8px} .nav-hints kbd{display:none} .nav-hints-label,.nav-hints-spacer{display:none} .nav-fx-button{padding:10px 0;min-height:44px;flex:1 1 auto;justify-content:center;gap:0.2rem} header{padding:12px 16px;} .logo{gap:10px} .bh-mark i{width:20px;height:20px} .bh-mark i:nth-child(2){width:23px} .logo-mark.bh-mark{height:24px;gap:3px} .logo-title h1{font-size:1.3rem} .content{padding:16px 22px 16px 16px;} .post{padding:18px 44px 18px 18px;margin-left:0 !important;box-shadow:6px 6px 0 var(--bh)} .post-active{padding-left:26px !important} .modal-inner{padding:30px 16px 22px} .modal-inner::before{width:30px;height:30px} .transmit-btn{padding-top:11px;padding-bottom:11px;min-height:44px} .modal-close{padding:10px 14px;min-width:44px;min-height:44px;text-align:center} }
+        /* The splash: a composition on paper behind a white sheet. */
+        [data-sno-theme="bauhaus"] .splash-overlay {
+            color:var(--black);
+            background:
+                radial-gradient(circle at 16% 24%, var(--red) 0 13vmin, transparent calc(13vmin + 1px)),
+                radial-gradient(circle at 84% 78%, transparent 0 15vmin, var(--black) calc(15vmin + 1px) calc(15vmin + 6px), transparent calc(15vmin + 7px)),
+                linear-gradient(118deg, transparent 0 70%, var(--yellow) 70% 76%, transparent 76%),
+                linear-gradient(90deg, transparent 0 8%, var(--blue) 8% 13%, transparent 13%),
+                var(--cream);
+        }
+        [data-sno-theme="bauhaus"] #splash-overlay::before { background:none; }
+        [data-sno-theme="bauhaus"] #splash-overlay .splash-inner { background:rgba(248,243,232,0.94); color:var(--black); border:4px solid var(--black);
+            border-radius:0; box-shadow:14px 14px 0 var(--black); backdrop-filter:none; -webkit-backdrop-filter:none; }
+        [data-sno-theme="bauhaus"] .bh-splash-mark { display:flex; justify-content:center; align-items:flex-end; gap:12px; height:64px; margin:0 auto 1rem; }
+        [data-sno-theme="bauhaus"] .bh-splash-mark i { display:block; width:54px; height:54px; animation:bhDrop 0.9s cubic-bezier(0.34,1.56,0.64,1) both; }
+        [data-sno-theme="bauhaus"] .bh-splash-mark i:nth-child(1) { background:var(--red); border-radius:50%; }
+        [data-sno-theme="bauhaus"] .bh-splash-mark i:nth-child(2) { background:var(--yellow); clip-path:polygon(50% 0, 100% 100%, 0 100%); width:62px; animation-delay:0.15s; }
+        [data-sno-theme="bauhaus"] .bh-splash-mark i:nth-child(3) { background:var(--blue); animation:bhDrop 0.9s cubic-bezier(0.34,1.56,0.64,1) 0.3s both, bhTurn 6s linear 1.2s infinite; }
+        @keyframes bhDrop { from { transform:translateY(-90px) rotate(-90deg); opacity:0; } to { transform:none; opacity:1; } }
+        @keyframes bhTurn { 0%, 80% { transform:none; } 100% { transform:rotate(90deg); } }
+        [data-sno-theme="bauhaus"] .splash-title { font-family:'Jost',sans-serif; font-weight:700; font-size:clamp(2rem,7vw,3.2rem); letter-spacing:-0.02em;
+            text-transform:lowercase; color:var(--black); }
+        [data-sno-theme="bauhaus"] .splash-tag { display:inline-block; margin-top:0.6rem; padding:4px 12px; background:var(--black); color:var(--paper);
+            font-weight:600; letter-spacing:0.3em; text-transform:lowercase; }
+        [data-sno-theme="bauhaus"] .splash-hint { color:var(--ink); letter-spacing:0.08em; text-transform:lowercase; }
+        [data-sno-theme="bauhaus"] .splash-controls { opacity:0.8; color:var(--ink); }
+        [data-sno-theme="bauhaus"] .splash-controls kbd { background:var(--yellow); border:1px solid var(--black); color:var(--black); }
+        [data-sno-theme="bauhaus"] .splash-music-btn { border:2px solid var(--black); border-radius:0; background:transparent; color:var(--black);
+            font-weight:600; text-transform:lowercase; }
+        [data-sno-theme="bauhaus"] .splash-music-btn:hover { background:var(--yellow); border-color:var(--black); }
+        [data-sno-theme="bauhaus"] .splash-game-btn { background:var(--red-ink); color:var(--paper); }
+        [data-sno-theme="bauhaus"] .splash-game-btn:hover { background:var(--blue); }
+        [data-sno-theme="bauhaus"] #sno-wild-badge { background:var(--black); color:var(--yellow); border-radius:0; }
+        /* Page effects (theme.js): colour blocks that wipe across and shapes
+           that slide in to frame an opened post. */
+        .bh-wipe { position:fixed; top:0; bottom:0; width:34vw; z-index:998; pointer-events:none; transform:translateX(-110%); }
+        .bh-frame-shape { position:fixed; z-index:120; pointer-events:none; transition:transform 0.5s cubic-bezier(0.22,1,0.36,1), opacity 0.4s; }
+        .bh-spin { position:fixed; z-index:998; pointer-events:none; border-radius:50%; border:10px solid var(--black);
+                   border-right-color:var(--red); border-bottom-color:var(--yellow); border-left-color:var(--blue); }

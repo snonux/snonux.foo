@@ -141,6 +141,62 @@
             scraps: ['ASHFALL', 'VENT BLAST', 'PYROCLAST', 'SEISMIC HIT', 'MAGMA SPRAY'],
             flash: 'rgba(255,220,150,0.72)',
             emoji: ['\u{1F30B}','\u{1F525}','\u{1F4A5}','\u2668\uFE0F','\u{1FAA8}']
+        },
+        bauhaus: {
+            banner: 'TRIADIC BALLET',
+            ticker: ['FORM FOLLOWS FUNCTION', 'PRIMARY COLOUR OVERLOAD', 'GEOMETRY UNBOUND', 'COMPOSITION IN MOTION'],
+            scraps: ['RED CIRCLE', 'YELLOW TRIANGLE', 'BLUE SQUARE', 'POINT AND LINE', 'BLACK RULE'],
+            flash: 'rgba(248,243,232,0.8)',
+            emoji: ['\u{1F534}','\u{1F7E1}','\u{1F7E6}','▲','⬛']
+        },
+        blueprint: {
+            banner: 'EXPLODED VIEW',
+            ticker: ['PLOTTER OVERDRIVE', 'REVISION CLOUD STORM', 'DIMENSIONS UNLOCKED', 'SECTION A-A FAILURE'],
+            scraps: ['REV △', 'NOT TO SCALE', 'SEE DETAIL 4', 'VOID', 'RECHECK', 'APPROVED?'],
+            flash: 'rgba(200,240,255,0.72)',
+            emoji: ['\u{1F4D0}','\u{1F4CF}','✏️','\u{1F3D7}️','\u{1F5FA}️']
+        },
+        deco: {
+            banner: 'ROARING GALA',
+            ticker: ['CHAMPAGNE FOUNTAIN', 'SPOTLIGHT STROBE', 'CONFETTI CLOUDBURST', 'CHARLESTON STAMPEDE'],
+            scraps: ['BATHTUB GIN', 'HOT JAZZ', 'GOLD LEAF', 'LAST CALL', 'THE CAT\'S PAJAMAS'],
+            flash: 'rgba(255,236,170,0.74)',
+            emoji: ['\u{1F942}','\u{1F378}','\u{1F3B7}','\u{1F3BA}','✨']
+        },
+        dmg: {
+            banner: 'LINK CABLE GLITCH',
+            ticker: ['LOW BATTERY', 'PALETTE INVERTED', 'SCREEN TEARING', 'GHOSTING OVERLOAD'],
+            scraps: ['0x0F380F', 'BGP FLIP', 'VBLANK MISSED', 'SERIAL NOISE', 'CART UNSEATED'],
+            flash: 'rgba(155,188,15,0.78)',
+            emoji: ['\u{1F3AE}','\u{1F50B}','\u{1F34E}','\u{1F40D}','\u{1F47E}']
+        },
+        greenhouse: {
+            banner: 'JUNGLE OVERGROWTH',
+            ticker: ['VINES OVER THE IRONWORK', 'BUTTERFLY SWARM', 'THUNDER ON THE GLASS', 'GIANT BLOSSOMS OPENING'],
+            scraps: ['HORTUS SYLVESTRIS', 'POLLEN STORM', 'FERNUS MAXIMUS', 'MONSTERA RAMPANS', 'CONDENSATION'],
+            flash: 'rgba(240,255,225,0.74)',
+            emoji: ['\u{1F33F}','\u{1F338}','\u{1F98B}','\u{1F41D}','\u{1F327}️']
+        },
+        pharaoh: {
+            banner: 'THE TOMB AWAKENS',
+            ticker: ['SANDSTORM RISING', 'CAPSTONES ABLAZE', 'BEAMS TO THE STARS', 'CURSE OF THE PHARAOH'],
+            scraps: ['ANKH', 'SCARAB SWARM', 'LAPIS FLARE', 'SEALED NO MORE', 'EYE OF HORUS'],
+            flash: 'rgba(255,236,180,0.74)',
+            emoji: ['\u{1F3DC}️','\u{1FAB2}','☥️','\u{1F441}️','\u{1F3FA}']
+        },
+        ukiyoe: {
+            banner: 'THE GREAT WAVE',
+            ticker: ['KANAGAWA SURGE', 'FOAM CLAWS RISING', 'BOATS UNDER THE CREST', 'FUJI IN THE TROUGH'],
+            scraps: ['TSUNAMI', 'SEIGAIHA', 'SUMI SPLASH', 'HANKO', 'OKI NAMI'],
+            flash: 'rgba(247,241,225,0.78)',
+            emoji: ['\u{1F30A}','\u{1F5FB}','\u{1F338}','\u{1F3EE}','⛩️']
+        },
+        western: {
+            banner: 'STAMPEDE',
+            ticker: ['DUST STORM', 'BLOOD-RED SKY', 'RUNAWAY EXPRESS', 'TUMBLEWEEDS EVERYWHERE'],
+            scraps: ['WANTED', 'DEAD OR ALIVE', 'HIGH NOON', 'GOLD RUSH', 'BRIDGE OUT', 'YEEHAW'],
+            flash: 'rgba(255,214,150,0.72)',
+            emoji: ['\u{1F920}','\u{1F335}','\u{1F40E}','\u{1F682}','⭐']
         }
     };
     function snonuxDetectThemeName() {

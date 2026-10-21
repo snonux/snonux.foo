@@ -1,0 +1,53 @@
+Rye and Bitter
+==============
+
+This directory bundles the web fonts:
+
+    rye-v17-latin-400.woff2     (weight 400)
+    bitter-v42-latin-var.woff2  (variable, weights 400-700)
+
+Subset: latin.
+
+Source / version
+----------------
+- Rye family page        : https://fonts.google.com/specimen/Rye
+- Rye designer           : Nicole Fally (Sorkin Type)
+- Rye webfont set        : rye-v17 (latin, woff2)
+- Rye fetched via        : fonts.googleapis.com css2 API
+- Rye download URL       : https://fonts.gstatic.com/s/rye/v17/r05XGLJT86YzEZ7t.woff2
+- Rye fetched on         : 2026-10-21
+
+- Bitter family page     : https://fonts.google.com/specimen/Bitter
+- Bitter designer        : Huerta Tipográfica (Sol Matas)
+- Bitter webfont set     : bitter-v42 (latin, variable woff2, wght 400-700)
+- Bitter fetched via     : fonts.googleapis.com css2 API
+- Bitter download URL    : https://fonts.gstatic.com/s/bitter/v42/rax8HiqOu8IVPmn7f4xp.woff2
+- Bitter fetched on      : 2026-10-21
+
+License
+-------
+SIL Open Font License, Version 1.1.
+
+Rye copyright:
+Copyright (c) 2011 by Sorkin Type Co (www.sorkintype.com),
+with Reserved Font Name "Rye".
+
+Bitter copyright:
+Copyright 2020 The Bitter Project Authors
+(https://github.com/solmatas/BitterPro).
+
+  - Summary    : https://scripts.sil.org/cms/scripts/page.php?item_id=OFL_web
+  - Full text  : https://openfontlicense.org/open-font-license-official-text/
+
+The OFL allows free use, modification, and redistribution of the font,
+including embedding in commercial products. Any standalone modified
+version of the font itself must be released under the same license and
+must not use the Reserved Font Names "Rye" or "Bitter".
+
+Required attribution
+--------------------
+Font: "Rye" by Nicole Fally (Sorkin Type) - https://fonts.google.com/specimen/Rye
+      Licensed under the SIL Open Font License 1.1.
+
+Font: "Bitter" by Huerta Tipográfica - https://fonts.google.com/specimen/Bitter
+      Licensed under the SIL Open Font License 1.1.

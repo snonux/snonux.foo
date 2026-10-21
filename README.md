@@ -234,6 +234,54 @@ Bundled web fonts:
   [Inter](https://fonts.google.com/specimen/Inter)),
   [SIL OFL 1.1](https://openfontlicense.org/open-font-license-official-text/).
   See [internal/generator/templates/themes/volcano/FONT_LICENSE.txt](internal/generator/templates/themes/volcano/FONT_LICENSE.txt).
+- **bauhaus** — *Jost* variable weight 400-700 (.woff2, latin) by
+  Owen Earl (indestructible type*), from [Google Fonts](https://fonts.google.com/specimen/Jost),
+  [SIL OFL 1.1](https://openfontlicense.org/open-font-license-official-text/).
+  See [internal/generator/templates/themes/bauhaus/FONT_LICENSE.txt](internal/generator/templates/themes/bauhaus/FONT_LICENSE.txt).
+- **blueprint** — *Architects Daughter* Regular and *IBM Plex Mono* Regular +
+  SemiBold (.woff2, latin) by Kimberly Geswein and Mike Abbink / Bold Monday
+  for IBM, from Google Fonts
+  ([Architects Daughter](https://fonts.google.com/specimen/Architects+Daughter),
+  [IBM Plex Mono](https://fonts.google.com/specimen/IBM+Plex+Mono)),
+  [SIL OFL 1.1](https://openfontlicense.org/open-font-license-official-text/).
+- **deco** — *Limelight* Regular, *Poiret One* Regular and *Josefin Sans*
+  variable 400-600 (.woff2, latin) by Nicole Fally (Sorkin Type), Denis
+  Masharov and Santiago Orozco, from Google Fonts
+  ([Limelight](https://fonts.google.com/specimen/Limelight),
+  [Poiret One](https://fonts.google.com/specimen/Poiret+One),
+  [Josefin Sans](https://fonts.google.com/specimen/Josefin+Sans)),
+  [SIL OFL 1.1](https://openfontlicense.org/open-font-license-official-text/).
+  See [internal/generator/templates/themes/deco/FONT_LICENSE.txt](internal/generator/templates/themes/deco/FONT_LICENSE.txt).
+- **dmg** — *Press Start 2P* Regular and *Pixelify Sans* (variable 400-600)
+  (.woff2, latin) by CodeMan38 and Stefie Justprince,
+  from Google Fonts ([Press Start 2P](https://fonts.google.com/specimen/Press+Start+2P),
+  [Pixelify Sans](https://fonts.google.com/specimen/Pixelify+Sans)),
+  [SIL OFL 1.1](https://openfontlicense.org/open-font-license-official-text/).
+  See [internal/generator/templates/themes/dmg/FONT_LICENSE.txt](internal/generator/templates/themes/dmg/FONT_LICENSE.txt).
+- **greenhouse** — *Fraunces* variable 400-700 and *Karla* variable 400-600
+  (.woff2, latin) by Undercase Type and Jonathan Pinhorn, from Google Fonts
+  ([Fraunces](https://fonts.google.com/specimen/Fraunces),
+  [Karla](https://fonts.google.com/specimen/Karla)),
+  [SIL OFL 1.1](https://openfontlicense.org/open-font-license-official-text/).
+  See [internal/generator/templates/themes/greenhouse/FONT_LICENSE.txt](internal/generator/templates/themes/greenhouse/FONT_LICENSE.txt).
+- **pharaoh** — *Cinzel* (variable, weights 500-800) and *Alegreya Sans*
+  Regular + Bold (.woff2, latin) by Natanael Gama and Juan Pablo del Peral,
+  from Google Fonts ([Cinzel](https://fonts.google.com/specimen/Cinzel),
+  [Alegreya Sans](https://fonts.google.com/specimen/Alegreya+Sans)),
+  [SIL OFL 1.1](https://openfontlicense.org/open-font-license-official-text/).
+  See [internal/generator/templates/themes/pharaoh/FONT_LICENSE.txt](internal/generator/templates/themes/pharaoh/FONT_LICENSE.txt).
+- **ukiyoe** — *Zen Antique* Regular and *Zen Old Mincho* Regular + Bold
+  (.woff2, latin) by Yoshimichi Ohira, from Google Fonts
+  ([Zen Antique](https://fonts.google.com/specimen/Zen+Antique),
+  [Zen Old Mincho](https://fonts.google.com/specimen/Zen+Old+Mincho)),
+  [SIL OFL 1.1](https://openfontlicense.org/open-font-license-official-text/).
+  See [internal/generator/templates/themes/ukiyoe/FONT_LICENSE.txt](internal/generator/templates/themes/ukiyoe/FONT_LICENSE.txt).
+- **western** — *Rye* Regular and *Bitter* (variable 400-700) (.woff2, latin)
+  by Nicole Fally (Sorkin Type) and Huerta Tipográfica, from Google Fonts
+  ([Rye](https://fonts.google.com/specimen/Rye),
+  [Bitter](https://fonts.google.com/specimen/Bitter)),
+  [SIL OFL 1.1](https://openfontlicense.org/open-font-license-official-text/).
+  See [internal/generator/templates/themes/western/FONT_LICENSE.txt](internal/generator/templates/themes/western/FONT_LICENSE.txt).
 
 When adding a new bundled font:
 
