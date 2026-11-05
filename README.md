@@ -55,6 +55,68 @@ The image file is automatically copied into the post's asset directory, and the 
 
 **Note:** The image filename in the Markdown must match the actual file in the inbox. Remote URLs (`http://`, `https://`) are left as-is and not downloaded.
 
+### Scheduled Markdown posts
+
+Put an optional `publish-at` comment on the **first line** of a Markdown post:
+
+```markdown
+<!-- publish-at: 2026-11-12T10:00:00+02:00 -->
+
+My next update, published when it is due.
+
+![screenshot](screenshot.jpg)
+```
+
+Use an RFC3339 timestamp with an explicit timezone (`Z` or an offset such as
+`+02:00`). The directive is removed before rendering. Invalid timestamps abort
+the batch without consuming any inbox files.
+
+Future posts and their referenced images stay in the inbox, outside the public
+output, until a run at or after their publication time. Each post gets its
+scheduled timestamp in the site and Atom feed. Posts without a directive keep
+publishing immediately. Scheduling is supported for `.md` posts; wrap an image
+in Markdown to schedule it too. Each post needs its own image files, as with
+ordinary inbox posts.
+
+For a weekly series, give each post a timestamp seven days after the previous
+one and place all of them in the inbox together. snonux checks due dates on
+each run; it does not run a background scheduler itself. Overdue posts publish
+on the next run, including multiple posts if several dates were missed.
+
+For example, `inbox/01-update.md` can start with
+`<!-- publish-at: 2026-11-12T23:00:00+02:00 -->`, and
+`inbox/02-update.md` with `<!-- publish-at: 2026-11-19T23:00:00+02:00 -->`.
+Copy each post's screenshots into that same inbox and reference them by local
+filename, such as `![App screenshot](01-update.jpg)`. They will be served from
+your snonux site, rather than loaded from another website.
+
+To review a batch before making it eligible for publication, keep the Markdown
+and images together in an inbox subdirectory such as `inbox/.series-review/`.
+snonux ignores subdirectories. Move the approved posts and their images into
+the top-level inbox together when ready. Dates can be edited while posts are
+still in the inbox; after a successful run, the sources have been consumed.
+For a local preview, copy the inputs to a temporary inbox and use a separate
+output directory without `--sync`; future posts still remain deferred unless
+you remove their scheduling directives from those preview copies.
+
+To publish automatically, install the binary with `mage install` and use the
+example systemd user timer:
+
+```sh
+mkdir -p ~/.config/systemd/user
+cp examples/systemd/snonux-publish.* ~/.config/systemd/user/
+systemctl --user daemon-reload
+systemctl --user enable --now snonux-publish.timer
+```
+
+The timer runs hourly and uses `--sync` to publish to the mirror hosts. Its
+service must have the same SSH access as an interactive `snonux --sync` run.
+It processes unscheduled inbox files immediately too. The user manager must
+be running and the machine online for publication; after downtime it catches
+up on its next run. Inspect results with
+`journalctl --user -u snonux-publish.service`. Disable it with
+`systemctl --user disable --now snonux-publish.timer`.
+
 ### Images (.png, .jpg, .gif)
 
 ```
@@ -75,7 +137,7 @@ An audio file becomes a post with an embedded HTML5 audio player.
 
 ### After processing
 
-All source files are removed from the input directory once they have been successfully processed into the output directory.
+All source files are removed from the input directory once they have been successfully processed into the output directory. Future scheduled posts and their images remain in the inbox.
 
 ## Command-line flags
 

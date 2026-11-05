@@ -25,6 +25,7 @@ import (
 	"context"
 	"fmt"
 	"image"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -71,6 +72,11 @@ func register(ext string, b PostBuilder) {
 // The ctx parameter is accepted for cancellation propagation; it is currently
 // wired through for API consistency.
 func Run(ctx context.Context, cfg *config.Config) (int, error) {
+	return runAt(ctx, cfg, time.Now().UTC())
+}
+
+// runAt takes one clock reading for the entire batch, including due-date checks.
+func runAt(ctx context.Context, cfg *config.Config, now time.Time) (int, error) {
 	entries, err := os.ReadDir(cfg.InputDir)
 	if err != nil {
 		return 0, fmt.Errorf("read input dir %s: %w", cfg.InputDir, err)
@@ -97,18 +103,33 @@ func Run(ctx context.Context, cfg *config.Config) (int, error) {
 		}
 
 		srcPath := filepath.Join(cfg.InputDir, entry.Name())
+		var publishAt time.Time
+		if strings.EqualFold(filepath.Ext(srcPath), ".md") {
+			_, publishAt, err = readMarkdown(srcPath)
+			if err != nil {
+				return 0, err
+			}
+			if publishAt.After(now) {
+				log.Printf("scheduled %s for %s; leaving in inbox", entry.Name(), publishAt.Format(time.RFC3339))
+				continue
+			}
+		}
 		plan, err := planPost(srcPath)
 		if err != nil {
 			return 0, fmt.Errorf("plan %s: %w", entry.Name(), err)
 		}
+		plan.publishAt = publishAt
 		plans = append(plans, plan)
 	}
 
 	// Phase 2 — commit all mutations.
 	count := 0
-	now := time.Now().UTC()
 	for _, plan := range plans {
-		if err := commitPlan(plan, postsDir, now); err != nil {
+		published := now
+		if !plan.publishAt.IsZero() {
+			published = plan.publishAt
+		}
+		if err := commitPlan(plan, postsDir, published); err != nil {
 			return count, fmt.Errorf("commit %s: %w", filepath.Base(plan.srcPath), err)
 		}
 		count++
@@ -120,6 +141,7 @@ func Run(ctx context.Context, cfg *config.Config) (int, error) {
 // postPlan captures everything validated in Phase 1 for a single source file.
 // No file-system mutations are recorded here; only validated content.
 type postPlan struct {
+	publishAt      time.Time
 	srcPath        string
 	ext            string
 	textHTML       string

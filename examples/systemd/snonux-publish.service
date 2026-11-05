@@ -1,0 +1,7 @@
+[Unit]
+Description=Publish due snonux inbox posts
+
+[Service]
+Type=oneshot
+TimeoutStartSec=15min
+ExecStart=%h/go/bin/snonux --input %h/.gosdir/snonux/inbox --output %h/.gosdir/snonux/dist --sync

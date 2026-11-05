@@ -160,6 +160,45 @@ func TestMarkdownInput(t *testing.T) {
 	assertContains(t, index, "<h1>", "index.html markdown h1")
 }
 
+func TestScheduledPostsStayPrivateUntilDue(t *testing.T) {
+	inputDir, outputDir := makeDirs(t)
+	for name, content := range map[string]string{
+		"due.md":     "<!-- publish-at: 2020-01-01T10:00:00+02:00 -->\n\nA due scheduled update",
+		"future.md":  "<!-- publish-at: 2100-01-01T10:00:00+02:00 -->\n\nA private future update\n![private](future.png)",
+		"future.png": "private image bytes",
+	} {
+		if err := os.WriteFile(filepath.Join(inputDir, name), []byte(content), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	runPipeline(t, inputDir, outputDir)
+	for _, name := range []string{"index.html", "atom.xml"} {
+		content := readFile(t, filepath.Join(outputDir, name))
+		assertContains(t, content, "A due scheduled update", name)
+		if strings.Contains(content, "private") || strings.Contains(content, "publish-at") {
+			t.Errorf("%s leaked a future post or scheduling directive", name)
+		}
+	}
+	feed := readFile(t, filepath.Join(outputDir, "atom.xml"))
+	assertContains(t, feed, "2020-01-01T08:00:00Z", "scheduled feed timestamp")
+	for _, name := range []string{"future.md", "future.png"} {
+		if _, err := os.Stat(filepath.Join(inputDir, name)); err != nil {
+			t.Fatalf("future source %s lost: %v", name, err)
+		}
+	}
+	if err := filepath.WalkDir(filepath.Join(outputDir, "posts"), func(path string, entry os.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if entry.Name() == "future.png" {
+			t.Error("future image copied to public output")
+		}
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+}
+
 // assertStandaloneImagePost checks index.html and posts/<id>/image.jpg after a lone image input.
 func assertStandaloneImagePost(t *testing.T, outputDir string) {
 	t.Helper()

@@ -85,7 +85,7 @@ var imageRefPattern = regexp.MustCompile(`!\[[^\]]*\]\(([^)]+)\)`)
 // Referenced images that exist alongside the source file are returned so the
 // caller can copy them into the post asset directory.
 func processMd(path string) (htmlContent string, localImages []string, err error) {
-	data, err := os.ReadFile(path)
+	data, _, err := readMarkdown(path)
 	if err != nil {
 		return "", nil, fmt.Errorf("read markdown %s: %w", path, err)
 	}

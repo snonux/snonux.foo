@@ -2,4 +2,4 @@
 package version
 
 // Version is the application version (semantic versioning).
-const Version = "0.21.0"
+const Version = "0.22.0"

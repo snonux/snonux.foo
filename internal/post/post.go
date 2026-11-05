@@ -27,7 +27,8 @@ type Post struct {
 	// ID is the unique directory-name-safe timestamp, e.g. "2026-04-09-143022".
 	ID string `json:"id"`
 
-	// Timestamp is the moment the post was processed (UTC).
+	// Timestamp is the publication time (UTC): the scheduled time, if provided,
+	// otherwise the moment the post was processed.
 	Timestamp time.Time `json:"timestamp"`
 
 	// PostType determines how the content was generated and how it should be rendered.
